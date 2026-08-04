@@ -40,25 +40,41 @@ The architecture that follows: **retrieval is the recall stage, the learned mode
 
 ## 🚧 Current status
 
-**Pre-deployment.** Phase 0 (scaffold) is complete and Phase 1 (data acquisition) is partly complete. Nothing is live at `pants.mdeller.com` yet.
+**Pre-deployment.** The offline pipeline runs end to end from metagenome FASTA to embedded candidates. Nothing is live at `pants.mdeller.com` yet.
 
 | Phase | State |
 |---|---|
 | 0: Scaffold, schema, manifest provenance | ✅ Complete |
-| 1: Seed curation and hard negatives | 🟡 Partly complete, gate not cleared |
-| 2: Recall (HMM profiles, MMseqs2, HMMER) | ⬜ Not started |
-| 3 to 6: Embedding, training, structures | ⬜ Not started |
+| 1: Curation, hard negatives, activity data | ✅ Complete, gate still MARGINAL |
+| 2: Recall (profile HMMs, MMseqs2, HMMER) | ✅ Complete |
+| 4: ESM-2 embedding | ✅ Complete |
+| 5: Activity head, calibration, evaluation | ⬜ Next |
+| 6: Structures and active-site geometry | ⬜ Not started |
 | 7 to 8: Web app and deployment | ⬜ Not started |
 
 What is in the database today:
 
 | Set | Count | Notes |
 |---|---|---|
-| Curated positives | 9 | 5 wild types fetched from UniProt, 4 variants derived and validated |
-| Family positives | 79 | ESTHER `Polyesterase-lipase-cutinase`, annotation only |
-| Hard negatives | 252 | Matched on five axes (see below) |
-| Near misses | 111 | ESTHER `Cutinase` family: the decision boundary |
-| Recorded without sequence | 5 | DuraPETase, HotPETase, TurboPETase, Z1-PETase, Cut190\*\*SS |
+| **Candidates** | **128** | Mined from 2.2M metagenomic proteins, all triad-complete |
+| Positives | 529 | Of which **16 experimentally evidenced**, the rest predicted (see below) |
+| Hard negatives | 131 | Matched on five axes |
+| Near misses | 125 | ESTHER `Cutinase` family: the decision boundary |
+| Activity measurements | 47 | Km, Topt, pH optimum, each citing its PubMed IDs |
+| Embeddings | 848 | ESM-2 t12-35M, 480-dim, frozen |
+| Excluded from training | 70 | Fragments and length outliers, marked not deleted |
+
+### Positives by evidence tier
+
+The count that matters is not 529 but **16**: the number with experimental evidence behind the label.
+
+| Tier | n | What it means |
+|---|---|---|
+| `EC-auto-annotated` | 449 | EC 3.1.1.101 assigned by similarity (ECO:0000256). A prediction, not a measurement |
+| `ESTHER-family-predicted` | 50 | Family membership only |
+| `ESTHER-family-protein-evidence` | 14 | Family, protein observed |
+| `EC-experimental` | 10 | EC 3.1.1.101 with ECO:0000269 and PubMed citations |
+| Curated wild types and variants | 6 | Hand-curated, sequence-verified, mutations validated |
 
 ## 🧪 What Phase 1 found
 
@@ -68,9 +84,72 @@ Two findings that changed the plan, both surfaced by the pre-training sanity gat
 
 **The hard negatives were separable on amino-acid composition alone.** Cluster-grouped, a classifier using nothing but 20 amino-acid fractions and length scored AUC 0.954 against a null of 0.495. The coefficients diagnosed it: negatives Leu-rich, positives Ser/Thr/Gly/Pro-rich, which is a **secreted-versus-cytoplasmic** signature rather than polyester chemistry. Every characterised polyesterase is secreted; the negative families were largely intracellular.
 
-Negatives are now matched on five axes: length distribution, identity to nearest positive, genus cap, **signal peptide**, and **phylum**. That moved the baseline from 0.954 to 0.842, which is still above the 0.75 pass threshold. Phylum matching specifically contributed almost nothing (0.845 to 0.842), which is itself informative: the residual is not GC-driven.
+Negatives are now matched on five axes: length distribution, identity to nearest positive, genus cap, **signal peptide**, and **phylum**. Phylum matching specifically contributed almost nothing (0.845 to 0.842), which is itself informative: the residual is not GC-driven.
 
-Consequently the composition baseline is now a **permanently reported metric** alongside the retrieval baseline, not merely a pre-training gate. Any claim the model makes has to clear both.
+**Curating real activity data moved it further.** `EC 3.1.1.101` is poly(ethylene terephthalate) hydrolase, a curator's assignment of measured function rather than a family guess, and harvesting it took the positive set from 87 sequences in 11 clusters to 529 in 29:
+
+| Positive set | Clusters | Composition baseline | Verdict |
+|---|---|---|---|
+| Curated only | 1 | 0.9996 (leakage, not a measurement) | invalid |
+| Plus ESTHER family | 11 | 0.842 | MARGINAL |
+| Plus EC 3.1.1.101 | 29 | **0.778** | MARGINAL |
+
+Still short of the 0.75 pass mark, but the trend confirms the diagnosis: much of the apparent shortcut was a small-sample artefact that shrinks as real diversity arrives.
+
+Consequently the composition baseline is a **permanently reported metric** alongside the retrieval baseline, not merely a pre-training gate. Any claim the model makes has to clear both.
+
+**A caution about the evidence tiers.** Of the 449 entries carrying EC 3.1.1.101 by automatic annotation, none is a measurement: they hold `ECO:0000256` (by similarity), not `ECO:0000269` (experimental). They were briefly labelled "unreviewed", which reads as a curation backlog rather than the substantive difference it is. Sixteen positives have experimental evidence. That is the number the Methods tab will report.
+
+## 🔭 The profile library and the recall run
+
+Recall is a two-stage funnel: MMseqs2 casts the net across millions of sequences fast, HMMER makes the sensitive call on the survivors. Every candidate keeps its retrieval numbers (E-value, bitscore, profile identity), because those are the baseline the learned model has to beat.
+
+The library is **one profile HMM per 30% sequence cluster**, each with its own catalytic anchor, rather than a single pooled profile. That matters: a single profile built over the polyesterases scored **0 of 111 near misses** as triad-complete, not because classic cutinases lack a catalytic triad but because they never aligned well enough for the columns to map. Per-cluster profiles took that to 79%, so the near misses survive recall and reach the scoring stage where they belong.
+
+Anchors come from UniProt's own `Active site` annotation rather than being hardcoded. Cross-checked before adoption: aligning to a pooled profile and reading IsPETase's verified S160/D206/H237 columns predicted LCC as S165/D210/H242 and TfCut2 as S170/D216/H248, and UniProt's independently curated annotations give exactly those numbers.
+
+| | |
+|---|---|
+| Library built from | 529 positives in 29 clusters at 30% identity |
+| Profiles | 3 (264, 73 and 3 sequences), anchored on LCC, `P9WP41` and `A6WFI5` |
+| Proteins scanned | 2,220,462 |
+| Candidates recovered | **128**, all triad-complete |
+| Runtime | 1,424 s (24 min) on an M1 Max |
+
+### Funnel
+
+| Stage | Surviving | Note |
+|---|---|---|
+| Scanned | 2,220,462 | |
+| MMseqs2 prefilter, E ≤ 1e-5 | 1,698 | 0.08% |
+| Matched a profile (hmmscan) | 892 | |
+| Complete catalytic triad | 134 | 15% of profile-matched |
+| Unique candidates written | **128** | content-addressed, so the same protein found in two assemblies collapses to one row |
+
+Retention is 0.006%. That is a **choice** (a strict E-value against 500 positives, then a hard triad requirement), not a property of the data.
+
+### By source environment
+
+| Environment | Study | Proteins scanned | Candidates | Per 1M | Median length | Median identity | Max identity | Best bitscore |
+|---|---|---|---|---|---|---|---|---|
+| Compost | MGYS00006036, MGYS00005026 | 1,020,575 | 69 | 67.6 | 287 aa | 0.341 | 1.000 | 486.0 |
+| Marine plastisphere | MGYS00006544 | 737,027 | 44 | 59.7 | 246 aa | 0.265 | 0.397 | 64.9 |
+| Landfill | MGYS00004882 | 436,229 | 15 | 34.4 | 294 aa | 0.328 | 0.777 | 297.8 |
+| Wastewater | MGYS00004904 | 26,631 | 0 | 0.0 | | | | |
+
+**The identity bands are the interesting part**, because they separate rediscovery from genuinely unexplored sequence space:
+
+| Environment | ≥70% identity (rediscovery) | 40 to 70% | <40% (novel) |
+|---|---|---|---|
+| Compost | 15 | 14 | 40 |
+| Marine plastisphere | **0** | **0** | **44** |
+| Landfill | 1 | 2 | 12 |
+
+Compost gives the highest yield per million proteins and hands back 15 near-identical copies of enzymes that are already characterised, one of them a 100% identity match. That is unsurprising: LCC itself is leaf-branch compost derived, so compost is where the field has already looked.
+
+**Every single marine plastisphere candidate sits below 40% identity to anything characterised**, with a best bitscore of 64.9 against compost's 486. Nothing in that cohort is a rediscovery. This is spec section 2's thesis in one table: E-value rank pushes the well-known enzymes to the top and the unexplored ones down, and re-ranking that is exactly what the learned model is for.
+
+The wastewater assembly returned nothing, which is a reasonable null: it is the only source in the set that is neither plastic-associated nor compost.
 
 ## 🧱 Stack
 
@@ -160,7 +239,9 @@ Corrections this caught during curation: `Q6A0I4` was initially curated as Cut19
 4. Predicted structures are predictions. Cleft geometry from ESMFold on a metagenomic sequence with no close homologue carries real uncertainty.
 5. Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo. Those decide whether any of this is a therapy.
 6. Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.
-7. The composition baseline sits at AUC 0.842. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
+7. The composition baseline sits at AUC 0.778. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
+8. Of 529 positives, only 16 carry experimental evidence. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
+9. Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.
 
 ## 📚 Data sources
 
@@ -188,12 +269,15 @@ Roadmap for PANTS, roughly in dependency order. Suggestions welcome.
 - [x] **Run the trivial-baseline gate before any embedding work (plan risk 1).** It fired, and found both that the curated positives are one cluster rather than nine examples, and that the negatives were separable on a secreted-versus-cytoplasmic composition signature
 - [x] **Record an evidence level on every positive.** UniProt `protein_existence` separates the 23 with protein-level evidence from the 56 predicted or inferred, so the two are never pooled in a reported metric
 - [x] **Make the composition baseline a permanent reported metric.** Stored alongside the retrieval baseline in `training_runs`, with `n_positive_clusters` recording independent units rather than the raw count
-- [ ] **Full PAZy curation with measured activity data.** Extract (enzyme, substrate form, crystallinity, temperature, pH, buffer, duration, product measured, rate) into `activity_measurements`, recording which numbers are mutually comparable and falling back to within-paper ordinal ranking where harmonisation is impossible. This is the highest-value unblocked work: it is the only route to positives with real labels rather than family annotation
+- [x] **Curate measured activity data.** Taken from UniProt's machine-readable, citable annotations rather than transcribed from PDFs, which is where fabrication risk lives. `EC 3.1.1.101` (poly(ethylene terephthalate) hydrolase) gave 459 entries and took the positive set from 87 sequences in 11 clusters to 529 in 29. 47 measurements extracted (21 Km, 8 Topt, 8 pH optima, 10 qualitative), each carrying its PubMed IDs, with `comparable_group_id` keyed on parameter plus substrate so a Km on pNP-butanoate is never pooled with one on PET film
+- [ ] **Extend curation to rates on PET itself.** The extracted Km values are on soluble ester proxies (pNP esters), not on PET film or powder. Rates on real PET remain locked in paper supplementaries, and spec section 5.4's ordinal-within-paper fallback has not been built
 - [ ] **Resolve the Cut190 strain ambiguity.** `W0TJ64` versus `C7MVE8`, both 304 aa, AHK190 versus type strain P101. Currently flagged in the seed notes and unresolved
 - [ ] **Confirm the outstanding mutation sets.** DuraPETase, HotPETase, TurboPETase, Z1-PETase and Cut190\*\*SS are recorded without sequences because their complete mutation sets were not confirmed. A partial set yields a wrong sequence, which is worse than an honest gap
-- [ ] **Choose the metagenome collection, size-checked first.** One MGnify plastisphere or landfill study, queried for its size via the API before any bulk download; refuse anything over ~30 GB against a ~62 GB local budget
-- [ ] **Build the recall stage.** Profile HMMs from the positives and relevant ESTHER families, MMseqs2 prefilter, HMMER sensitive pass, then the triad and oxyanion-hole completeness filter, reporting how many candidates are discarded
-- [ ] **Embed the candidate set.** ESM-2 t12-35M, frozen, CPU, offline
+- [x] **Choose and acquire the metagenome collections, size-checked first.** 2,220,462 predicted proteins (858 MB) from landfill, marine plastisphere and compost assemblies. Only assemblies carry proteins: MGnify's largest plastisphere study has 357 samples and no protein sequences at all, being 16S amplicon
+- [x] **Build the recall stage.** One profile HMM per 30% cluster, each anchored on UniProt's own Active site annotation, MMseqs2 prefilter then hmmscan and a triad completeness filter. 128 candidates from 2.2M proteins in 24 minutes, with discard counts reported at every step
+- [ ] **Detect the oxyanion hole properly.** Currently a weak sequence proxy: the hole is formed by backbone amides, which is a structural property, so the real determination has to wait for the structure stage
+- [x] **Embed the candidate set.** ESM-2 t12-35M, frozen, CPU, mean-pooled with padding and CLS/EOS excluded. 848 vectors at 480 dimensions in under a minute
+- [x] **Filter fragments and length outliers.** From UniProt's own Fragment flag rather than a length cutoff, plus a 200 to 450 aa window derived from the experimentally evidenced positives. Marked, never deleted, so the catalogue stays complete and the exclusion stays auditable
 - [ ] **Train the PET activity head.** PU-corrected loss with the class prior estimated rather than assumed, sensitivity-tested across 1/3/5/10%, then Platt or isotonic calibration
 - [ ] **Run the full evaluation protocol.** Cluster splits at 30% and 50%, leave-one-family-out, retrieval baseline, reliability diagrams, prospective holdout by date, and separate reporting for the measured-activity and annotation-only subsets
 - [ ] **Smoke-test ESMFold on one structure before committing to fifty.** Apple Silicon support is asserted rather than verified; Boltz-2 via BoltzMaker is the fallback, with real timings already measured on this machine
