@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 -- ============================================================
@@ -201,8 +201,15 @@ CREATE TABLE IF NOT EXISTS activity_measurements (
     buffer                 TEXT,
     assay_duration_h       REAL,
     product_measured       TEXT,      -- TPA_HPLC | turbidity | weight_loss
+    parameter_type         TEXT,      -- km | kcat | vmax | topt | ph_opt | specific_activity
     rate_value             REAL,
     rate_units             TEXT,
+    raw_text               TEXT,      -- the source statement, kept verbatim. Optima are
+                                      -- reported as prose ("Optimum pH is 8.5 with
+                                      -- pNP-butyrate"), and the parsed number alone loses
+                                      -- the substrate and the conditions it depends on.
+    evidence_code          TEXT,      -- ECO:0000269 = experimental evidence from a
+                                      -- publication. Anything weaker is not a measurement.
     comparable_group_id    TEXT,
     ordinal_rank_in_paper  INTEGER,
     source_doi             TEXT,

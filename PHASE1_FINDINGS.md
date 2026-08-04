@@ -266,3 +266,92 @@ Catalogue and a mis-coloured Home hero plot.
 Environment is a ranking-relevant axis in this project, not decoration, so it is now
 resolved from each study's MGnify biome via `mgnify.STUDY_BIOME` rather than guessed from
 a filename.
+
+---
+
+# Phase 1.1 revisited: activity curation without typing rates out of PDFs
+
+PAZy has no API, so the obvious route to measured activity is transcribing numbers from
+papers. That is exactly where fabrication risk lives, and a wrong rate is undetectable
+downstream. UniProt carries the same information in machine-readable, citable form, so
+every row below is sourced and checkable.
+
+## 11. EC 3.1.1.101 is the label that was missing
+
+`EC 3.1.1.101` is **poly(ethylene terephthalate) hydrolase**: a curator's assignment of
+PET-hydrolysing function, not a family guess. UniProt holds 459 entries carrying it
+(EC 3.1.1.102 for MHETase holds 62).
+
+**But the tier matters, and nearly got misreported.** Only the 10 Swiss-Prot reviewed
+entries carry `ECO:0000269` (experimental evidence from a publication). The other 449 are
+TrEMBL entries whose EC comes from `ECO:0000256`, automatic annotation by similarity.
+Those were initially labelled `EC-3.1.1.101-unreviewed`, which reads as a mere curation
+backlog rather than the substantive difference it is. They are now `EC-auto-annotated`,
+with a note saying plainly that the EC number is a prediction of PET activity and not a
+measurement.
+
+Positive set after curation: **529, of which 16 are experimentally evidenced.**
+
+| Tier | n | What it means |
+|---|---|---|
+| `EC-auto-annotated` | 449 | EC 3.1.1.101 by similarity (ECO:0000256). A prediction |
+| `ESTHER-family-predicted` | 50 | Family membership only |
+| `ESTHER-family-protein-evidence` | 14 | Family, protein observed |
+| `EC-experimental` | 10 | EC 3.1.1.101 with ECO:0000269 and PubMed citations |
+| Curated wild types and variants | 6 | Hand-curated, sequence-verified |
+
+## 12. 47 measurements, every one carrying its PubMed IDs
+
+| Parameter | Rows | With a parsed value |
+|---|---|---|
+| Km | 21 | 21 |
+| Catalytic activity (PET) | 10 | n/a, qualitative |
+| Temperature optimum | 8 | 8 |
+| pH optimum | 8 | 8 |
+
+Optima are stored with their prose intact in `raw_text`, because the number alone loses
+the substrate and conditions it depends on ("Optimum pH is 8.5 with pNP-butyrate as
+substrate"). `comparable_group_id` keys on parameter plus substrate, so a Km on
+pNP-butanoate can never be pooled with one on PET film. UniProt often embeds the
+conditions in the substrate string, which fragments the groups further, and that is
+correct: `km:pnp-butanoate (at 50 degrees celsius and ph 8)` genuinely is not comparable
+with `km:pnp-butanoate (at 25 degrees celsius and ph 7)`.
+
+## 13. The therapeutic gap, now measured rather than asserted
+
+Spec section 1.1 tabulates the industrial-versus-therapeutic mismatch as a premise. The
+extracted optima turn it into data:
+
+| Enzyme | Topt | pH opt |
+|---|---|---|
+| Q47RJ6, Q47RJ7 (*T. fusca*) | 60 °C | 8.0 |
+| G8GER6 (TfCut1), TfCut2 | 55 °C | 8.0 |
+| LCC | 50 °C | 8.5 |
+| F7IX06, D4Q9N1 (*T. alba*) | 50 °C | 6.0 |
+| **IsPETase** | **40 °C** | 9.0 |
+
+Every characterised PET hydrolase with a measured optimum sits at 40 to 60 °C and mostly
+alkaline. IsPETase at 40 °C is the closest thing to a physiological enzyme in the entire
+characterised set, and it is still 3 °C above body temperature at a pH optimum of 9.
+
+This is also real training data for the v2 Topt head, which previously had none.
+
+## 14. The gate moved
+
+Re-running the risk-1 trivial baseline with the curated positive set:
+
+| Positive set | Clusters | Composition baseline AUC | Verdict |
+|---|---|---|---|
+| Curated only | 1 | 0.9996 (leakage) | invalid |
+| Plus ESTHER family | 11 | 0.842 | MARGINAL |
+| **Plus EC 3.1.1.101** | **29** | **0.778** | MARGINAL |
+
+0.778 against a 0.75 pass threshold, with p10 at 0.663. Still not a pass, but the trend
+confirms the Phase 1 diagnosis: a large part of the apparent compositional shortcut was a
+small-sample, low-diversity artefact, and it shrinks as real diversity is added. Twenty-nine
+independent clusters is also the first point at which the evaluation protocol in spec
+section 8 has enough units to mean much.
+
+**Caveat to carry forward:** the EC-annotated set widens the length range to 63 to 835 aa,
+which includes fragments and probable multi-domain proteins. That should be filtered before
+training, and it is why the matched negative set shrank to 131.
