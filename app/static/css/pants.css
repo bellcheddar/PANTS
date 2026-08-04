@@ -44,47 +44,6 @@ code, pre, .mono { font-family: 'Roboto Mono', monospace; }
 a { color: var(--md-primary); }
 img, canvas, svg { max-width: 100%; }
 
-/* ---------- header ---------- */
-.md-header {
-  background: linear-gradient(135deg, var(--md-primary-dark) 0%, var(--md-primary) 100%);
-  color: var(--md-text-light);
-  box-shadow: var(--md-shadow-sm);
-  position: sticky; top: 0; z-index: 100;
-}
-.md-header-inner {
-  max-width: 1400px; margin: 0 auto; padding: 12px 24px;
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-}
-.md-header-brand a {
-  display: flex; align-items: center; gap: 8px;
-  color: rgba(255,255,255,0.9); text-decoration: none;
-  font-weight: 600; font-size: 13px; letter-spacing: 0.02em; white-space: nowrap;
-}
-.md-header-brand a:hover { color: #fff; }
-.md-logo-dot { width: 10px; height: 10px; background: var(--md-accent-amber); border-radius: 50%; flex-shrink: 0; }
-.md-header-title { flex: 1; min-width: 0; }
-.md-header-title h1 {
-  font-size: 16px; font-weight: 700; color: #fff; margin: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.md-header-links { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
-.md-header-links a {
-  color: rgba(255,255,255,0.85); text-decoration: none; font-size: 12px;
-  padding: 4px 12px; border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
-  transition: all 0.2s; white-space: nowrap;
-}
-.md-header-links a:hover { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.6); }
-
-/* ---------- nav ---------- */
-.md-nav { background: var(--md-bg-alt); border-bottom: 1px solid var(--md-border); }
-.md-nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; gap: 4px; overflow-x: auto; }
-.md-nav a {
-  padding: 10px 16px; text-decoration: none; color: var(--md-text-muted);
-  font-size: 14px; font-weight: 500; border-bottom: 3px solid transparent; white-space: nowrap;
-}
-.md-nav a:hover { color: var(--md-primary); }
-.md-nav a.active { color: var(--md-primary); border-bottom-color: var(--md-primary); }
-
 /* ---------- layout ---------- */
 .md-main { max-width: 1400px; margin: 0 auto; padding: 24px; }
 .md-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
@@ -176,10 +135,6 @@ body {
 }
 a { color: var(--pv-accent); }
 
-.md-nav { background: rgba(6,8,16,.75); border-bottom: 1px solid var(--pv-border); }
-.md-nav a { color: var(--pv-dim); }
-.md-nav a:hover { color: var(--pv-accent); }
-.md-nav a.active { color: var(--pv-accent); border-bottom-color: var(--pv-accent); }
 
 .md-card {
   background: rgba(20,25,41,.82);
@@ -215,72 +170,108 @@ button:hover { border-color: var(--pv-accent); color: var(--pv-accent); }
 #viewer { border-color: var(--pv-border); background: #0a0c14; }
 footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
 
-/* ---------- figlet banner ----------
-   Every rule here is load-bearing and was learned the hard way on FlexAppeal:
-     text-align:left   the wrapper centres, and without this each ROW centres
-                       separately, sliding short rows sideways. The single
-                       most expensive bug of that project.
-     line-height:1     figlet strokes continue across the line break; any
-                       leading chops every diagonal into dashes.
-     whole-number px   fractional advance makes columns drift per glyph.
-     system mono       Roboto Mono's underscore is narrower than its advance
-                       and set right of centre, so ____ becomes dashes.
-     font-weight:400   500 makes the browser smear a synthetic bold sideways.
-   The art itself is byte-identical to pyfiglet 'chunky' and must stay so. */
-.md-banner { text-align: center; padding: 22px 16px 6px; }
-.md-banner pre {
-  display: inline-block;
+
+
+/* ======================================================================
+   MASTHEAD: one slab, no internal seams.
+   Replaces three stacked bands (brand bar / tab strip / banner) that each
+   had their own background, so the eye read three unrelated strips before
+   reaching any content. The banner and the strapline share a baseline
+   instead of the banner floating centred in an empty band, and the tabs
+   hang off the bottom of the same block.
+   The wordmark is also stated ONCE now: the ASCII says PANTS, the h1 says
+   what PANTS is. Previously both said PANTS.
+   ====================================================================== */
+.md-slab {
+  background: linear-gradient(180deg, #070912 0%, #12172b 100%);
+  border-bottom: 2px solid var(--pv-accent);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+.md-slab-inner { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+
+/* --- credit line --- */
+.md-credit {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 0 0; flex-wrap: wrap;
+}
+.md-credit > a {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--pv-dim); text-decoration: none;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap;
+}
+.md-credit > a:hover { color: var(--pv-accent); }
+/* The amber dot is the one colour constant across every app: enough to
+   signal authorship without dictating a palette. */
+.md-logo-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--md-accent-amber); box-shadow: 0 0 8px rgba(252,185,0,.55);
+  flex-shrink: 0;
+}
+.md-credit-links { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.md-credit-links a {
+  font-size: 11px; color: var(--pv-dim); text-decoration: none;
+  border: 1px solid var(--pv-border); border-radius: 20px; padding: 2px 10px;
+  white-space: nowrap;
+}
+.md-credit-links a:hover {
+  color: var(--pv-accent); border-color: var(--pv-accent);
+  background: rgba(143,180,255,.08);
+}
+
+/* --- banner + strapline, sharing a baseline --- */
+.md-masthead {
+  display: flex; align-items: flex-end; gap: 20px;
+  padding: 8px 0 0; flex-wrap: wrap;
+}
+/* Every rule here is load-bearing, learned across six rounds on FlexAppeal:
+     text-align:left  the parent may centre; without this each ROW centres
+                      separately and short rows slide sideways.
+     line-height:1    figlet strokes continue across the break; any leading
+                      chops diagonals into dashes.
+     whole-number px  a fractional advance drifts columns per glyph.
+     system mono      Roboto Mono's underscore is narrower than its advance.
+     font-weight:400  500 makes the browser smear a synthetic bold sideways.
+   banner3 is additionally 0% underscore characters, so it cannot suffer the
+   detached-underscore failure at all. Art stays byte-identical to pyfiglet. */
+.md-banner {
   margin: 0;
   text-align: left;
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1;
   font-weight: 400;
   white-space: pre;
   color: var(--pv-accent);
+  flex: 0 0 auto;
 }
-.md-banner-sub {
-  margin: 10px 0 0;
-  font-size: 11px;
-  letter-spacing: .18em;
-  text-transform: uppercase;
+.md-strap {
+  margin: 0 0 3px;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: .1em;
+  /* NOT uppercased. The capitals in "PETase ANnotation and Triage System" are
+     what spell out PANTS: transforming the case destroys the only place the
+     acronym is explained. */
   color: var(--pv-accent-2);
 }
-/* Whole-number px at every step: a fractional advance makes columns drift per
-   glyph, which is invisible at some widths and obvious at others. banner3 is
-   47 columns wide, so the steps are sized to keep it inside the viewport. */
-@media (max-width: 900px) { .md-banner pre { font-size: 11px; } }
-@media (max-width: 700px) { .md-banner pre { font-size: 9px; } }
-@media (max-width: 560px) { .md-banner pre { font-size: 7px; } .md-banner-sub { font-size: 10px; letter-spacing:.12em; } }
 
-/* ---------- brand bar, themed ----------
-   The header STRUCTURE is fixed everywhere (logo dot, name, both links, sticky,
-   never overlapping content) because that is the identity and the contact route.
-   Its COLOURS belong to the app, like everything else on the page: a #1e73be
-   gradient sitting on a dark lattice ground read as a strip of a different
-   website pasted on top. */
-.md-header {
-  background: linear-gradient(180deg, #0a0c16 0%, #11162a 100%);
-  border-bottom: 1px solid var(--pv-border);
-  box-shadow: 0 1px 0 rgba(143,180,255,.12), 0 8px 24px rgba(0,0,0,.45);
-  color: var(--pv-text);
+/* --- tabs, hanging off the bottom of the slab --- */
+.md-nav { display: flex; gap: 22px; padding: 12px 0 0; overflow-x: auto; }
+.md-nav a {
+  padding: 0 0 9px; text-decoration: none;
+  color: var(--pv-dim); font-size: 13.5px; font-weight: 500;
+  border-bottom: 2px solid transparent; white-space: nowrap;
 }
-.md-header-brand a { color: var(--pv-dim); }
-.md-header-brand a:hover { color: var(--pv-accent); }
-/* The amber dot is the one constant across every app: a single fixed mark is
-   enough to signal authorship without dictating the whole palette. */
-.md-logo-dot { background: var(--md-accent-amber); box-shadow: 0 0 8px rgba(252,185,0,.5); }
-.md-header-title h1 {
-  color: var(--pv-text);
-  font-weight: 600;
-  letter-spacing: .01em;
+.md-nav a:hover { color: var(--pv-accent); }
+.md-nav a.active { color: var(--pv-accent); border-bottom-color: var(--pv-accent); }
+
+@media (max-width: 820px) {
+  .md-slab-inner { padding: 0 16px; }
+  .md-banner { font-size: 9px; }
+  .md-masthead { gap: 12px; }
 }
-.md-header-links a {
-  color: var(--pv-dim);
-  border-color: var(--pv-border);
-}
-.md-header-links a:hover {
-  background: rgba(143,180,255,.1);
-  color: var(--pv-accent);
-  border-color: var(--pv-accent);
+@media (max-width: 560px) {
+  .md-banner { font-size: 6px; }
+  .md-strap { font-size: 11px; letter-spacing: .06em; }
+  .md-nav { gap: 16px; }
+  .md-credit-links a { padding: 1px 8px; }
 }
