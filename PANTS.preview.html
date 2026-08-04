@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+.emd { color:#111111; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+  font-size:clamp(16px,1rem + 0.2vw,18px); line-height:1.7; overflow-wrap:anywhere; width:100%; max-width:none; }
+.emd *,.emd *::before,.emd *::after { box-sizing:border-box; }
+.emd h1,.emd h2,.emd h3,.emd h4,.emd h5,.emd h6 { line-height:1.2; margin:1.4em 0 0.6em; overflow-wrap:anywhere; }
+.emd h1 { font-size:clamp(2rem,1.5rem + 2.4vw,2.75rem); margin-top:0.2em; }
+.emd h1 img { vertical-align:middle; margin-right:0.4rem; }
+.emd h2 { font-size:clamp(1.5rem,1.25rem + 1.4vw,2rem); border-bottom:1px solid #e5e7eb; padding-bottom:0.3em; }
+.emd h3 { font-size:clamp(1.2rem,1.05rem + 0.9vw,1.5rem); }
+.emd p,.emd li,.emd blockquote,.emd pre { max-width:none; }
+.emd p,.emd ul,.emd ol,.emd blockquote,.emd pre,.emd table,.emd .emd-table-wrap,.emd hr { margin:0 0 1rem; }
+.emd ul,.emd ol { padding-left:1.4rem; }
+.emd ul.emd-tasklist { list-style:none; padding-left:0.2rem; }
+.emd ul.emd-tasklist li { margin:0.15rem 0; }
+.emd a { color:#467FF7; text-decoration:none; overflow-wrap:anywhere; }
+.emd a:hover { text-decoration:underline; }
+.emd img { max-width:100%; height:auto; }
+.emd p img { vertical-align:middle; }
+.emd pre,.emd code { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; }
+.emd code { background:#f6f8fa; padding:0.15em 0.35em; border-radius:6px; overflow-wrap:anywhere; }
+.emd pre { background:#f6f8fa; padding:1rem; overflow-x:auto; border-radius:10px; border:1px solid #e5e7eb; }
+.emd pre code { background:transparent; padding:0; overflow-wrap:normal; }
+.emd blockquote { padding:0.2rem 1rem; border-left:4px solid #467FF7; color:#555555; }
+.emd hr { border:0; border-top:1px solid #e5e7eb; }
+.emd .emd-table-wrap { width:100%; overflow-x:auto; }
+.emd table { width:100%; border-collapse:collapse; border-spacing:0; font-size:0.95rem; }
+.emd th,.emd td { border:1px solid #e5e7eb; padding:0.7rem 0.8rem; text-align:left; vertical-align:top; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
+.emd th { font-weight:700; }
+.emd .emd-data-table { table-layout:fixed; }
+.emd .emd-info-table { width:auto; max-width:100%; }
+.emd .emd-info-table th,.emd .emd-info-table td { border:0; padding:0.25rem 0.5rem; }
+@media (max-width:767px){
+  .emd { font-size:16px; line-height:1.65; }
+  .emd .emd-table-wrap { overflow-x:visible; }
+  .emd .emd-data-table,.emd .emd-data-table tbody,.emd .emd-data-table tr,.emd .emd-data-table td { display:block !important; width:100% !important; }
+  .emd .emd-data-table thead,.emd .emd-data-table th { display:none !important; }
+  .emd .emd-data-table { font-size:0.84rem; border:0; }
+  .emd .emd-data-table tr { margin:0 0 0.8rem; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; background:#ffffff; }
+  .emd .emd-data-table td { border:0; border-top:1px solid #e5e7eb; padding:0.45rem 0.7rem; line-height:1.35; }
+  .emd .emd-data-table tr td:first-child { border-top:0; }
+  .emd .emd-data-table td::before { content:attr(data-label); display:block; font-size:0.7rem; line-height:1.2; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#555555; margin-bottom:0.2rem; }
+  .emd .emd-data-table td[data-label=""]::before { content:none; }
+  .emd .emd-info-table,.emd .emd-info-table tbody,.emd .emd-info-table tr { display:block; }
+  .emd .emd-info-table td { display:inline-block; width:auto; padding:0.15rem 0.4rem 0.15rem 0; }
+}
+
+</style>
+</head>
+<body>
+<div class="emd">
+<h1>🧬 PANTS</h1>
+<blockquote>
+<p><strong>Find PET-degrading enzymes that work at 37 °C in serum, not at 70 °C in a reactor.</strong></p>
+</blockquote>
+<p><img alt="python" src="https://img.shields.io/badge/python-3.14-3776AB?logo=python&amp;logoColor=white"> <img alt="flask" src="https://img.shields.io/badge/flask-3.1-000000?logo=flask&amp;logoColor=white"> <img alt="sqlite" src="https://img.shields.io/badge/sqlite-WAL-003B57?logo=sqlite&amp;logoColor=white"> <img alt="esm2" src="https://img.shields.io/badge/ESM--2-t12--35M-467FF7"> <img alt="status" src="https://img.shields.io/badge/status-in%20development-fcb900"> <img alt="author" src="https://img.shields.io/badge/author-Marc%20C.%20Deller%2C%20D.Phil.-1C244B"></p>
+<table class="emd-info-table">
+<tr>
+<td>🌐 <b>Website</b></td><td><a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">marcdeller.com</a></td>
+<td>✉️ <b>Contact</b></td><td><a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a></td>
+<td>🐙 <b>GitHub</b></td><td><a href="https://github.com/bellcheddar/PANTS" target="_blank" rel="noopener noreferrer">bellcheddar/PANTS</a></td>
+</tr>
+</table>
+
+<hr>
+<p>PANTS (PETase ANnotation and Triage System) discovers, triages and engineers PETase-like and MHETase-like enzymes for <strong>therapeutic</strong> use: degrading PET microplastics under physiological conditions rather than in an industrial reactor. It mines metagenomic sequence space, ranks candidates on axes that matter at 37 °C, and will serve the result as an interactive catalogue with predicted structures and in-silico engineering.</p>
+<p><strong>Why it matters:</strong> essentially the entire published PETase field optimises for industrial conditions (above PET's glass transition at roughly 70 °C, often alkaline, with thermostability and enzyme cost as the dominant concerns). Therapeutic use inverts almost all of it: peak activity at 37 °C, pH 7.4, in serum, against highly crystalline aged microplastic, with immunogenicity and protease resistance suddenly central. A naive homology search seeded on characterised PETases ranks candidates <em>towards</em> the industrial optimum, because that is where the well-annotated, heavily-published enzymes sit. Correcting for that bias is most of what PANTS is for. It is useful for: anyone triaging polyesterase sequence space on physiological rather than industrial criteria, and anyone who wants a calibrated probability rather than an E-value rank before committing a wet-lab screening budget.</p>
+<h2>🧭 Why this is not a homology search</h2>
+<p>Detection is solved. Discrimination is not.</p>
+<p>A profile HMM built from characterised PET hydrolases returns thousands of α/β-hydrolase fold members sharing the Ser-His-Asp triad and the oxyanion hole. Almost none have meaningful activity on crystalline PET, and sequence identity to IsPETase is a weak predictor of PET activity, so E-value rank is close to uninformative about the property of interest.</p>
+<p>The architecture that follows: <strong>retrieval is the recall stage, the learned model is the precision stage.</strong> MMseqs2 and HMMER cast the net exhaustively and interpretably; the model ranks within it on axes retrieval is blind to. That also yields a free baseline: if the model cannot beat E-value rank on held-out characterised enzymes, that is a cheap and publishable negative result.</p>
+<h2>⚗️ The therapeutic constraint</h2>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Axis</th>
+<th>Industrial optimum</th>
+<th>Therapeutic requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Axis">Temperature</td>
+<td data-label="Industrial optimum">65 to 75 °C</td>
+<td data-label="Therapeutic requirement">Peak activity at 37 °C</td>
+</tr>
+<tr>
+<td data-label="Axis">pH</td>
+<td data-label="Industrial optimum">8 to 9</td>
+<td data-label="Therapeutic requirement">7.2 to 7.4</td>
+</tr>
+<tr>
+<td data-label="Axis">Substrate</td>
+<td data-label="Industrial optimum">Amorphous, pre-treated, high surface area</td>
+<td data-label="Therapeutic requirement">Highly crystalline aged microplastic and nanoplastic</td>
+</tr>
+<tr>
+<td data-label="Axis">Medium</td>
+<td data-label="Industrial optimum">Buffer</td>
+<td data-label="Therapeutic requirement">Serum, plasma proteins, lipids, physiological ionic strength</td>
+</tr>
+<tr>
+<td data-label="Axis">Stability concern</td>
+<td data-label="Industrial optimum">Thermal denaturation over days</td>
+<td data-label="Therapeutic requirement">Serum protease resistance, aggregation, clearance</td>
+</tr>
+<tr>
+<td data-label="Axis">Immunogenicity</td>
+<td data-label="Industrial optimum">Irrelevant</td>
+<td data-label="Therapeutic requirement">Central</td>
+</tr>
+<tr>
+<td data-label="Axis">Product handling</td>
+<td data-label="Industrial optimum">Recovered and recycled</td>
+<td data-label="Therapeutic requirement">TPA and EG must be tolerable at achievable local concentrations</td>
+</tr>
+</tbody>
+</table></div>
+<h2>🚧 Current status</h2>
+<p><strong>Pre-deployment.</strong> Phase 0 (scaffold) is complete and Phase 1 (data acquisition) is partly complete. Nothing is live at <code>pants.mdeller.com</code> yet.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Phase">0: Scaffold, schema, manifest provenance</td>
+<td data-label="State">✅ Complete</td>
+</tr>
+<tr>
+<td data-label="Phase">1: Seed curation and hard negatives</td>
+<td data-label="State">🟡 Partly complete, gate not cleared</td>
+</tr>
+<tr>
+<td data-label="Phase">2: Recall (HMM profiles, MMseqs2, HMMER)</td>
+<td data-label="State">⬜ Not started</td>
+</tr>
+<tr>
+<td data-label="Phase">3 to 6: Embedding, training, structures</td>
+<td data-label="State">⬜ Not started</td>
+</tr>
+<tr>
+<td data-label="Phase">7 to 8: Web app and deployment</td>
+<td data-label="State">⬜ Not started</td>
+</tr>
+</tbody>
+</table></div>
+<p>What is in the database today:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Set</th>
+<th>Count</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Set">Curated positives</td>
+<td data-label="Count">9</td>
+<td data-label="Notes">5 wild types fetched from UniProt, 4 variants derived and validated</td>
+</tr>
+<tr>
+<td data-label="Set">Family positives</td>
+<td data-label="Count">79</td>
+<td data-label="Notes">ESTHER <code>Polyesterase-lipase-cutinase</code>, annotation only</td>
+</tr>
+<tr>
+<td data-label="Set">Hard negatives</td>
+<td data-label="Count">252</td>
+<td data-label="Notes">Matched on five axes (see below)</td>
+</tr>
+<tr>
+<td data-label="Set">Near misses</td>
+<td data-label="Count">111</td>
+<td data-label="Notes">ESTHER <code>Cutinase</code> family: the decision boundary</td>
+</tr>
+<tr>
+<td data-label="Set">Recorded without sequence</td>
+<td data-label="Count">5</td>
+<td data-label="Notes">DuraPETase, HotPETase, TurboPETase, Z1-PETase, Cut190**SS</td>
+</tr>
+</tbody>
+</table></div>
+<h2>🧪 What Phase 1 found</h2>
+<p>Two findings that changed the plan, both surfaced by the pre-training sanity gate rather than by review. Full detail in <a href="PHASE1_FINDINGS.md"><code>PHASE1_FINDINGS.md</code></a>.</p>
+<p><strong>The nine curated positives are one cluster, not nine examples.</strong> They collapse into a single cluster at both 30% and 50% identity, because the engineered variants are 97.6% to 99.3% identical to their parents. Under the project's own evaluation rule (split by cluster, never by sequence) that is one independent example, so no cluster-split evaluation is possible over them and any cross-validation is pure leakage. The first ungrouped trivial baseline returned AUC 0.9996 for exactly that reason. Harvesting the full ESTHER polyesterase family took the positive set to 87 sequences in 11 clusters at 30%, at the cost of those being annotation-only labels.</p>
+<p><strong>The hard negatives were separable on amino-acid composition alone.</strong> Cluster-grouped, a classifier using nothing but 20 amino-acid fractions and length scored AUC 0.954 against a null of 0.495. The coefficients diagnosed it: negatives Leu-rich, positives Ser/Thr/Gly/Pro-rich, which is a <strong>secreted-versus-cytoplasmic</strong> signature rather than polyester chemistry. Every characterised polyesterase is secreted; the negative families were largely intracellular.</p>
+<p>Negatives are now matched on five axes: length distribution, identity to nearest positive, genus cap, <strong>signal peptide</strong>, and <strong>phylum</strong>. That moved the baseline from 0.954 to 0.842, which is still above the 0.75 pass threshold. Phylum matching specifically contributed almost nothing (0.845 to 0.842), which is itself informative: the residual is not GC-driven.</p>
+<p>Consequently the composition baseline is now a <strong>permanently reported metric</strong> alongside the retrieval baseline, not merely a pre-training gate. Any claim the model makes has to clear both.</p>
+<h2>🧱 Stack</h2>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Layer">Recall</td>
+<td data-label="Choice">MMseqs2 18-8cc5c, HMMER 3.4 (brew binaries, shelled out to)</td>
+</tr>
+<tr>
+<td data-label="Layer">Embedding</td>
+<td data-label="Choice">ESM-2 <code>t12-35M</code>, frozen, CPU</td>
+</tr>
+<tr>
+<td data-label="Layer">Heads</td>
+<td data-label="Choice">scikit-learn logistic regression, PU-corrected, Platt/isotonic calibration</td>
+</tr>
+<tr>
+<td data-label="Layer">Structures</td>
+<td data-label="Choice">ESMFold offline, Boltz-2 via BoltzMaker for ligand co-folds (v2)</td>
+</tr>
+<tr>
+<td data-label="Layer">Storage</td>
+<td data-label="Choice">SQLite (WAL), one file, no external database</td>
+</tr>
+<tr>
+<td data-label="Layer">Web</td>
+<td data-label="Choice">Flask + gunicorn behind nginx, server-rendered templates plus vanilla ES6</td>
+</tr>
+<tr>
+<td data-label="Layer">Front end</td>
+<td data-label="Choice">Plotly.js, Mol*, Tabulator. No React, Vue, npm, webpack, Streamlit or Dash</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Two virtual environments, deliberately.</strong> The droplet has 3.8 GB of RAM shared with five other applications, so the always-on web process never imports torch: <code>requirements-web.txt</code> is Flask, gunicorn and gemmi, and nothing else. All heavy compute is precomputed offline on an M1 Max and shipped as SQLite rows plus static mmCIF.</p>
+<h2>🔧 Installation</h2>
+<pre><code class="language-bash">git clone https://github.com/bellcheddar/PANTS.git
+cd PANTS
+
+# external tools
+brew install hmmer mmseqs2
+
+# pipeline venv (offline batch work: torch, transformers, scikit-learn)
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-pipeline.txt
+
+# web venv (always-on serving: no torch, ever)
+python3 -m venv .venv-web
+.venv-web/bin/pip install -r requirements-web.txt
+
+# keep bulk data out of the iCloud-synced Documents tree
+mkdir -p ~/PANTSData/{raw,interim}
+ln -s ~/PANTSData/raw data/raw
+ln -s ~/PANTSData/interim data/interim
+
+cp .env.example .env
+</code></pre>
+<h2>🚀 Usage</h2>
+<pre><code class="language-bash">.venv/bin/python PANTS.py init                # create dirs, DB schema, check symlinks
+.venv/bin/python PANTS.py curate-seeds        # fetch wild types, derive variants
+.venv/bin/python PANTS.py harvest-negatives   # ESTHER hard negatives, matched
+.venv/bin/python PANTS.py status              # database summary
+.venv/bin/python PANTS.py serve               # local dev server on :8005
+.venv/bin/pytest                              # 28 tests
+</code></pre>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Command"><code>init</code></td>
+<td data-label="Does">Creates the directory tree and the schema, enables WAL, warns if <code>data/raw</code> is not a symlink out of iCloud</td>
+</tr>
+<tr>
+<td data-label="Command"><code>curate-seeds</code></td>
+<td data-label="Does">Fetches each wild type from UniProt by accession and derives every confirmed variant from its parent</td>
+</tr>
+<tr>
+<td data-label="Command"><code>harvest-negatives</code></td>
+<td data-label="Does">Streams the ESTHER slice from UniProt, classifies by family, selects a matched negative set</td>
+</tr>
+<tr>
+<td data-label="Command"><code>status</code></td>
+<td data-label="Does">Counts of candidates, scores, structures, characterised enzymes and recent runs</td>
+</tr>
+<tr>
+<td data-label="Command"><code>serve</code></td>
+<td data-label="Does">Flask dev server (production uses gunicorn on port 8005)</td>
+</tr>
+</tbody>
+</table></div>
+<h2>🔬 Sequences are fetched, never typed</h2>
+<p>Every sequence enters through the UniProt REST client. Engineered variants have no accession of their own, so each is stored as a <strong>parent plus a mutation list</strong> and the sequence is derived, with <code>apply_mutations</code> refusing any substitution whose stated parent residue does not match.</p>
+<p>That check earns its keep: a wrong mutation set yields a sequence that is still a valid protein, still folds, still embeds and still trains. The error would never surface as a crash, only as quietly degraded scores. Where a complete mutation set could not be confirmed, the variant is recorded with <strong>no sequence</strong> and excluded from training, because a partial set gives a wrong sequence and that is worse than an honest gap.</p>
+<p><code>find_offset</code> determines the mature-versus-precursor numbering shift rather than guessing it: only an offset satisfying every mutation at once is accepted. All four confirmed variants validated at offset 0, across 14 residue positions.</p>
+<p>Corrections this caught during curation: <code>Q6A0I4</code> was initially curated as Cut190 and is actually <strong>TfCut2</strong> (<em>Thermobifida fusca</em>). Cut190 is <code>W0TJ64</code>, and its strain assignment (AHK190 versus type strain P101, both 304 aa) is still unresolved.</p>
+<h2>📊 Evaluation protocol</h2>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Element</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Element">Splits</td>
+<td data-label="Rule">By sequence cluster at 30% and 50% identity, never by sequence. Both reported</td>
+</tr>
+<tr>
+<td data-label="Element">Generalisation</td>
+<td data-label="Rule">Leave-one-family-out across ESTHER families</td>
+</tr>
+<tr>
+<td data-label="Element">Retrieval baseline</td>
+<td data-label="Rule">Model rank versus HMMER E-value rank on held-out characterised enzymes</td>
+</tr>
+<tr>
+<td data-label="Element">Composition baseline</td>
+<td data-label="Rule">Amino-acid composition plus length, cluster-grouped. Reported permanently</td>
+</tr>
+<tr>
+<td data-label="Element">Calibration</td>
+<td data-label="Rule">Reliability diagrams and Brier score, not just AUC</td>
+</tr>
+<tr>
+<td data-label="Element">Prospective set</td>
+<td data-label="Rule">Any PETase characterised after a fixed date, held out as a blind test</td>
+</tr>
+<tr>
+<td data-label="Element">Subsets</td>
+<td data-label="Rule">Reported separately for measured-activity and annotation-only positives</td>
+</tr>
+</tbody>
+</table></div>
+<h2>⚠️ Limitations</h2>
+<ol>
+<li>Positives number in the low hundreds, and most carry family annotation rather than measured PET activity. Every score is an extrapolation from a small, biased sample.</li>
+<li>Published activity data is not harmonised across assay formats. Absolute rate predictions should not be trusted.</li>
+<li>Crystalline PET degradation at 37 °C by any known enzyme is slow. PANTS ranks relative promise, not therapeutic viability.</li>
+<li>Predicted structures are predictions. Cleft geometry from ESMFold on a metagenomic sequence with no close homologue carries real uncertainty.</li>
+<li>Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo. Those decide whether any of this is a therapy.</li>
+<li>Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.</li>
+<li>The composition baseline sits at AUC 0.842. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.</li>
+</ol>
+<h2>📚 Data sources</h2>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Source</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Source">UniProt / UniRef</td>
+<td data-label="Use">Reference sequence space, taxonomy, evidence level, signal peptides</td>
+</tr>
+<tr>
+<td data-label="Source">ESTHER</td>
+<td data-label="Use">α/β-hydrolase family assignment, hard negatives, near misses</td>
+</tr>
+<tr>
+<td data-label="Source">PAZy</td>
+<td data-label="Use">Characterised plastic-degrading enzymes: the measured-activity positives</td>
+</tr>
+<tr>
+<td data-label="Source">PDB</td>
+<td data-label="Use">Experimental structures and ground-truth geometry</td>
+</tr>
+<tr>
+<td data-label="Source">MGnify, JGI IMG/M, OceanDNA, Tara Oceans</td>
+<td data-label="Use">Metagenomic assemblies for mining</td>
+</tr>
+<tr>
+<td data-label="Source">Meltome Atlas, FireProtDB</td>
+<td data-label="Use">Thermostability transfer learning</td>
+</tr>
+<tr>
+<td data-label="Source">AlphaFold DB</td>
+<td data-label="Use">Precomputed structures where a UniProt match exists</td>
+</tr>
+</tbody>
+</table></div>
+<h2>📝 Licence</h2>
+<p>Not yet chosen. Licensing, and whether the candidate catalogue is released as a dataset alongside the application, is an open project decision.</p>
+<hr>
+<h2>👤 Author</h2>
+<p><strong>Marc C. Deller, D.Phil.</strong><br>
+Structural biologist &amp; drug discovery scientist  </p>
+<table class="emd-info-table">
+<tr>
+<td>🌐</td><td><a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">marcdeller.com</a></td>
+<td>✉️</td><td><a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a></td>
+<td>🐙</td><td><a href="https://github.com/bellcheddar/PANTS" target="_blank" rel="noopener noreferrer">github.com/bellcheddar/PANTS</a></td>
+</tr>
+</table>
+</div>
+</body>
+</html>

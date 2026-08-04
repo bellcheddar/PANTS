@@ -29,7 +29,8 @@ from typing import Dict, Iterator, List, Optional, Set
 from .. import config, http
 
 SEARCH_URL = config.UNIPROT_REST_URL
-FIELDS = "accession,protein_name,organism_name,organism_id,length,sequence,xref_esther,lineage"
+FIELDS = ("accession,protein_name,organism_name,organism_id,length,sequence,"
+          "xref_esther,lineage,reviewed,protein_existence")
 _LINK_NEXT = re.compile(r'<([^>]+)>;\s*rel="next"')
 
 # --------------------------------------------------------------------------------------
@@ -84,6 +85,8 @@ class EstherHit:
     sequence: str
     length: int
     family: Optional[str]
+    reviewed: bool = False
+    protein_existence: Optional[str] = None
 
     @property
     def is_clean(self) -> bool:
@@ -132,6 +135,8 @@ def stream(query: str, max_results: Optional[int] = None) -> Iterator[EstherHit]
                 taxid=org.get("taxonId"),
                 lineage="; ".join(lineage) if isinstance(lineage, list) else lineage,
                 sequence=seq, length=len(seq), family=_family_of(res),
+                reviewed=res.get("entryType", "").startswith("UniProtKB reviewed"),
+                protein_existence=res.get("proteinExistence"),
             )
             seen += 1
             if max_results is not None and seen >= max_results:

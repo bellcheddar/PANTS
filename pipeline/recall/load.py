@@ -67,12 +67,20 @@ def load_family_positives(label: str = "v1", max_scan: int = 40000,
                     organism=h.organism, family="petase_like",
                     sequence=h.sequence, seq_length=h.length,
                     is_positive=1, is_negative=0, is_near_miss=0,
-                    esther_family=h.family,
+                    esther_family=h.family, taxonomy_lineage=h.lineage,
                     activity_substrate_notes=(
-                        "ANNOTATION ONLY: ESTHER family Polyesterase-lipase-cutinase. "
-                        "No measured PET activity. Report separately from the "
-                        "characterised subset."),
-                    source_ref="ESTHER-family", added_at=now(),
+                        f"ANNOTATION ONLY: ESTHER family Polyesterase-lipase-cutinase. "
+                        f"No measured PET activity. UniProt evidence: "
+                        f"{h.protein_existence or 'unknown'}"
+                        f"{', Swiss-Prot reviewed' if h.reviewed else ''}. "
+                        f"Report separately from the characterised subset."),
+                    # Evidence level is the axis spec section 8's last bullet needs:
+                    # 'Evidence at protein level' is a materially stronger label than
+                    # 'Predicted', and the two must not be pooled in a reported metric.
+                    source_ref=("ESTHER-family-protein-evidence"
+                                if (h.protein_existence or "").startswith("1")
+                                else "ESTHER-family-predicted"),
+                    added_at=now(),
                 )
                 report["added"] += 1
         m.counts(n_input=len(hits), n_output=int(report["added"]),
@@ -121,6 +129,7 @@ def load_reference_set(label: str = "v1") -> Dict[str, object]:
                     pdb_ids_json=json.dumps(w.pdb_ids), organism=entry.organism,
                     family=w.family, sequence=entry.sequence, seq_length=entry.length,
                     is_positive=int(w.is_positive), is_negative=0, is_near_miss=0,
+                    taxonomy_lineage=entry.lineage,
                     activity_substrate_notes=w.notes, source_ref="UniProt", added_at=now(),
                 )
                 report["wild_types"].append((w.enzyme_id, entry.length, entry.organism))

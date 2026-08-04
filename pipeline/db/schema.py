@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 -- ============================================================
@@ -170,6 +170,8 @@ CREATE TABLE IF NOT EXISTS characterised_enzymes (
     is_near_miss              INTEGER,   -- active on soluble esters, NOT on PET (0/1).
                                          -- These define the decision boundary (spec 5.2).
     esther_family             TEXT,
+    taxonomy_lineage          TEXT,      -- full lineage; phylum is used to match negatives
+                                         -- to positives on composition-driving taxonomy
     matched_positive_id       TEXT,      -- for negatives: which positive it was matched to
     topt_c                    REAL,
     ph_opt                    REAL,
@@ -239,6 +241,14 @@ CREATE TABLE IF NOT EXISTS training_runs (
     average_precision          REAL,
     brier_score                REAL,     -- calibration is the point, so this is not optional
     retrieval_baseline_auc     REAL,     -- HMMER E-value rank: the bar the model must beat
+    composition_baseline_auc   REAL,     -- amino-acid composition + length, cluster-grouped.
+                                         -- Reported ALONGSIDE the model score permanently,
+                                         -- not just used as a pre-training gate: it sat at
+                                         -- 0.84 after five matching axes, so any model
+                                         -- claim has to clear it as well as the E-value
+                                         -- baseline (PHASE1_FINDINGS.md).
+    n_positive_clusters        INTEGER,  -- independent units, NOT the raw positive count
+    evidence_level             TEXT,     -- protein-evidence | predicted | mixed
     trained_at                 TEXT,
     config_json                TEXT
 );

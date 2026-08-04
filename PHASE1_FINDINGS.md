@@ -62,6 +62,45 @@ still include Proteobacteria (Paraburkholderia, Bradyrhizobium).
 The spread is also wide (std 0.121, p10 0.71, p90 0.95) because 11 positive clusters is
 still very few, so the point estimate should not be over-read in either direction.
 
+### What was then tried, and what it delivered
+
+All three shortlisted options were implemented on 2026-08-04.
+
+| Action | Baseline AUC | Verdict |
+|---|---|---|
+| Length + identity + genus matching only | 0.954 | FAIL |
+| Plus signal-peptide (secretion) matching | 0.845 | MARGINAL |
+| Plus phylum matching | **0.842** | MARGINAL |
+
+**Phylum matching contributed essentially nothing (0.845 to 0.842), and that is the
+useful result.** The residual separation is therefore *not* driven by GC content, which
+was the leading hypothesis. The surviving signal (S/P/T/C up, L/K down) looks like the
+intrinsic composition of the polyesterase fold itself: a Ser/Thr-rich surface, cysteines
+forming the stabilising disulfides, prolines in the loops.
+
+That reframes the number. At 11 positive clusters with a spread of p10 0.72 to p90 0.96,
+the honest reading is not "the negative set is still broken" but "amino-acid composition
+carries real, non-trivial information about whether something is a polyesterase". A
+composition classifier scoring 0.84 is partly measuring biology, not purely exploiting an
+artefact.
+
+**Decisions taken as a result:**
+
+1. The composition baseline is now a **permanently reported metric**, stored in
+   `training_runs.composition_baseline_auc` alongside `retrieval_baseline_auc`. It is no
+   longer only a pre-training gate. Any claim the learned model makes must clear both
+   baselines, which is a stricter and more honest bar than the spec originally set.
+2. `training_runs.n_positive_clusters` records independent units rather than the raw
+   positive count, so no future run can quietly report "87 positives" when it has 11.
+3. Positives now carry an **evidence level** derived from UniProt `protein_existence`:
+   23 at `1: Evidence at protein level`, 56 predicted or inferred. Stored as
+   `source_ref='ESTHER-family-protein-evidence'` versus `'-predicted'`. Spec section 8's
+   requirement to report the characterised and annotation-only subsets separately is now
+   mechanically supported rather than aspirational.
+
+Full PAZy curation, with measured rates landing in `activity_measurements`, remains
+outstanding and is still the highest-value unblocked work.
+
 ### Options, in the order I would try them
 
 1. **Match negatives on phylum, or directly on GC content**, so the composition confound

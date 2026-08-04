@@ -105,11 +105,11 @@ def cmd_harvest_negatives(args) -> int:
     from pipeline.db.manifest import stage_manifest
     from pipeline.negatives import esther, match
 
-    positives = match.positives_from_db()
+    positives = match.positives_from_db(with_lineage=True)
     if not positives:
         print("no sequence-resolved positives in the database: run curate-seeds first")
         return 1
-    lengths = [len(s) for _, s in positives]
+    lengths = [len(p[1]) for p in positives]
     lo, hi = min(lengths) - args.length_pad, max(lengths) + args.length_pad
     print(f"positives: {len(positives)} ({min(lengths)} to {max(lengths)} aa)")
     print(f"scanning ESTHER slice, length {lo} to {hi}, up to {args.max_scan} entries")

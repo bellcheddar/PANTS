@@ -37,7 +37,28 @@ def _genus(organism: Optional[str]) -> str:
     return (organism or "unknown").split()[0]
 
 
-def positives_from_db() -> List[Tuple[str, str]]:
+def phylum_of(lineage: Optional[str]) -> str:
+    """Bacterial phylum from a UniProt lineage string.
+
+    Matched on because it is the strongest remaining driver of amino-acid composition:
+    high-GC Actinomycetota encode systematically Ala/Gly/Pro-rich proteins. The positives
+    are dominated by Actinomycetota (Thermobifida, Streptomyces, Amycolatopsis), so a
+    negative set drawn from a different phylum mix leaves the trivial baseline a genuine
+    compositional shortcut even after length, identity and secretion are matched.
+
+    Modern NCBI bacterial phylum names all end in -ota (Actinomycetota, Pseudomonadota,
+    Bacillota), which identifies the rank without needing a fixed lineage depth.
+    """
+    if not lineage:
+        return "unknown"
+    parts = [p.strip() for p in lineage.split(";") if p.strip()]
+    for p in parts[1:]:
+        if p.endswith("ota") and p.lower() not in {"bacteriota"}:
+            return p
+    return parts[2] if len(parts) > 2 else "unknown"
+
+
+def positives_from_db(with_lineage: bool = False):
     """Sequence-resolved positives in the PETase/cutinase families.
 
     MHETase is excluded: it is a Tannase-family enzyme with a lid domain, a different
@@ -45,20 +66,23 @@ def positives_from_db() -> List[Tuple[str, str]]:
     boundary this negative set exists to define.
     """
     with connect() as conn:
-        return [
-            (r["enzyme_id"], r["sequence"])
-            for r in conn.execute(
-                "SELECT enzyme_id, sequence FROM characterised_enzymes "
-                "WHERE is_positive=1 AND sequence IS NOT NULL AND family != 'mhetase_like'"
-            )
-        ]
+        rows = list(conn.execute(
+            "SELECT enzyme_id, sequence, taxonomy_lineage FROM characterised_enzymes "
+            "WHERE is_positive=1 AND sequence IS NOT NULL AND family != 'mhetase_like'"
+        ))
+    if with_lineage:
+        return [(r["enzyme_id"], r["sequence"], r["taxonomy_lineage"]) for r in rows]
+    return [(r["enzyme_id"], r["sequence"]) for r in rows]
 
 
-def select(hits: List[esther.EstherHit], positives: List[Tuple[str, str]],
-           n_target: int = DEFAULT_N_NEGATIVES, genus_cap: int = DEFAULT_GENUS_CAP,
-           seed: int = 0) -> Tuple[List[esther.EstherHit], Dict[str, object]]:
-    """Choose a length-matched, identity-preferring, taxonomically capped subset."""
+def select(hits: List[esther.EstherHit], positives, n_target: int = DEFAULT_N_NEGATIVES,
+           genus_cap: int = DEFAULT_GENUS_CAP, seed: int = 0,
+           match_phylum: bool = True) -> Tuple[List[esther.EstherHit], Dict[str, object]]:
+    """Choose a subset matched on length, identity, secretion, genus and phylum."""
     rng = random.Random(seed)
+    # positives may arrive as (id, seq) or (id, seq, lineage).
+    positives_full = [p for p in positives if len(p) == 3] if match_phylum else []
+    positives = [(p[0], p[1]) for p in positives]
 
     # --- identity of every candidate negative to its nearest positive ---
     tmp = config.INTERIM_DIR
@@ -79,10 +103,30 @@ def select(hits: List[esther.EstherHit], positives: List[Tuple[str, str]],
     for bucket in by_length.values():
         bucket.sort(key=lambda h: identity[h.accession], reverse=True)
 
+    # --- phylum quotas: mirror the positives' own phylum mix ---
+    # Without this the negatives skew Proteobacteria while the positives are
+    # Actinomycetota, and composition alone still separates them (see PHASE1_FINDINGS.md).
+    pos_phyla = Counter(phylum_of(lin) for _, _, lin in positives_full) if positives_full else Counter()
+    total_pos = sum(pos_phyla.values()) or 1
+    quota = {ph: max(1, round(n_target * n / total_pos)) for ph, n in pos_phyla.items()}
+
     chosen: List[esther.EstherHit] = []
     taken = set()
     genus_count: Counter = Counter()
+    phylum_count: Counter = Counter()
     per_positive = max(1, n_target // max(1, len(pos_lengths)))
+
+    def admissible(h: esther.EstherHit) -> bool:
+        if h.accession in taken:
+            return False
+        if genus_count[_genus(h.organism)] >= genus_cap:
+            return False
+        if quota:
+            ph = phylum_of(h.lineage)
+            # Outside the positives' phylum mix entirely, or that phylum is already full.
+            if ph not in quota or phylum_count[ph] >= quota[ph]:
+                return False
+        return True
 
     for target_len in pos_lengths:
         picked = 0
@@ -93,14 +137,12 @@ def select(hits: List[esther.EstherHit], positives: List[Tuple[str, str]],
                 for h in by_length.get(cand_len, []):
                     if picked >= per_positive:
                         break
-                    if h.accession in taken:
-                        continue
-                    g = _genus(h.organism)
-                    if genus_count[g] >= genus_cap:
+                    if not admissible(h):
                         continue
                     chosen.append(h)
                     taken.add(h.accession)
-                    genus_count[g] += 1
+                    genus_count[_genus(h.organism)] += 1
+                    phylum_count[phylum_of(h.lineage)] += 1
                     picked += 1
             if picked >= per_positive:
                 break
@@ -122,6 +164,8 @@ def select(hits: List[esther.EstherHit], positives: List[Tuple[str, str]],
         "n_genera": len({_genus(h.organism) for h in chosen}),
         "top_genera": Counter(_genus(h.organism) for h in chosen).most_common(8),
         "family_breakdown": Counter(h.family for h in chosen).most_common(),
+        "positive_phyla": pos_phyla.most_common(5),
+        "negative_phyla": Counter(phylum_of(h.lineage) for h in chosen).most_common(5),
     }
     return chosen, {"identity": identity, "nearest": nearest, "report": report}
 
@@ -137,8 +181,9 @@ def write(chosen: List[esther.EstherHit], near_misses: List[esther.EstherHit],
                     "INSERT INTO characterised_enzymes "
                     "(enzyme_id, uniprot, organism, family, sequence, seq_length, "
                     " is_positive, is_negative, is_near_miss, esther_family, "
+                    " taxonomy_lineage, "
                     " matched_positive_id, activity_substrate_notes, source_ref, added_at) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
                     "ON CONFLICT(enzyme_id) DO UPDATE SET "
                     " sequence=excluded.sequence, seq_length=excluded.seq_length, "
                     " is_negative=excluded.is_negative, is_near_miss=excluded.is_near_miss, "
@@ -149,7 +194,7 @@ def write(chosen: List[esther.EstherHit], near_misses: List[esther.EstherHit],
                         "cutinase" if role == "near_miss" else "other",
                         h.sequence, h.length,
                         0, int(role == "negative"), int(role == "near_miss"),
-                        h.family, nearest.get(h.accession) or None,
+                        h.family, h.lineage, nearest.get(h.accession) or None,
                         (f"ESTHER family {h.family}. "
                          f"Identity to nearest positive: {identity.get(h.accession, 0.0):.3f}. "
                          + ("Near miss: active on soluble esters, not a meaningful "
