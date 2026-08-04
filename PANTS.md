@@ -38,6 +38,60 @@ The architecture that follows: **retrieval is the recall stage, the learned mode
 | Immunogenicity | Irrelevant | Central |
 | Product handling | Recovered and recycled | TPA and EG must be tolerable at achievable local concentrations |
 
+## 🌡️ The therapeutic gap, measured
+
+The table above is the premise. This one is the evidence: every measured optimum PANTS
+holds, each extracted with its citation rather than asserted.
+
+| Enzyme | Topt | pH optimum | Source |
+|---|---|---|---|
+| **HGMP01** (human gut) | **40 °C** | **~7.4, broad across pH 7.x** | PMID 39551294 |
+| IsPETase | 40 °C | 9.0 | PMID 26965627 and others |
+| LCC | 50 °C | 8.5 | PMID 22194294 and others |
+| *T. alba* est1 (`D4Q9N1`) | 50 °C | 6.0 | PMID 25910960 |
+| *T. alba* est2 (`F7IX06`) | 50 °C | 6.0 | PMID 20393707 |
+| TfCut1 (`G8GER6`) | 55 °C | 8.0 | PMID 23604968 |
+| TfCut2 | 55 °C | 8.0 | PMID 15638529 and others |
+| *T. fusca* (`Q47RJ6`) | 60 °C | 8.0 | PMID 18658138 |
+| *T. fusca* (`Q47RJ7`) | 60 °C | 8.0 | PMID 18658138 |
+
+**HGMP01 is the only measured PET hydrolase in this project whose optimum is close to
+physiological.** IsPETase matches it on temperature and then asks for pH 9. Everything
+else sits at 50 to 60 °C. The industrial-versus-therapeutic mismatch the project is built
+around is not an argument: it is what the numbers say.
+
+### Why HGMP01 matters, and the trap in retrieving it
+
+HGMP01 is a PET hydrolase [identified from the human gut microbiome](https://pubmed.ncbi.nlm.nih.gov/39551294/)
+(*Int J Biol Macromol* 283, 2024). It hydrolyses PET nanoparticles, outperformed the four
+other candidates in that study, and shares only about 5% identity with IsPETase. Its
+homologues are distributed across 41 families and 94 genera of gut microbes.
+
+It is in no public sequence database: zero hits across UniProt, NCBI protein and NCBI
+nuccore. The sequences live in the authors' SciDB deposit.
+
+**The paper and the deposit number the enzymes differently, and matching on the name
+would have mislabelled all five.** The paper's HGMP01 to HGMP05 are the deposit's HGMP03,
+04, 06, 07 and 08. The mapping is pinned by two independent facts:
+
+| Paper | Length | Deposit | Length | Identifier | Homologues |
+|---|---|---|---|---|---|
+| **HGMP01** | 275 | HGMP03 | 275 | **`GUT_GENOME238302_00589`** | **697** |
+| HGMP02 | 341 | HGMP04 | 341 | `GUT_GENOME243637_00613` | 131 |
+| HGMP03 | 323 | HGMP06 | 323 | `GUT_GENOME137663_00143` | 96 |
+| HGMP04 | 282 | HGMP07 | 282 | `GUT_GENOME171691_00743` | 1000 |
+| HGMP05 | 321 | HGMP08 | 320 | `GUT_GENOME244370_00064` | 87 |
+
+Every length is distinct, so the assignment is 1:1 with no ambiguity. Independently, the
+paper states that the homologue search "identified a total of 697 putative HGMP01-like
+enzymes", and the deposit's HGMP03 returned exactly 697 hits. Two unrelated numbers
+agreeing is what makes this a determination rather than a guess.
+
+Every sequence is length-checked against the paper's own table before being stored, and
+that check immediately caught a transposition between the similar identifiers
+`GUT_GENOME244370_00064` and `GUT_GENOME244064_00699`, which would otherwise have filed
+the wrong protein as HGMP05 with nothing downstream to reveal it.
+
 ## 🚧 Current status
 
 **Pre-deployment.** The offline pipeline runs end to end from metagenome FASTA to embedded candidates. Nothing is live at `pants.mdeller.com` yet.
@@ -56,17 +110,17 @@ What is in the database today:
 
 | Set | Count | Notes |
 |---|---|---|
-| **Candidates** | **128** | Mined from 2.2M metagenomic proteins, all triad-complete |
-| Positives | 529 | Of which **16 experimentally evidenced**, the rest predicted (see below) |
+| **Candidates** | **139** | Mined from 2.7M metagenomic proteins across four environments, all triad-complete |
+| Positives | 534 | Of which **17 experimentally evidenced**, the rest predicted (see below) |
 | Hard negatives | 131 | Matched on five axes |
 | Near misses | 125 | ESTHER `Cutinase` family: the decision boundary |
-| Activity measurements | 47 | Km, Topt, pH optimum, each citing its PubMed IDs |
+| Activity measurements | 48 | Km, Topt, pH optimum, each citing its PubMed IDs |
 | Embeddings | 848 | ESM-2 t12-35M, 480-dim, frozen |
 | Excluded from training | 70 | Fragments and length outliers, marked not deleted |
 
 ### Positives by evidence tier
 
-The count that matters is not 529 but **16**: the number with experimental evidence behind the label.
+The count that matters is not 534 but **17**: the number with experimental evidence behind the label.
 
 | Tier | n | What it means |
 |---|---|---|
@@ -75,6 +129,7 @@ The count that matters is not 529 but **16**: the number with experimental evide
 | `ESTHER-family-protein-evidence` | 14 | Family, protein observed |
 | `EC-experimental` | 10 | EC 3.1.1.101 with ECO:0000269 and PubMed citations |
 | Curated wild types and variants | 6 | Hand-curated, sequence-verified, mutations validated |
+| `HGMP-measured` | 5 | Human gut PET hydrolases with measured activity (PMID 39551294) |
 
 ## 🧪 What Phase 1 found
 

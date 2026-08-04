@@ -121,6 +121,135 @@
 </tr>
 </tbody>
 </table></div>
+<h2>🌡️ The therapeutic gap, measured</h2>
+<p>The table above is the premise. This one is the evidence: every measured optimum PANTS holds, each extracted with its citation rather than asserted.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Enzyme</th>
+<th>Topt</th>
+<th>pH optimum</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Enzyme"><strong>HGMP01</strong> (human gut)</td>
+<td data-label="Topt"><strong>40 °C</strong></td>
+<td data-label="pH optimum"><strong>~7.4, broad across pH 7.x</strong></td>
+<td data-label="Source">PMID 39551294</td>
+</tr>
+<tr>
+<td data-label="Enzyme">IsPETase</td>
+<td data-label="Topt">40 °C</td>
+<td data-label="pH optimum">9.0</td>
+<td data-label="Source">PMID 26965627 and others</td>
+</tr>
+<tr>
+<td data-label="Enzyme">LCC</td>
+<td data-label="Topt">50 °C</td>
+<td data-label="pH optimum">8.5</td>
+<td data-label="Source">PMID 22194294 and others</td>
+</tr>
+<tr>
+<td data-label="Enzyme"><em>T. alba</em> est1 (<code>D4Q9N1</code>)</td>
+<td data-label="Topt">50 °C</td>
+<td data-label="pH optimum">6.0</td>
+<td data-label="Source">PMID 25910960</td>
+</tr>
+<tr>
+<td data-label="Enzyme"><em>T. alba</em> est2 (<code>F7IX06</code>)</td>
+<td data-label="Topt">50 °C</td>
+<td data-label="pH optimum">6.0</td>
+<td data-label="Source">PMID 20393707</td>
+</tr>
+<tr>
+<td data-label="Enzyme">TfCut1 (<code>G8GER6</code>)</td>
+<td data-label="Topt">55 °C</td>
+<td data-label="pH optimum">8.0</td>
+<td data-label="Source">PMID 23604968</td>
+</tr>
+<tr>
+<td data-label="Enzyme">TfCut2</td>
+<td data-label="Topt">55 °C</td>
+<td data-label="pH optimum">8.0</td>
+<td data-label="Source">PMID 15638529 and others</td>
+</tr>
+<tr>
+<td data-label="Enzyme"><em>T. fusca</em> (<code>Q47RJ6</code>)</td>
+<td data-label="Topt">60 °C</td>
+<td data-label="pH optimum">8.0</td>
+<td data-label="Source">PMID 18658138</td>
+</tr>
+<tr>
+<td data-label="Enzyme"><em>T. fusca</em> (<code>Q47RJ7</code>)</td>
+<td data-label="Topt">60 °C</td>
+<td data-label="pH optimum">8.0</td>
+<td data-label="Source">PMID 18658138</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>HGMP01 is the only measured PET hydrolase in this project whose optimum is close to physiological.</strong> IsPETase matches it on temperature and then asks for pH 9. Everything else sits at 50 to 60 °C. The industrial-versus-therapeutic mismatch the project is built around is not an argument: it is what the numbers say.</p>
+<h3>Why HGMP01 matters, and the trap in retrieving it</h3>
+<p>HGMP01 is a PET hydrolase <a href="https://pubmed.ncbi.nlm.nih.gov/39551294/">identified from the human gut microbiome</a> (<em>Int J Biol Macromol</em> 283, 2024). It hydrolyses PET nanoparticles, outperformed the four other candidates in that study, and shares only about 5% identity with IsPETase. Its homologues are distributed across 41 families and 94 genera of gut microbes.</p>
+<p>It is in no public sequence database: zero hits across UniProt, NCBI protein and NCBI nuccore. The sequences live in the authors' SciDB deposit.</p>
+<p><strong>The paper and the deposit number the enzymes differently, and matching on the name would have mislabelled all five.</strong> The paper's HGMP01 to HGMP05 are the deposit's HGMP03, 04, 06, 07 and 08. The mapping is pinned by two independent facts:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Paper</th>
+<th>Length</th>
+<th>Deposit</th>
+<th>Length</th>
+<th>Identifier</th>
+<th>Homologues</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Paper"><strong>HGMP01</strong></td>
+<td data-label="Length">275</td>
+<td data-label="Deposit">HGMP03</td>
+<td data-label="Length">275</td>
+<td data-label="Identifier"><strong><code>GUT_GENOME238302_00589</code></strong></td>
+<td data-label="Homologues"><strong>697</strong></td>
+</tr>
+<tr>
+<td data-label="Paper">HGMP02</td>
+<td data-label="Length">341</td>
+<td data-label="Deposit">HGMP04</td>
+<td data-label="Length">341</td>
+<td data-label="Identifier"><code>GUT_GENOME243637_00613</code></td>
+<td data-label="Homologues">131</td>
+</tr>
+<tr>
+<td data-label="Paper">HGMP03</td>
+<td data-label="Length">323</td>
+<td data-label="Deposit">HGMP06</td>
+<td data-label="Length">323</td>
+<td data-label="Identifier"><code>GUT_GENOME137663_00143</code></td>
+<td data-label="Homologues">96</td>
+</tr>
+<tr>
+<td data-label="Paper">HGMP04</td>
+<td data-label="Length">282</td>
+<td data-label="Deposit">HGMP07</td>
+<td data-label="Length">282</td>
+<td data-label="Identifier"><code>GUT_GENOME171691_00743</code></td>
+<td data-label="Homologues">1000</td>
+</tr>
+<tr>
+<td data-label="Paper">HGMP05</td>
+<td data-label="Length">321</td>
+<td data-label="Deposit">HGMP08</td>
+<td data-label="Length">320</td>
+<td data-label="Identifier"><code>GUT_GENOME244370_00064</code></td>
+<td data-label="Homologues">87</td>
+</tr>
+</tbody>
+</table></div>
+<p>Every length is distinct, so the assignment is 1:1 with no ambiguity. Independently, the paper states that the homologue search "identified a total of 697 putative HGMP01-like enzymes", and the deposit's HGMP03 returned exactly 697 hits. Two unrelated numbers agreeing is what makes this a determination rather than a guess.</p>
+<p>Every sequence is length-checked against the paper's own table before being stored, and that check immediately caught a transposition between the similar identifiers <code>GUT_GENOME244370_00064</code> and <code>GUT_GENOME244064_00699</code>, which would otherwise have filed the wrong protein as HGMP05 with nothing downstream to reveal it.</p>
 <h2>🚧 Current status</h2>
 <p><strong>Pre-deployment.</strong> The offline pipeline runs end to end from metagenome FASTA to embedded candidates. Nothing is live at <code>pants.mdeller.com</code> yet.</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
@@ -173,13 +302,13 @@
 <tbody>
 <tr>
 <td data-label="Set"><strong>Candidates</strong></td>
-<td data-label="Count"><strong>128</strong></td>
-<td data-label="Notes">Mined from 2.2M metagenomic proteins, all triad-complete</td>
+<td data-label="Count"><strong>139</strong></td>
+<td data-label="Notes">Mined from 2.7M metagenomic proteins across four environments, all triad-complete</td>
 </tr>
 <tr>
 <td data-label="Set">Positives</td>
-<td data-label="Count">529</td>
-<td data-label="Notes">Of which <strong>16 experimentally evidenced</strong>, the rest predicted (see below)</td>
+<td data-label="Count">534</td>
+<td data-label="Notes">Of which <strong>17 experimentally evidenced</strong>, the rest predicted (see below)</td>
 </tr>
 <tr>
 <td data-label="Set">Hard negatives</td>
@@ -193,7 +322,7 @@
 </tr>
 <tr>
 <td data-label="Set">Activity measurements</td>
-<td data-label="Count">47</td>
+<td data-label="Count">48</td>
 <td data-label="Notes">Km, Topt, pH optimum, each citing its PubMed IDs</td>
 </tr>
 <tr>
@@ -209,7 +338,7 @@
 </tbody>
 </table></div>
 <h3>Positives by evidence tier</h3>
-<p>The count that matters is not 529 but <strong>16</strong>: the number with experimental evidence behind the label.</p>
+<p>The count that matters is not 534 but <strong>17</strong>: the number with experimental evidence behind the label.</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
 <tr>
@@ -243,6 +372,11 @@
 <td data-label="Tier">Curated wild types and variants</td>
 <td data-label="n">6</td>
 <td data-label="What it means">Hand-curated, sequence-verified, mutations validated</td>
+</tr>
+<tr>
+<td data-label="Tier"><code>HGMP-measured</code></td>
+<td data-label="n">5</td>
+<td data-label="What it means">Human gut PET hydrolases with measured activity (PMID 39551294)</td>
 </tr>
 </tbody>
 </table></div>
