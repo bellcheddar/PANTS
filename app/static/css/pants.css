@@ -252,3 +252,35 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
 @media (max-width: 900px) { .md-banner pre { font-size: 11px; } }
 @media (max-width: 700px) { .md-banner pre { font-size: 9px; } }
 @media (max-width: 560px) { .md-banner pre { font-size: 7px; } .md-banner-sub { font-size: 10px; letter-spacing:.12em; } }
+
+/* ---------- brand bar, themed ----------
+   The header STRUCTURE is fixed everywhere (logo dot, name, both links, sticky,
+   never overlapping content) because that is the identity and the contact route.
+   Its COLOURS belong to the app, like everything else on the page: a #1e73be
+   gradient sitting on a dark lattice ground read as a strip of a different
+   website pasted on top. */
+.md-header {
+  background: linear-gradient(180deg, #0a0c16 0%, #11162a 100%);
+  border-bottom: 1px solid var(--pv-border);
+  box-shadow: 0 1px 0 rgba(143,180,255,.12), 0 8px 24px rgba(0,0,0,.45);
+  color: var(--pv-text);
+}
+.md-header-brand a { color: var(--pv-dim); }
+.md-header-brand a:hover { color: var(--pv-accent); }
+/* The amber dot is the one constant across every app: a single fixed mark is
+   enough to signal authorship without dictating the whole palette. */
+.md-logo-dot { background: var(--md-accent-amber); box-shadow: 0 0 8px rgba(252,185,0,.5); }
+.md-header-title h1 {
+  color: var(--pv-text);
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+.md-header-links a {
+  color: var(--pv-dim);
+  border-color: var(--pv-border);
+}
+.md-header-links a:hover {
+  background: rgba(143,180,255,.1);
+  color: var(--pv-accent);
+  border-color: var(--pv-accent);
+}
