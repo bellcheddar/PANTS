@@ -1,0 +1,35 @@
+# PANTS PIPELINE venv: offline batch work on the M1 Max. Never installed on the droplet.
+#
+# All heavy compute is precomputed offline and shipped as SQLite rows plus static mmCIF
+# (spec section 3.1). Nothing in this file needs to fit in droplet memory.
+
+# --- core scientific stack ---
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+
+# --- retrieval / recall stage ---
+# HMMER (3.4) and MMseqs2 (18-8cc5c) are BREW binaries shelled out to, not pip packages.
+biopython>=1.83         # FASTA IO, sequence handling
+
+# --- embedding and scoring ---
+torch>=2.13             # verified: installs clean on Python 3.14.3, MPS available
+transformers>=4.46      # ESM-2 t12-35M (embeddings), ESMFold (structure)
+scikit-learn>=1.4       # logistic heads + CalibratedClassifierCV (Platt/isotonic)
+
+# --- structure stage ---
+gemmi>=0.6              # mmCIF IO
+biotite>=0.41           # alignment, torsions, SSE
+tmtools>=0.2.0          # TM-align bindings: TM-score + RMSD. NOT THREAD SAFE, see
+                        # pipeline/structure: reuse AlphaFraud's _TMALIGN_LOCK pattern
+                        # or parallelise by process, never by thread.
+
+# --- data acquisition ---
+requests>=2.31          # UniProt, RCSB, MGnify
+tenacity>=8.2           # retry/backoff, ported from AlphaFraud's http.py
+
+# --- plotting (figure JSON built offline where possible) ---
+plotly>=5.20
+
+# --- dev ---
+pytest>=8.0             # tests/ ; run with .venv/bin/pytest from the repo root

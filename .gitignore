@@ -1,0 +1,38 @@
+# venvs: .venv is the pipeline venv (torch etc.), .venv-web is the thin web venv
+.venv/
+.venv-web/
+__pycache__/
+*.pyc
+
+# secrets and deploy target
+.env
+
+# the database is a build product of the pipeline, never committed
+pants.db
+pants.db-wal
+pants.db-shm
+
+# data/raw and data/interim are symlinks to ~/PANTSData (outside iCloud); processed data
+# is derived and rebuildable
+data/raw
+data/interim
+data/processed/*
+!data/processed/.gitkeep
+
+# precomputed structure assets are shipped by rsync at deploy time, not through git
+app/static/structures/*.cif
+app/static/structures/*.mmcif
+
+# manifests are provenance for a specific local run
+manifests/*.json
+
+# trained head weights and calibration objects
+models/*.joblib
+models/*.pkl
+
+# session transcripts and scratch
+*.txt.session
+.DS_Store
+
+# pytest
+.pytest_cache/

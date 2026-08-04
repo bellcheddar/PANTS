@@ -1,0 +1,1 @@
+"""PANTS pipeline stage: embed."""
