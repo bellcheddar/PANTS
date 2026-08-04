@@ -147,3 +147,108 @@ footer.md-footer {
   text-align: center; padding: 24px; color: var(--md-text-muted); font-size: 13px;
   border-top: 1px solid var(--md-border); margin-top: 32px;
 }
+
+/* ======================================================================
+   Direction 04 "Diffraction": PANTS's own surface, distinct from the
+   sibling apps. The brand bar above stays constant (that is Marc's
+   identity across every app); everything below it is this project's.
+   Chosen because PANTS's centrepiece is a 3D viewport, and a dark ground
+   stops the viewer looking like a hole cut in a white page.
+   ====================================================================== */
+:root {
+  --pv-bg:       #0d0f1a;
+  --pv-panel:    #141929;
+  --pv-border:   #262e4d;
+  --pv-text:     #c3c9e4;
+  --pv-dim:      #6e78a6;
+  --pv-accent:   #8fb4ff;   /* primary: structure, values */
+  --pv-accent-2: #c48cff;   /* secondary: labels, eyebrows */
+}
+
+body {
+  background: var(--pv-bg);
+  color: var(--pv-text);
+  /* Reciprocal-lattice dot grid. Fixed so it reads as ground, not texture
+     that scrolls with the content. */
+  background-image: radial-gradient(circle at 1px 1px, rgba(122,162,255,.14) 1px, transparent 0);
+  background-size: 18px 18px;
+  background-attachment: fixed;
+}
+a { color: var(--pv-accent); }
+
+.md-nav { background: rgba(6,8,16,.75); border-bottom: 1px solid var(--pv-border); }
+.md-nav a { color: var(--pv-dim); }
+.md-nav a:hover { color: var(--pv-accent); }
+.md-nav a.active { color: var(--pv-accent); border-bottom-color: var(--pv-accent); }
+
+.md-card {
+  background: rgba(20,25,41,.82);
+  border: 1px solid var(--pv-border);
+  box-shadow: none;
+  border-radius: 3px;
+}
+.md-card h2 { color: var(--pv-text); }
+.kpi { color: var(--pv-accent); font-variant-numeric: tabular-nums; }
+.kpi-label, .muted { color: var(--pv-dim); }
+
+table.data th { background: transparent; color: var(--pv-dim); border-bottom: 1px solid var(--pv-border); }
+table.data td { border-bottom: 1px solid #1a2038; }
+table.data tbody tr:hover { background: rgba(122,162,255,.07); }
+td.num, th.num { font-variant-numeric: tabular-nums; }
+
+.caveat {
+  background: rgba(196,140,255,.09);
+  border-left-color: var(--pv-accent-2);
+  color: var(--pv-text);
+}
+.caveat strong { color: var(--pv-accent-2); }
+
+select, button, input[type="checkbox"] { accent-color: var(--pv-accent); }
+select, button {
+  background: var(--pv-panel); color: var(--pv-text);
+  border: 1px solid var(--pv-border); border-radius: 3px; padding: 5px 10px;
+  font-family: inherit; font-size: 13px; cursor: pointer;
+}
+button:hover { border-color: var(--pv-accent); color: var(--pv-accent); }
+:focus-visible { outline: 2px solid var(--pv-accent); outline-offset: 2px; }
+
+#viewer { border-color: var(--pv-border); background: #0a0c14; }
+footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
+
+/* ---------- figlet banner ----------
+   Every rule here is load-bearing and was learned the hard way on FlexAppeal:
+     text-align:left   the wrapper centres, and without this each ROW centres
+                       separately, sliding short rows sideways. The single
+                       most expensive bug of that project.
+     line-height:1     figlet strokes continue across the line break; any
+                       leading chops every diagonal into dashes.
+     whole-number px   fractional advance makes columns drift per glyph.
+     system mono       Roboto Mono's underscore is narrower than its advance
+                       and set right of centre, so ____ becomes dashes.
+     font-weight:400   500 makes the browser smear a synthetic bold sideways.
+   The art itself is byte-identical to pyfiglet 'chunky' and must stay so. */
+.md-banner { text-align: center; padding: 22px 16px 6px; }
+.md-banner pre {
+  display: inline-block;
+  margin: 0;
+  text-align: left;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 400;
+  white-space: pre;
+  color: var(--pv-accent);
+}
+.md-banner-sub {
+  margin: 10px 0 0;
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--pv-accent-2);
+}
+/* Whole-number px at every step: a fractional advance makes columns drift per
+   glyph, which is invisible at some widths and obvious at others. banner3 is
+   47 columns wide, so the steps are sized to keep it inside the viewport. */
+@media (max-width: 900px) { .md-banner pre { font-size: 11px; } }
+@media (max-width: 700px) { .md-banner pre { font-size: 9px; } }
+@media (max-width: 560px) { .md-banner pre { font-size: 7px; } .md-banner-sub { font-size: 10px; letter-spacing:.12em; } }
