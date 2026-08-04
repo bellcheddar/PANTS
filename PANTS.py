@@ -77,6 +77,29 @@ def cmd_status(_args) -> int:
     return 0
 
 
+def cmd_curate_seeds(args) -> int:
+    """Fetch the characterised wild types from UniProt and derive the engineered variants."""
+    from pipeline.recall.load import load_reference_set
+
+    report = load_reference_set(label=args.label)
+
+    print("wild types (fetched from UniProt):")
+    for enzyme_id, length, organism in report["wild_types"]:
+        print(f"  {enzyme_id:<22} {length:>4} aa   {organism}")
+
+    print("\nvariants (derived from parent, mutations validated):")
+    for enzyme_id, status, offset, length in report["variants"]:
+        detail = f"{length} aa, offset {offset:+d}" if status == "derived" else status
+        print(f"  {enzyme_id:<22} {detail}")
+
+    if report["problems"]:
+        print("\nPROBLEMS:")
+        for p in report["problems"]:
+            print(f"  {p}")
+        return 1
+    return 0
+
+
 def cmd_serve(args) -> int:
     from app import create_app
     create_app().run(host=args.host, port=args.port, debug=args.debug)
@@ -94,6 +117,11 @@ def main(argv=None) -> int:
                    ).set_defaults(func=cmd_init)
     sub.add_parser("status", help="database summary"
                    ).set_defaults(func=cmd_status)
+
+    p_cs = sub.add_parser("curate-seeds",
+                          help="fetch characterised wild types from UniProt, derive variants")
+    p_cs.add_argument("--label", default="v1", help="run label recorded in the manifest")
+    p_cs.set_defaults(func=cmd_curate_seeds)
 
     p_serve = sub.add_parser("serve", help="local dev web server")
     p_serve.add_argument("--host", default="127.0.0.1")
