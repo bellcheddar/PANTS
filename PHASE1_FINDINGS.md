@@ -129,3 +129,85 @@ Options 1 and 4 are not alternatives to each other and should both happen.
 - PHB depolymerases and the `Tannase` family are excluded from negatives entirely rather
   than labelled inactive: calling a polyester-active enzyme "no polyester activity" would
   teach the model the opposite of what is wanted.
+
+---
+
+# Phase 2a findings: the triad filter works, and it is profile-bound
+
+## 5. The mechanism validates, because the reference had a known answer
+
+The triad filter aligns candidates to a profile HMM with `hmmalign` and reads the columns
+corresponding to IsPETase's own verified S160/D206/H237. Running it on IsPETase itself is
+therefore a test with an answer known in advance, and it failed the first time:
+
+```
+got      Ser@171=A   Asp@217=P   His@251=G
+expected Ser@160=S   Asp@206=D   His@237=H
+```
+
+Cause: `hmmalign` writes residues that are insertions relative to the model in **lower
+case**, and match states in upper case. Both are real residues and both consume a position
+in the sequence's own numbering, but the mapping counted only upper-case characters, so it
+walked off by the number of insertions before the target.
+
+**This failure is silent in production.** A broken mapping does not raise: the triad simply
+reads as incomplete and the candidate is quietly discarded, so the bug looks exactly like
+a strict filter working correctly. Nothing except a reference with a pre-known answer
+would have caught it. Now covered by `tests/test_triad.py`.
+
+After the fix:
+
+| Set | Complete triad |
+|---|---|
+| Positives | 79/87 (91%) |
+| Hard negatives | 20/252 (8%) |
+| Near misses | **0/111 (0%)** |
+
+Named enzymes all resolve sensibly: IsPETase S160/D206/H237, LCC S165/D210/H242,
+TfCut2 S170/D216/H248, Cut190 S176/D222/H254.
+
+## 6. The 0% on near misses is a design problem, not a result
+
+Classic cutinases certainly have catalytic triads. Scoring 0/111 means they are not being
+found to lack a triad, they are failing to align to a Polyesterase-lipase-cutinase
+profile well enough for the triad columns to map at all.
+
+That matters because the near misses exist precisely to define the decision boundary
+(spec section 5.2). A filter that discards them wholesale removes the examples the model
+most needs to see, and it does so before scoring, where the discard is invisible.
+
+**The single pooled profile used for this validation is the cause.** `profiles.py` already
+implements `build_from_clusters` for one profile per cluster; the validation short-cut to
+a single profile over all 87 positives to test the mechanism. Production needs the
+per-family design: build a profile per cluster (including a Cutinase profile), align each
+candidate to its best-scoring profile, and read the triad from that profile's own
+reference rather than forcing everything through IsPETase's numbering.
+
+Until that lands, the reported triad-completeness numbers are conditional on the profile
+used, and the 8% figure for hard negatives is a floor rather than an estimate.
+
+## 7. MGnify has very little plastic-associated assembly data
+
+Surveying MGnify for the collection choice returned 60 studies across plastic,
+plastisphere, landfill and compost search terms. Filtering to those with **assembly**
+analyses (the only kind carrying predicted proteins) leaves **24**, and every one of them
+has a single assembly. The largest plastic-relevant studies by sample count are amplicon:
+`MGYS00001767` "Plastisphere Targeted Locus (Loci)" has 357 samples and no protein
+sequences whatsoever.
+
+The assembly studies that do exist are dominated by compost enrichment cultures rather
+than plastisphere or landfill.
+
+This materially changes decision 1 in PLAN_v1.md, which assumed one MGnify study would
+supply order 10^6 protein sequences. Options:
+
+1. **Take the compost assemblies anyway.** Compost is a defensible polyesterase habitat
+   (LCC itself is leaf-branch compost derived), and the data is immediately available.
+   Smallest effort, weakest link to the therapeutic framing.
+2. **Go to JGI IMG/M or the marine plastisphere assemblies directly**, outside MGnify.
+   More work, better matched to the spec's environment priorities.
+3. **Assemble from raw reads.** Correct, and far beyond a v1 compute budget on one Mac.
+
+Recommendation: 1 for a working v1 end to end, with 2 as the first expansion. The recall
+stage does not care where the FASTA came from, so switching later costs nothing already
+built.
