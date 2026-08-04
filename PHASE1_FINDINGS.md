@@ -211,3 +211,58 @@ supply order 10^6 protein sequences. Options:
 Recommendation: 1 for a working v1 end to end, with 2 as the first expansion. The recall
 stage does not care where the FASTA came from, so switching later costs nothing already
 built.
+
+---
+
+# Phase 2b: the first real recall run
+
+Data acquired 2026-08-04: **2,220,462 predicted proteins, 858 MB**, across landfill
+(Riverton City dump), marine plastisphere (PRJNA777294) and compost (cattle manure,
+ZCTH02). Both shortlisted options were satisfied without JGI IMG/M, because MGnify's TPA
+assemblies carry the marine plastisphere data and IMG/M would have needed manual
+credentials.
+
+## 8. The funnel
+
+| Stage | Surviving | Note |
+|---|---|---|
+| Scanned | 2,220,462 | |
+| MMseqs2 prefilter, E <= 1e-5 | 1,291 | 0.06% |
+| Matched a profile (hmmscan) | 638 | |
+| Complete catalytic triad | 114 | 18% of profile-matched |
+| Unique candidates written | **110** | content-addressed, so 4 were the same protein recovered from two assemblies |
+
+**0.005% of input is retained.** That is aggressive, and it is worth being explicit that
+this is a *choice* (E <= 1e-5 against only 87 positives, then a strict triad requirement)
+rather than a property of the data. It lands almost exactly where PLAN_v1.md wanted for
+v1: 110 candidates, of which the top 50 get structures.
+
+By environment: compost 58, marine plastisphere 40, landfill 12.
+
+Runtime was 1,902 s (32 minutes) for the whole 2.2M on the M1 Max, against the plan's
+estimate of 2 to 4 hours for MMseqs2 alone. The estimate was pessimistic.
+
+## 9. The top hits are rediscoveries, and that is the point
+
+The highest-scoring candidates sit at 96 to 99% identity to already-characterised enzymes
+(the best is 96% identical to TfCut2). Those are not discoveries, they are the pipeline
+proving it can find what is already known.
+
+This is spec section 2's thesis showing up in the data on the first run: **a homology
+search ranks the well-known enzymes to the top.** Mean identity to the nearest
+characterised enzyme across all 110 candidates is 0.398, so the genuinely interesting
+candidates are the low-identity ones that E-value rank pushes *down*. Re-ranking those is
+what the learned model is for, and the retrieval numbers now stored on every candidate
+(`recall_evalue`, `recall_bitscore`, `recall_profile_identity`) are the baseline it has
+to beat.
+
+## 10. A metadata bug worth recording
+
+The first run inferred `source_environment` from filename prefixes and left 36 of 110
+candidates labelled `unknown`. Nothing failed: the rows were written, the counts looked
+fine, and the error would only have surfaced as an empty environment filter in the
+Catalogue and a mis-coloured Home hero plot.
+
+Environment is a ranking-relevant axis in this project, not decoration, so it is now
+resolved from each study's MGnify biome via `mgnify.STUDY_BIOME` rather than guessed from
+a filename.
