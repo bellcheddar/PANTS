@@ -39,11 +39,18 @@ def _counts() -> Dict[str, int]:
             "candidates": n("SELECT COUNT(*) FROM candidates"),
             "structures": n("SELECT COUNT(*) FROM structures"),
             "positives": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_positive=1"),
+            # Every tier whose label rests on an experiment rather than on similarity.
+            # HGMP-measured was missing here, so the app reported 12 where the README
+            # said 17: the same number derived two ways in two places, which is exactly
+            # how they drift.
             "evidenced": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_positive=1 "
-                           "AND source_ref IN ('EC-experimental','UniProt')"),
+                           "AND source_ref IN ('EC-experimental','UniProt','HGMP-measured')"),
             "negatives": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_negative=1"),
             "near_misses": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_near_miss=1"),
             "measurements": n("SELECT COUNT(*) FROM activity_measurements"),
+            # Sum of what recall actually scanned. Stored per run rather than derived,
+            # so it stays right when a collection is added or rescanned.
+            "sequences": n("SELECT COALESCE(SUM(n_input),0) FROM runs WHERE stage='recall'"),
         }
 
 
@@ -62,10 +69,17 @@ def inject_globals() -> Dict[str, Any]:
 def home():
     counts = _counts()
     with connect() as conn:
+        # The environment a recall run covered is in its params_json, so the scanned
+        # totals join back on that rather than being recounted from the FASTA files.
+        scanned = {r["env"]: r["n"] for r in conn.execute(
+            "SELECT json_extract(params_json,'$.environment') env, COALESCE(SUM(n_input),0) n "
+            "FROM runs WHERE stage='recall' AND params_json IS NOT NULL GROUP BY 1")}
         by_env = [dict(r) for r in conn.execute(
             "SELECT source_environment env, COUNT(*) n, "
             "       AVG(recall_profile_identity) mean_ident "
             "FROM candidates GROUP BY 1 ORDER BY n DESC")]
+        for row in by_env:
+            row["scanned"] = scanned.get(row["env"], 0)
         top = [dict(r) for r in conn.execute(
             "SELECT c.candidate_id, c.source_environment, c.seq_length, "
             "       c.recall_bitscore, c.recall_profile_identity, c.nearest_characterised_id, "

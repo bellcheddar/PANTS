@@ -291,3 +291,8 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
 /* Strapline and tagline move as one block beside the banner, so they wrap
    together instead of the tagline detaching on a narrow viewport. */
 .md-titles { padding-bottom: 2px; }
+
+/* The KPI row carries five tiles. auto-fit at minmax(280px,1fr) fits only four at
+   1400px, leaving the fifth stranded on its own line; 220px fits five and still
+   collapses sensibly on narrow viewports. */
+.md-grid.kpis { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
