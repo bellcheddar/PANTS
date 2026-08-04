@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 SCHEMA = """
 -- ============================================================
@@ -178,6 +178,10 @@ CREATE TABLE IF NOT EXISTS characterised_enzymes (
     activity_substrate_notes  TEXT,
     source_ref                TEXT,      -- PAZy | ESTHER | DOI
     pdb_release_date          TEXT,      -- prospective-holdout cutoff logic (spec section 8)
+    is_fragment               INTEGER,   -- UniProt's own Fragment flag, not a length guess
+    excluded_from_training    INTEGER DEFAULT 0,  -- marked, never deleted: the catalogue
+    exclusion_reason          TEXT,               -- stays complete and the exclusion is
+                                                  -- auditable rather than invisible
     added_at                  TEXT,
     FOREIGN KEY(matched_positive_id) REFERENCES characterised_enzymes(enzyme_id)
 );
