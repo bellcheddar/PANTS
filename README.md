@@ -174,6 +174,36 @@ Corrections this caught during curation: `Q6A0I4` was initially curated as Cut19
 | Meltome Atlas, FireProtDB | Thermostability transfer learning |
 | AlphaFold DB | Precomputed structures where a UniProt match exists |
 
+## ✅ To Do
+
+Roadmap for PANTS, roughly in dependency order. Suggestions welcome.
+
+- [x] **Repository scaffold and the two-venv split.** `requirements-web.txt` carries Flask, gunicorn and gemmi and nothing else, so the always-on droplet process never imports torch. The droplet has 3.8 GB shared with five other applications, which makes this a memory constraint rather than a style preference
+- [x] **SQLite schema with manifest provenance.** Thirteen tables, WAL enabled once at creation, every pipeline stage opening a run and writing input/output hashes, tool versions, git commit and wall time to both a table and a JSON file. A stage that raises still leaves its manifest behind
+- [x] **Verify torch on Python 3.14 (plan risk 8).** torch 2.13.0 installs cleanly with MPS available, so no fallback to 3.11 was needed
+- [x] **Install and pin the external tools.** HMMER 3.4 and MMseqs2 18-8cc5c, shelled out to rather than bound as libraries, with versions captured in every manifest
+- [x] **Move bulk data out of the iCloud tree.** `data/raw` and `data/interim` symlink to `~/PANTSData`; macOS "Optimize Mac Storage" evicts large files mid-run and this machine has only ~62 GB free
+- [x] **Curate the characterised seed set.** Wild types fetched from UniProt by accession; engineered variants derived from parent plus mutation list, with every substitution checked against the parent residue it names. All four confirmed variants validated at offset 0 across 14 positions
+- [x] **Harvest ESTHER hard negatives.** Matched on five axes: length distribution, identity to nearest positive, genus cap, signal peptide and phylum
+- [x] **Run the trivial-baseline gate before any embedding work (plan risk 1).** It fired, and found both that the curated positives are one cluster rather than nine examples, and that the negatives were separable on a secreted-versus-cytoplasmic composition signature
+- [x] **Record an evidence level on every positive.** UniProt `protein_existence` separates the 23 with protein-level evidence from the 56 predicted or inferred, so the two are never pooled in a reported metric
+- [x] **Make the composition baseline a permanent reported metric.** Stored alongside the retrieval baseline in `training_runs`, with `n_positive_clusters` recording independent units rather than the raw count
+- [ ] **Full PAZy curation with measured activity data.** Extract (enzyme, substrate form, crystallinity, temperature, pH, buffer, duration, product measured, rate) into `activity_measurements`, recording which numbers are mutually comparable and falling back to within-paper ordinal ranking where harmonisation is impossible. This is the highest-value unblocked work: it is the only route to positives with real labels rather than family annotation
+- [ ] **Resolve the Cut190 strain ambiguity.** `W0TJ64` versus `C7MVE8`, both 304 aa, AHK190 versus type strain P101. Currently flagged in the seed notes and unresolved
+- [ ] **Confirm the outstanding mutation sets.** DuraPETase, HotPETase, TurboPETase, Z1-PETase and Cut190\*\*SS are recorded without sequences because their complete mutation sets were not confirmed. A partial set yields a wrong sequence, which is worse than an honest gap
+- [ ] **Choose the metagenome collection, size-checked first.** One MGnify plastisphere or landfill study, queried for its size via the API before any bulk download; refuse anything over ~30 GB against a ~62 GB local budget
+- [ ] **Build the recall stage.** Profile HMMs from the positives and relevant ESTHER families, MMseqs2 prefilter, HMMER sensitive pass, then the triad and oxyanion-hole completeness filter, reporting how many candidates are discarded
+- [ ] **Embed the candidate set.** ESM-2 t12-35M, frozen, CPU, offline
+- [ ] **Train the PET activity head.** PU-corrected loss with the class prior estimated rather than assumed, sensitivity-tested across 1/3/5/10%, then Platt or isotonic calibration
+- [ ] **Run the full evaluation protocol.** Cluster splits at 30% and 50%, leave-one-family-out, retrieval baseline, reliability diagrams, prospective holdout by date, and separate reporting for the measured-activity and annotation-only subsets
+- [ ] **Smoke-test ESMFold on one structure before committing to fifty.** Apple Silicon support is asserted rather than verified; Boltz-2 via BoltzMaker is the fallback, with real timings already measured on this machine
+- [ ] **Extract active-site geometry.** Triad distances and angles, oxyanion hole, cleft width and depth, aromatic clamp and solvent accessibility, validated against known PDB structures before being run on any predicted one
+- [ ] **Build the v1 tabs.** Home, Catalogue, Candidate and Methods, with Mol\* over static mmCIF and Plotly for every chart
+- [ ] **Deploy to `pants.mdeller.com`.** Mirror AlphaFraud's gunicorn, nginx, systemd and certbot setup on port 8005, then add the entry to the mdeller.com launcher
+- [ ] **Measure real droplet headroom before any v2 inference work.** The memory figures in the plan are estimates, not measurements
+- [ ] **MHETase pipeline (v2).** Its own seed and negatives: MHETase is Tannase family, so a PETase-seeded profile search cannot reach it
+- [ ] **Choose a licence**, and decide whether the candidate catalogue ships as a dataset alongside the application
+
 ## 📝 Licence
 
 Not yet chosen. Licensing, and whether the candidate catalogue is released as a dataset alongside the application, is an open project decision.

@@ -389,6 +389,35 @@ cp .env.example .env
 </tr>
 </tbody>
 </table></div>
+<h2>✅ To Do</h2>
+<p>Roadmap for PANTS, roughly in dependency order. Suggestions welcome.</p>
+<ul class="emd-tasklist">
+<li><span class="emd-check">&#9989;</span> <strong>Repository scaffold and the two-venv split.</strong> <code>requirements-web.txt</code> carries Flask, gunicorn and gemmi and nothing else, so the always-on droplet process never imports torch. The droplet has 3.8 GB shared with five other applications, which makes this a memory constraint rather than a style preference</li>
+<li><span class="emd-check">&#9989;</span> <strong>SQLite schema with manifest provenance.</strong> Thirteen tables, WAL enabled once at creation, every pipeline stage opening a run and writing input/output hashes, tool versions, git commit and wall time to both a table and a JSON file. A stage that raises still leaves its manifest behind</li>
+<li><span class="emd-check">&#9989;</span> <strong>Verify torch on Python 3.14 (plan risk 8).</strong> torch 2.13.0 installs cleanly with MPS available, so no fallback to 3.11 was needed</li>
+<li><span class="emd-check">&#9989;</span> <strong>Install and pin the external tools.</strong> HMMER 3.4 and MMseqs2 18-8cc5c, shelled out to rather than bound as libraries, with versions captured in every manifest</li>
+<li><span class="emd-check">&#9989;</span> <strong>Move bulk data out of the iCloud tree.</strong> <code>data/raw</code> and <code>data/interim</code> symlink to <code>~/PANTSData</code>; macOS "Optimize Mac Storage" evicts large files mid-run and this machine has only ~62 GB free</li>
+<li><span class="emd-check">&#9989;</span> <strong>Curate the characterised seed set.</strong> Wild types fetched from UniProt by accession; engineered variants derived from parent plus mutation list, with every substitution checked against the parent residue it names. All four confirmed variants validated at offset 0 across 14 positions</li>
+<li><span class="emd-check">&#9989;</span> <strong>Harvest ESTHER hard negatives.</strong> Matched on five axes: length distribution, identity to nearest positive, genus cap, signal peptide and phylum</li>
+<li><span class="emd-check">&#9989;</span> <strong>Run the trivial-baseline gate before any embedding work (plan risk 1).</strong> It fired, and found both that the curated positives are one cluster rather than nine examples, and that the negatives were separable on a secreted-versus-cytoplasmic composition signature</li>
+<li><span class="emd-check">&#9989;</span> <strong>Record an evidence level on every positive.</strong> UniProt <code>protein_existence</code> separates the 23 with protein-level evidence from the 56 predicted or inferred, so the two are never pooled in a reported metric</li>
+<li><span class="emd-check">&#9989;</span> <strong>Make the composition baseline a permanent reported metric.</strong> Stored alongside the retrieval baseline in <code>training_runs</code>, with <code>n_positive_clusters</code> recording independent units rather than the raw count</li>
+<li><span class="emd-check">&#11036;</span> <strong>Full PAZy curation with measured activity data.</strong> Extract (enzyme, substrate form, crystallinity, temperature, pH, buffer, duration, product measured, rate) into <code>activity_measurements</code>, recording which numbers are mutually comparable and falling back to within-paper ordinal ranking where harmonisation is impossible. This is the highest-value unblocked work: it is the only route to positives with real labels rather than family annotation</li>
+<li><span class="emd-check">&#11036;</span> <strong>Resolve the Cut190 strain ambiguity.</strong> <code>W0TJ64</code> versus <code>C7MVE8</code>, both 304 aa, AHK190 versus type strain P101. Currently flagged in the seed notes and unresolved</li>
+<li><span class="emd-check">&#11036;</span> <strong>Confirm the outstanding mutation sets.</strong> DuraPETase, HotPETase, TurboPETase, Z1-PETase and Cut190**SS are recorded without sequences because their complete mutation sets were not confirmed. A partial set yields a wrong sequence, which is worse than an honest gap</li>
+<li><span class="emd-check">&#11036;</span> <strong>Choose the metagenome collection, size-checked first.</strong> One MGnify plastisphere or landfill study, queried for its size via the API before any bulk download; refuse anything over ~30 GB against a ~62 GB local budget</li>
+<li><span class="emd-check">&#11036;</span> <strong>Build the recall stage.</strong> Profile HMMs from the positives and relevant ESTHER families, MMseqs2 prefilter, HMMER sensitive pass, then the triad and oxyanion-hole completeness filter, reporting how many candidates are discarded</li>
+<li><span class="emd-check">&#11036;</span> <strong>Embed the candidate set.</strong> ESM-2 t12-35M, frozen, CPU, offline</li>
+<li><span class="emd-check">&#11036;</span> <strong>Train the PET activity head.</strong> PU-corrected loss with the class prior estimated rather than assumed, sensitivity-tested across 1/3/5/10%, then Platt or isotonic calibration</li>
+<li><span class="emd-check">&#11036;</span> <strong>Run the full evaluation protocol.</strong> Cluster splits at 30% and 50%, leave-one-family-out, retrieval baseline, reliability diagrams, prospective holdout by date, and separate reporting for the measured-activity and annotation-only subsets</li>
+<li><span class="emd-check">&#11036;</span> <strong>Smoke-test ESMFold on one structure before committing to fifty.</strong> Apple Silicon support is asserted rather than verified; Boltz-2 via BoltzMaker is the fallback, with real timings already measured on this machine</li>
+<li><span class="emd-check">&#11036;</span> <strong>Extract active-site geometry.</strong> Triad distances and angles, oxyanion hole, cleft width and depth, aromatic clamp and solvent accessibility, validated against known PDB structures before being run on any predicted one</li>
+<li><span class="emd-check">&#11036;</span> <strong>Build the v1 tabs.</strong> Home, Catalogue, Candidate and Methods, with Mol* over static mmCIF and Plotly for every chart</li>
+<li><span class="emd-check">&#11036;</span> <strong>Deploy to <code>pants.mdeller.com</code>.</strong> Mirror AlphaFraud's gunicorn, nginx, systemd and certbot setup on port 8005, then add the entry to the mdeller.com launcher</li>
+<li><span class="emd-check">&#11036;</span> <strong>Measure real droplet headroom before any v2 inference work.</strong> The memory figures in the plan are estimates, not measurements</li>
+<li><span class="emd-check">&#11036;</span> <strong>MHETase pipeline (v2).</strong> Its own seed and negatives: MHETase is Tannase family, so a PETase-seeded profile search cannot reach it</li>
+<li><span class="emd-check">&#11036;</span> <strong>Choose a licence</strong>, and decide whether the candidate catalogue ships as a dataset alongside the application</li>
+</ul>
 <h2>📝 Licence</h2>
 <p>Not yet chosen. Licensing, and whether the candidate catalogue is released as a dataset alongside the application, is an open project decision.</p>
 <hr>
