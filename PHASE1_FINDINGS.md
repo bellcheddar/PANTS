@@ -355,3 +355,65 @@ section 8 has enough units to mean much.
 **Caveat to carry forward:** the EC-annotated set widens the length range to 63 to 835 aa,
 which includes fragments and probable multi-domain proteins. That should be filtered before
 training, and it is why the matched negative set shrank to 131.
+
+---
+
+# Phase 4: filtering and embedding
+
+## 15. Recall re-run against the curated positives
+
+The 110 candidates from the first recall run were destroyed by a database rebuild during
+the curation work (my error: the FASTA files live outside the repo so only compute was
+lost). Re-running turned out to be the better path, because the profile library could then
+be built from the curated 529 positives across 29 clusters rather than the original 87
+across 11.
+
+| | First run | Re-run |
+|---|---|---|
+| Library built from | 87 positives, 11 clusters | 529 positives, 29 clusters |
+| Candidates | 110 | **128** |
+| Runtime | 1,902 s | 1,424 s |
+| Environments | 36 labelled `unknown` | all resolved |
+
+By environment: compost 69, marine plastisphere 44, landfill 15. The wastewater assembly
+(ERZ795023, 26,631 proteins) yielded nothing, which is a reasonable null: it is the only
+non-plastic-associated, non-compost source in the set.
+
+## 16. Filtering: marked, not deleted
+
+| Reason | n |
+|---|---|
+| Included | 720 |
+| Length outside 200 to 450 aa | 57 |
+| UniProt `Fragment` flag | 8 |
+| No sequence (mutation set unconfirmed) | 5 |
+
+Fragments come from UniProt's own flag rather than a length cutoff, because a short
+sequence is not necessarily a fragment and a fragment is not necessarily short. The length
+window is derived from the experimentally evidenced positives (262 to 319 aa excluding
+MHETase), not chosen for roundness.
+
+Exclusions are recorded on the row. The catalogue is a deliverable in its own right, so a
+fragment still belongs in it: what it must not do is silently become a training example.
+
+## 17. Embedding, and one number worth carrying into training
+
+848 vectors at 480 dimensions: 720 training sequences (30 s) plus 128 candidates (9 s),
+nothing truncated. The plan budgeted 25 to 40 minutes for ~10^4 sequences; at ~20 seq/s on
+CPU that estimate holds.
+
+Pooling excludes padding as well as CLS and EOS. Pooling over padding would make a vector
+depend on which other sequences shared its batch, and that class of bug is dangerous
+precisely because the resulting numbers still look reasonable.
+
+Sanity checks pass, and one of them is a warning about what comes next:
+
+- FAST-PETase to IsPETase cosine **1.000** (they differ by 5 residues in 290)
+- LCC to LCC-ICCG **0.999**
+- All characterised PET enzymes sit at **0.96 or above** to each other
+- Candidate to nearest known enzyme: max 1.000, **median 0.931**, min 0.771
+
+Everything of interest lives in a very tight region of the embedding space. The head is
+therefore discriminating small differences inside a dense cluster, not separating
+well-spaced groups, which is a further reason to trust calibration curves over headline
+AUC (spec section 8).
