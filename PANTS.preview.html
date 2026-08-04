@@ -121,14 +121,77 @@
 </tr>
 </tbody>
 </table></div>
+<h2>🔀 How it works</h2>
+<pre><code class="language-text">  SOURCE ENVIRONMENTS                      SEED SET
+  ┌──────────────────────┐                 ┌───────────────────────────────┐
+  │ compost      1.0M    │                 │ 5 wild types  (UniProt)       │
+  │ marine       0.7M    │                 │ 4 variants    (derived from   │
+  │ landfill     0.4M    │                 │                parent + muts) │
+  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit) │
+  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation) │
+  └──────────┬───────────┘                 └───────────────┬───────────────┘
+             │  predicted proteins                         │
+             │                                             ▼
+             │                              ┌──────────────────────────────┐
+             │                              │ cluster at 30% identity      │
+             │                              │ → 1 profile HMM per cluster  │
+             │                              │ → anchor each on UniProt's   │
+             │                              │   own ACT_SITE annotation    │
+             │                              └───────────────┬──────────────┘
+             ▼                                              │
+  ╔═══════════════════════════════════════════════════╗     │
+  ║  RECALL                                           ║ ◄───┘
+  ║                                                   ║
+  ║   MMseqs2 prefilter        E ≤ 1e-5               ║   fast, exhaustive
+  ║        │                                          ║
+  ║        ▼                                          ║
+  ║   hmmscan vs profile library                      ║   assigns each survivor
+  ║        │                                          ║   to the family it
+  ║        ▼                                          ║   actually resembles
+  ║   triad filter    Ser·His·Asp connected in SPACE  ║   ← geometry, not motif
+  ║        │                                          ║
+  ╚════════╪══════════════════════════════════════════╝
+           │  retains ~0.006%  ·  keeps E-value + bitscore
+           ▼                     as the baseline to beat
+     ┌───────────────┐
+     │  CANDIDATES   │  content-addressed on the sequence,
+     │               │  so the same protein found twice is one row
+     └───┬───────┬───┘
+         │       │
+         │       └──────────────────────────┐
+         ▼                                  ▼
+  ┌─────────────────────┐        ┌────────────────────────────────┐
+  │ ESM-2 t12-35M       │        │ ESMFold  (≤ 450 aa)            │
+  │ frozen, CPU         │        │   │                            │
+  │ 480-dim, mean-pool  │        │   ▼                            │
+  └──────────┬──────────┘        │ superpose onto IsPETase 6EQE   │
+             │                   │   │  ← at WRITE time, so the   │
+             ▼                   │   ▼    browser does none       │
+  ┌─────────────────────┐        │ active-site geometry           │
+  │ activity head       │        │   triad distances, cleft width,│
+  │ PU-corrected,       │        │   aromatic clamp               │
+  │ calibrated          │        └────────────────┬───────────────┘
+  └──────────┬──────────┘                         │
+             │        ┌───────────────────────────┘
+             ▼        ▼
+        ┌────────────────────────────────────────────┐
+        │  SQLite  →  Flask  →  Catalogue · Superpose │
+        │                       Candidate · Methods   │
+        └────────────────────────────────────────────┘
+
+  Every stage writes a manifest: input hashes, tool versions, git commit, wall time.
+</code></pre>
+<p>Two things in that diagram are load-bearing and easy to miss. The <strong>triad filter tests whether Ser, His and Asp are connected in space</strong>, not whether a motif matches, so three residues present in sequence but not in contact correctly fail. And <strong>superposition happens when a structure is written</strong>, not in the browser, which is what makes an N-structure overlay cost N file loads instead of N alignments.</p>
 <h2>🌡️ The therapeutic gap, measured</h2>
-<p>The table above is the premise. This one is the evidence: every measured optimum PANTS holds, each extracted with its citation rather than asserted.</p>
+<p>The table above is the premise. These are the numbers. Every enzyme named in the project brief, plus every other PET hydrolase with a published optimum that could be found.</p>
+<p>Rows are split by <strong>how the number was obtained</strong>, because that difference matters more than the value: the first block is extracted programmatically from UniProt's curated <code>BIOPHYSICOCHEMICAL PROPERTIES</code> with <code>ECO:0000269</code> experimental evidence and PubMed IDs attached, and is what sits in the database. The second is from the literature and is recorded here for context only.</p>
+<h3>📑 Measured, in the database, each with its citation</h3>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
 <tr>
 <th>Enzyme</th>
 <th>Topt</th>
-<th>pH optimum</th>
+<th>pH opt</th>
 <th>Source</th>
 </tr>
 </thead>
@@ -136,60 +199,125 @@
 <tr>
 <td data-label="Enzyme"><strong>HGMP01</strong> (human gut)</td>
 <td data-label="Topt"><strong>40 °C</strong></td>
-<td data-label="pH optimum"><strong>~7.4, broad across pH 7.x</strong></td>
+<td data-label="pH opt"><strong>~7.4, broad across pH 7.x</strong></td>
 <td data-label="Source">PMID 39551294</td>
 </tr>
 <tr>
 <td data-label="Enzyme">IsPETase</td>
 <td data-label="Topt">40 °C</td>
-<td data-label="pH optimum">9.0</td>
-<td data-label="Source">PMID 26965627 and others</td>
+<td data-label="pH opt">9.0</td>
+<td data-label="Source">PMID 26965627, 29603535</td>
 </tr>
 <tr>
 <td data-label="Enzyme">LCC</td>
 <td data-label="Topt">50 °C</td>
-<td data-label="pH optimum">8.5</td>
-<td data-label="Source">PMID 22194294 and others</td>
+<td data-label="pH opt">8.5</td>
+<td data-label="Source">PMID 22194294, 24593046</td>
 </tr>
 <tr>
 <td data-label="Enzyme"><em>T. alba</em> est1 (<code>D4Q9N1</code>)</td>
 <td data-label="Topt">50 °C</td>
-<td data-label="pH optimum">6.0</td>
+<td data-label="pH opt">6.0</td>
 <td data-label="Source">PMID 25910960</td>
 </tr>
 <tr>
 <td data-label="Enzyme"><em>T. alba</em> est2 (<code>F7IX06</code>)</td>
 <td data-label="Topt">50 °C</td>
-<td data-label="pH optimum">6.0</td>
+<td data-label="pH opt">6.0</td>
 <td data-label="Source">PMID 20393707</td>
 </tr>
 <tr>
 <td data-label="Enzyme">TfCut1 (<code>G8GER6</code>)</td>
 <td data-label="Topt">55 °C</td>
-<td data-label="pH optimum">8.0</td>
+<td data-label="pH opt">8.0</td>
 <td data-label="Source">PMID 23604968</td>
 </tr>
 <tr>
 <td data-label="Enzyme">TfCut2</td>
 <td data-label="Topt">55 °C</td>
-<td data-label="pH optimum">8.0</td>
-<td data-label="Source">PMID 15638529 and others</td>
+<td data-label="pH opt">8.0</td>
+<td data-label="Source">PMID 15638529, 20816933</td>
 </tr>
 <tr>
 <td data-label="Enzyme"><em>T. fusca</em> (<code>Q47RJ6</code>)</td>
 <td data-label="Topt">60 °C</td>
-<td data-label="pH optimum">8.0</td>
-<td data-label="Source">PMID 18658138</td>
+<td data-label="pH opt">8.0</td>
+<td data-label="Source">PMID 18658138, 20729325</td>
 </tr>
 <tr>
 <td data-label="Enzyme"><em>T. fusca</em> (<code>Q47RJ7</code>)</td>
 <td data-label="Topt">60 °C</td>
-<td data-label="pH optimum">8.0</td>
+<td data-label="pH opt">8.0</td>
 <td data-label="Source">PMID 18658138</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>HGMP01 is the only measured PET hydrolase in this project whose optimum is close to physiological.</strong> IsPETase matches it on temperature and then asks for pH 9. Everything else sits at 50 to 60 °C. The industrial-versus-therapeutic mismatch the project is built around is not an argument: it is what the numbers say.</p>
+<h3>The engineered lineage, from the literature</h3>
+<p>Every variant named in the project brief. These are <strong>not</strong> in the database as measurements: their sequences are stored (or flagged as unresolved), but their optima are recorded here as context. Values collated in <a href="https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/">Engineering Evolution: How FAST-PETase and Other Variants Are Transforming Plastic Biodegradation</a>.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Topt</th>
+<th>Parent</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Variant">Z1-PETase</td>
+<td data-label="Topt">30 °C</td>
+<td data-label="Parent">IsPETase</td>
+<td data-label="Notes">13 mutations, two engineered disulfides; 40x expression yield</td>
+</tr>
+<tr>
+<td data-label="Variant">IsPETase (wild type)</td>
+<td data-label="Topt">30 to 35 °C</td>
+<td data-label="Parent">native</td>
+<td data-label="Notes">Weak on crystalline PET</td>
+</tr>
+<tr>
+<td data-label="Variant"><strong>DuraPETase</strong></td>
+<td data-label="Topt"><strong>37 °C</strong></td>
+<td data-label="Parent">IsPETase</td>
+<td data-label="Notes">10 mutations; +31 °C thermostability, ~300x activity</td>
+</tr>
+<tr>
+<td data-label="Variant">FAST-PETase</td>
+<td data-label="Topt">50 °C</td>
+<td data-label="Parent">ThermoPETase</td>
+<td data-label="Notes">38x activity; 33.8 mM monomers in 96 h</td>
+</tr>
+<tr>
+<td data-label="Variant">HotPETase</td>
+<td data-label="Topt">60 to 65 °C</td>
+<td data-label="Parent">IsPETase</td>
+<td data-label="Notes">21 mutations; melting temperature 82.5 °C</td>
+</tr>
+<tr>
+<td data-label="Variant">Cut190**SS</td>
+<td data-label="Topt">65 °C</td>
+<td data-label="Parent">actinomycete cutinase</td>
+<td data-label="Notes">Calcium-dependent conformational switching</td>
+</tr>
+<tr>
+<td data-label="Variant">TurboPETase</td>
+<td data-label="Topt">65 to 68 °C</td>
+<td data-label="Parent">BhrPETase M6</td>
+<td data-label="Notes">98.2% depolymerisation at 200 g/kg in 8 h</td>
+</tr>
+<tr>
+<td data-label="Variant">LCC-ICCG</td>
+<td data-label="Topt">65 to 72 °C</td>
+<td data-label="Parent">LCC</td>
+<td data-label="Notes">1.3 g PET waste in 3 days from 1.25 mg enzyme</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>A discrepancy worth stating rather than smoothing over:</strong> UniProt's curated value for IsPETase is 40 °C, while the literature review gives 30 to 35 °C. Both are defensible and they were measured on different substrates under different assays, which is exactly the harmonisation problem the project brief raises. The database keeps the UniProt value because it carries an experimental evidence code and a citation; this table shows both rather than picking a winner.</p>
+<p><strong>Read the two tables together and the shape of the field is obvious.</strong> The entire engineered lineage runs <em>away</em> from body temperature: FAST-PETase to 50 °C, HotPETase to 60 to 65, TurboPETase and LCC-ICCG to 65 to 72. That is rational, because they were optimised for a reactor above PET's glass transition.</p>
+<p>Only three enzymes sit anywhere near 37 °C, and two of them (Z1-PETase, DuraPETase) are engineered variants of IsPETase that reach it by trading away the activity the others gained. <strong>HGMP01 is the only one that arrived there naturally</strong>, and the only measured enzyme in this project with a near-neutral pH optimum as well: everything else wants pH 8 to 9, and even IsPETase asks for 9.</p>
+<p>That is the therapeutic gap, and it is not an argument: it is what the numbers say. It is also the reason the human gut was added as a fourth source environment, since an enzyme resident at 37 °C and pH 7.4 has already been selected under something close to the target conditions.</p>
 <h3>Why HGMP01 matters, and the trap in retrieving it</h3>
 <p>HGMP01 is a PET hydrolase <a href="https://pubmed.ncbi.nlm.nih.gov/39551294/">identified from the human gut microbiome</a> (<em>Int J Biol Macromol</em> 283, 2024). It hydrolyses PET nanoparticles, outperformed the four other candidates in that study, and shares only about 5% identity with IsPETase. Its homologues are distributed across 41 families and 94 genera of gut microbes.</p>
 <p>It is in no public sequence database: zero hits across UniProt, NCBI protein and NCBI nuccore. The sequences live in the authors' SciDB deposit.</p>

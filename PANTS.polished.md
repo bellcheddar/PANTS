@@ -38,27 +38,140 @@ The architecture that follows: **retrieval is the recall stage, the learned mode
 | Immunogenicity | Irrelevant | Central |
 | Product handling | Recovered and recycled | TPA and EG must be tolerable at achievable local concentrations |
 
+## 🔀 How it works
+
+```
+  SOURCE ENVIRONMENTS                      SEED SET
+  ┌──────────────────────┐                 ┌───────────────────────────────┐
+  │ compost      1.0M    │                 │ 5 wild types  (UniProt)       │
+  │ marine       0.7M    │                 │ 4 variants    (derived from   │
+  │ landfill     0.4M    │                 │                parent + muts) │
+  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit) │
+  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation) │
+  └──────────┬───────────┘                 └───────────────┬───────────────┘
+             │  predicted proteins                         │
+             │                                             ▼
+             │                              ┌──────────────────────────────┐
+             │                              │ cluster at 30% identity      │
+             │                              │ → 1 profile HMM per cluster  │
+             │                              │ → anchor each on UniProt's   │
+             │                              │   own ACT_SITE annotation    │
+             │                              └───────────────┬──────────────┘
+             ▼                                              │
+  ╔═══════════════════════════════════════════════════╗     │
+  ║  RECALL                                           ║ ◄───┘
+  ║                                                   ║
+  ║   MMseqs2 prefilter        E ≤ 1e-5               ║   fast, exhaustive
+  ║        │                                          ║
+  ║        ▼                                          ║
+  ║   hmmscan vs profile library                      ║   assigns each survivor
+  ║        │                                          ║   to the family it
+  ║        ▼                                          ║   actually resembles
+  ║   triad filter    Ser·His·Asp connected in SPACE  ║   ← geometry, not motif
+  ║        │                                          ║
+  ╚════════╪══════════════════════════════════════════╝
+           │  retains ~0.006%  ·  keeps E-value + bitscore
+           ▼                     as the baseline to beat
+     ┌───────────────┐
+     │  CANDIDATES   │  content-addressed on the sequence,
+     │               │  so the same protein found twice is one row
+     └───┬───────┬───┘
+         │       │
+         │       └──────────────────────────┐
+         ▼                                  ▼
+  ┌─────────────────────┐        ┌────────────────────────────────┐
+  │ ESM-2 t12-35M       │        │ ESMFold  (≤ 450 aa)            │
+  │ frozen, CPU         │        │   │                            │
+  │ 480-dim, mean-pool  │        │   ▼                            │
+  └──────────┬──────────┘        │ superpose onto IsPETase 6EQE   │
+             │                   │   │  ← at WRITE time, so the   │
+             ▼                   │   ▼    browser does none       │
+  ┌─────────────────────┐        │ active-site geometry           │
+  │ activity head       │        │   triad distances, cleft width,│
+  │ PU-corrected,       │        │   aromatic clamp               │
+  │ calibrated          │        └────────────────┬───────────────┘
+  └──────────┬──────────┘                         │
+             │        ┌───────────────────────────┘
+             ▼        ▼
+        ┌────────────────────────────────────────────┐
+        │  SQLite  →  Flask  →  Catalogue · Superpose │
+        │                       Candidate · Methods   │
+        └────────────────────────────────────────────┘
+
+  Every stage writes a manifest: input hashes, tool versions, git commit, wall time.
+```
+
+Two things in that diagram are load-bearing and easy to miss. The **triad filter tests
+whether Ser, His and Asp are connected in space**, not whether a motif matches, so three
+residues present in sequence but not in contact correctly fail. And **superposition
+happens when a structure is written**, not in the browser, which is what makes an
+N-structure overlay cost N file loads instead of N alignments.
+
 ## 🌡️ The therapeutic gap, measured
 
-The table above is the premise. This one is the evidence: every measured optimum PANTS
-holds, each extracted with its citation rather than asserted.
+The table above is the premise. These are the numbers. Every enzyme named in the project
+brief, plus every other PET hydrolase with a published optimum that could be found.
 
-| Enzyme | Topt | pH optimum | Source |
+Rows are split by **how the number was obtained**, because that difference matters more
+than the value: the first block is extracted programmatically from UniProt's curated
+`BIOPHYSICOCHEMICAL PROPERTIES` with `ECO:0000269` experimental evidence and PubMed IDs
+attached, and is what sits in the database. The second is from the literature and is
+recorded here for context only.
+
+### 📑 Measured, in the database, each with its citation
+
+| Enzyme | Topt | pH opt | Source |
 |---|---|---|---|
 | **HGMP01** (human gut) | **40 °C** | **~7.4, broad across pH 7.x** | PMID 39551294 |
-| IsPETase | 40 °C | 9.0 | PMID 26965627 and others |
-| LCC | 50 °C | 8.5 | PMID 22194294 and others |
+| IsPETase | 40 °C | 9.0 | PMID 26965627, 29603535 |
+| LCC | 50 °C | 8.5 | PMID 22194294, 24593046 |
 | *T. alba* est1 (`D4Q9N1`) | 50 °C | 6.0 | PMID 25910960 |
 | *T. alba* est2 (`F7IX06`) | 50 °C | 6.0 | PMID 20393707 |
 | TfCut1 (`G8GER6`) | 55 °C | 8.0 | PMID 23604968 |
-| TfCut2 | 55 °C | 8.0 | PMID 15638529 and others |
-| *T. fusca* (`Q47RJ6`) | 60 °C | 8.0 | PMID 18658138 |
+| TfCut2 | 55 °C | 8.0 | PMID 15638529, 20816933 |
+| *T. fusca* (`Q47RJ6`) | 60 °C | 8.0 | PMID 18658138, 20729325 |
 | *T. fusca* (`Q47RJ7`) | 60 °C | 8.0 | PMID 18658138 |
 
-**HGMP01 is the only measured PET hydrolase in this project whose optimum is close to
-physiological.** IsPETase matches it on temperature and then asks for pH 9. Everything
-else sits at 50 to 60 °C. The industrial-versus-therapeutic mismatch the project is built
-around is not an argument: it is what the numbers say.
+### The engineered lineage, from the literature
+
+Every variant named in the project brief. These are **not** in the database as
+measurements: their sequences are stored (or flagged as unresolved), but their optima are
+recorded here as context. Values collated in
+[Engineering Evolution: How FAST-PETase and Other Variants Are Transforming Plastic Biodegradation](https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/).
+
+| Variant | Topt | Parent | Notes |
+|---|---|---|---|
+| Z1-PETase | 30 °C | IsPETase | 13 mutations, two engineered disulfides; 40x expression yield |
+| IsPETase (wild type) | 30 to 35 °C | native | Weak on crystalline PET |
+| **DuraPETase** | **37 °C** | IsPETase | 10 mutations; +31 °C thermostability, ~300x activity |
+| FAST-PETase | 50 °C | ThermoPETase | 38x activity; 33.8 mM monomers in 96 h |
+| HotPETase | 60 to 65 °C | IsPETase | 21 mutations; melting temperature 82.5 °C |
+| Cut190\*\*SS | 65 °C | actinomycete cutinase | Calcium-dependent conformational switching |
+| TurboPETase | 65 to 68 °C | BhrPETase M6 | 98.2% depolymerisation at 200 g/kg in 8 h |
+| LCC-ICCG | 65 to 72 °C | LCC | 1.3 g PET waste in 3 days from 1.25 mg enzyme |
+
+**A discrepancy worth stating rather than smoothing over:** UniProt's curated value for
+IsPETase is 40 °C, while the literature review gives 30 to 35 °C. Both are defensible and
+they were measured on different substrates under different assays, which is exactly the
+harmonisation problem the project brief raises. The database keeps the UniProt value
+because it carries an experimental evidence code and a citation; this table shows both
+rather than picking a winner.
+
+**Read the two tables together and the shape of the field is obvious.** The entire
+engineered lineage runs *away* from body temperature: FAST-PETase to 50 °C, HotPETase to
+60 to 65, TurboPETase and LCC-ICCG to 65 to 72. That is rational, because they were
+optimised for a reactor above PET's glass transition.
+
+Only three enzymes sit anywhere near 37 °C, and two of them (Z1-PETase, DuraPETase) are
+engineered variants of IsPETase that reach it by trading away the activity the others
+gained. **HGMP01 is the only one that arrived there naturally**, and the only measured
+enzyme in this project with a near-neutral pH optimum as well: everything else wants pH 8
+to 9, and even IsPETase asks for 9.
+
+That is the therapeutic gap, and it is not an argument: it is what the numbers say. It is
+also the reason the human gut was added as a fourth source environment, since an enzyme
+resident at 37 °C and pH 7.4 has already been selected under something close to the
+target conditions.
 
 ### Why HGMP01 matters, and the trap in retrieving it
 
