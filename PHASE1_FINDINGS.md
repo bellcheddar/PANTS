@@ -505,3 +505,57 @@ That is a hard requirement, not a matter of effort. Options, honestly ranked:
 
 Option 3 is the only one that adds genuinely independent signal, and it is unblocked: the
 128 candidates can be folded and measured without any further curation.
+
+---
+
+# Phase 6: geometry, the first signal that does not inherit an annotation
+
+## 22. Risk 7 cleared: the geometry recovers published triads
+
+Validated against experimental structures before touching any prediction. The triad is
+found by **geometry**, not by sequence position: the code searches for a spatially
+connected Ser/His/Asp, so three residues present in sequence but not in contact are
+correctly not a triad.
+
+| PDB | Enzyme | Triad found | Expected | Ser-His | His-Asp | Connected |
+|---|---|---|---|---|---|---|
+| 6EQE | IsPETase | S160/D206/H237 | S160/D206/H237 | 2.94 Å | 3.07 Å | yes |
+| 4EB0 | LCC | S165/D210/H242 | S165/D210/H242 | 2.45 Å | 2.75 Å | yes |
+| 4CG1 | TfCut2 | S130/D176/H208 | S170/D216/H248 | 2.77 Å | 3.03 Å | yes |
+| 1CEX | *F. solani* cutinase | S120/D175/H188 | not annotated | 2.71 Å | 3.19 Å | yes |
+
+The 4CG1 row looks like a failure and is not: the offset is **exactly 40 on all three
+residues**, which is precisely TfCut2's signal peptide length (1 to 40). The PDB entry
+numbers the mature protein while UniProt numbers the precursor. A constant offset across
+all three is the signature of a numbering convention rather than a detection error, and
+`tests/test_geometry.py` pins it so nobody "fixes" it later.
+
+## 23. Cleft width separates polyesterases from cutinases, as the spec predicted
+
+| PDB | Enzyme | Cleft width | Depth | Aromatic clamp |
+|---|---|---|---|---|
+| 6EQE | IsPETase | **20.90 Å** | 2.56 | PHE201, TRP159, **TRP185**, TYR87 |
+| 4EB0 | LCC | 17.82 Å | 2.20 | PHE125, PHE243, TRP190, TYR127, TYR95 |
+| 4CG1 | TfCut2 | 12.77 Å | 2.29 | PHE209, TRP155, TYR60 |
+| 1CEX | *F. solani* cutinase | **11.17 Å** | 1.29 | PHE147, TYR119, TYR149, TYR191 |
+
+Spec section 6: "Cleft width and the aromatic clamp are the features most likely to
+separate real polyesterases from soluble-ester-only esterases, so surface them
+prominently." That prediction holds on the first test. The range is nearly two-fold and it
+orders correctly: IsPETase widest, the classic fungal cutinase narrowest.
+
+The clamp IsPETase returns includes **TRP185**, the mobile tryptophan whose flexibility
+spec section 2 point 1 names as the distinguishing feature against cutinases with a fixed
+equivalent, and TYR87. Neither was supplied to the code: both fall out of a distance
+search around the nucleophile.
+
+## 24. Why this matters more than its place in the plan suggests
+
+Every sequence-derived label in this project traces back to somebody else's annotation,
+and Phase 5 showed what that costs: a head trained on those labels scored AUC 1.000 by
+reproducing a similarity rule with a similarity representation.
+
+Cleft width is different in kind. It is measured off coordinates, so it is the first
+feature here that is independent of the annotation, and on the four structures where the
+answer is known it already orders them by the property of interest. That is the route out
+of the circularity, and it needs no further curation.
