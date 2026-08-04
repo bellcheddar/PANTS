@@ -83,7 +83,7 @@ def catalogue():
     with connect() as conn:
         sql = ("SELECT c.candidate_id, c.source_environment, c.seq_length, "
                "       c.recall_evalue, c.recall_bitscore, c.recall_profile_identity, "
-               "       c.nearest_characterised_id, s.plddt_mean, "
+               "       c.nearest_characterised_id, c.structure_deferred, s.plddt_mean, "
                "       g.cleft_width_A, g.triad_ser_resnum, g.triad_asp_resnum, g.triad_his_resnum "
                "FROM candidates c "
                "LEFT JOIN structures s ON s.candidate_id=c.candidate_id "

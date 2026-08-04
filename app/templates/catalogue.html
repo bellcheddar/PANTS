@@ -33,7 +33,7 @@
         <td class="num">{{ '%.1e'|format(r.recall_evalue) if r.recall_evalue else '-' }}</td>
         <td class="num">{{ '%.1f'|format(r.recall_bitscore) if r.recall_bitscore else '-' }}</td>
         <td class="num">{{ '%.2f'|format(r.recall_profile_identity) if r.recall_profile_identity else '-' }}</td>
-        <td class="num">{{ '%.0f'|format(r.plddt_mean) if r.plddt_mean else '-' }}</td>
+        <td class="num">{% if r.plddt_mean %}{{ '%.0f'|format(r.plddt_mean) }}{% elif r.structure_deferred %}<span class="muted" title="over 450 aa: probable fusion or misassembly">deferred</span>{% else %}<span class="muted">pending</span>{% endif %}</td>
         <td class="num">{{ r.cleft_width_A or '-' }}</td>
         <td class="mono muted">{% if r.triad_ser_resnum %}S{{ r.triad_ser_resnum }}/D{{ r.triad_asp_resnum }}/H{{ r.triad_his_resnum }}{% else %}-{% endif %}</td>
         <td class="mono muted">{{ r.nearest_characterised_id or '-' }}</td>

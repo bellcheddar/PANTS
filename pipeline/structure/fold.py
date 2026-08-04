@@ -39,6 +39,20 @@ _TMALIGN_LOCK = threading.Lock()
 
 PLDDT_SCALE = 100.0     # ESMFold emits 0 to 1 here; the convention is 0 to 100.
 
+# Fold time is quadratic in length: measured seconds = 9.63e-04 * L^2.04 over 24 real
+# folds on this machine. That makes the long tail dominate: 14 of 128 candidates exceed
+# 450 aa and would consume 46% of the total compute.
+#
+# The scientific reason matters more than the scheduling one. A single-domain alpha/beta
+# hydrolase is roughly 250 to 350 aa, so an 859-residue "candidate" is almost certainly a
+# fusion, a multi-domain protein or a misassembly. The cleft measurement also assumes one
+# active site in one domain, so its geometry would be misleading rather than merely slow.
+#
+# This is the SAME window already applied to the training set in pipeline/train/dataset.py.
+# Applying a length sanity check to one side of the pipeline and not the other was an
+# inconsistency, not a deliberate choice.
+MAX_FOLD_LENGTH = 450
+
 
 @dataclass
 class FoldResult:
@@ -179,14 +193,38 @@ def already_done(candidate_id: str, out_dir: Path) -> bool:
     return p.exists() and p.stat().st_size > 0
 
 
+def defer_long_candidates(max_length: int = MAX_FOLD_LENGTH) -> int:
+    """Mark over-length candidates as deferred, with the reason on the row."""
+    def _do() -> int:
+        with connect() as conn:
+            cur = conn.execute(
+                "UPDATE candidates SET structure_deferred=1, structure_deferred_reason=? "
+                "WHERE seq_length > ?",
+                (f"length > {max_length} aa: probable fusion, multi-domain protein or "
+                 f"misassembly. Fold time is quadratic in length and the cleft measurement "
+                 f"assumes a single active site in one domain.", max_length))
+            return cur.rowcount
+    return retry_write(_do)
+
+
 def run(candidates: Sequence[Tuple[str, str]], out_dir: Optional[Path] = None,
         reference_cif: Optional[Path] = None, progress_path: Optional[Path] = None,
-        limit: Optional[int] = None) -> List[FoldResult]:
+        limit: Optional[int] = None, max_length: Optional[int] = MAX_FOLD_LENGTH
+        ) -> List[FoldResult]:
     """Fold, superpose, measure and persist each candidate. Safe to re-run."""
     out_dir = out_dir or config.STRUCTURE_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     reference_cif = reference_cif or (config.INTERIM_DIR / "pdb" / "6EQE.cif")
     progress_path = progress_path or (config.INTERIM_DIR / "fold_progress.jsonl")
+
+    if max_length:
+        n_def = defer_long_candidates(max_length)
+        skipped = [(c, s) for c, s in candidates if len(s) > max_length]
+        candidates = [(c, s) for c, s in candidates if len(s) <= max_length]
+        if skipped:
+            print(f"deferred {len(skipped)} candidates over {max_length} aa "
+                  f"(longest {max(len(s) for _, s in skipped)} aa); {n_def} rows marked",
+                  flush=True)
 
     todo = [(cid, seq) for cid, seq in candidates if not already_done(cid, out_dir)]
     if limit:

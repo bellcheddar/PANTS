@@ -25,13 +25,17 @@
   <div class="md-card">
     <h2>Structure</h2>
     <table class="data">
-      <tr><td>Method</td><td>{{ c.structure_method or 'not folded' }}</td></tr>
+      <tr><td>Method</td><td>{{ c.structure_method or ('deferred' if c.structure_deferred else 'not folded yet') }}</td></tr>
       <tr><td>Mean pLDDT</td><td class="num">{{ '%.1f'|format(c.plddt_mean) if c.plddt_mean else '-' }}</td></tr>
       <tr><td>RMSD to IsPETase</td><td class="num">{{ '%.2f'|format(c.rmsd_ca_to_ispetase_A) if c.rmsd_ca_to_ispetase_A else '-' }} Å</td></tr>
       <tr><td>Aligned fraction</td><td class="num">{{ '%.3f'|format(c.tm_score_to_ispetase) if c.tm_score_to_ispetase else '-' }}</td></tr>
     </table>
     <p class="muted" style="font-size:12px">Aligned fraction is a length-normalised gemmi superposition
     statistic, not a true TM-score.</p>
+    {% if c.structure_deferred %}
+    <div class="caveat" style="font-size:13px">No structure was predicted:
+      {{ c.structure_deferred_reason }}</div>
+    {% endif %}
   </div>
   {% if g %}
   <div class="md-card">
