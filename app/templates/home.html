@@ -43,15 +43,16 @@
 </div>
 
 <div class="md-card" style="margin-top:16px">
-  <h2>Top 10 by retrieval bitscore</h2>
-  <p class="muted">Ranked by the retrieval baseline, which deliberately favours what is already known.</p>
+  <h2>Ranked by retrieval bitscore</h2>
+  <p class="muted">The retrieval baseline, which deliberately favours what is already known: the
+  interesting candidates are the low-identity ones this ranking pushes down.</p>
   <div class="tbl-wrap">
-  <table class="data">
+  <table class="data" id="top-table">
     <thead><tr><th>Candidate</th><th>Environment</th><th class="num">Length</th><th class="num">Bitscore</th>
     <th class="num">Identity</th><th class="num">pLDDT</th><th class="num">Cleft Å</th><th>Nearest</th></tr></thead>
     <tbody>
     {% for r in top %}
-      <tr>
+      <tr class="{{ 'extra' if loop.index > n_visible }}">
         <td><a href="{{ url_for('main.candidate', cid=r.candidate_id) }}" class="mono">{{ r.candidate_id }}</a></td>
         <td><span class="pill {{ r.source_environment }}">{{ env_label.get(r.source_environment, '?') }}</span></td>
         <td class="num">{{ r.seq_length }}</td>
@@ -65,5 +66,27 @@
     </tbody>
   </table>
   </div>
+  {% if top|length > n_visible %}
+  <button id="show-all" aria-expanded="false">Show all {{ top|length }}</button>
+  {% endif %}
 </div>
+
+<script>
+// Collapsed by default: the top of this ranking is rediscoveries of known enzymes,
+// so showing all 128 by default would bury the point rather than make it.
+(() => {
+  const btn = document.getElementById('show-all');
+  if (!btn) return;
+  const extra = document.querySelectorAll('#top-table tr.extra');
+  const shown = {{ n_visible }};
+  const total = {{ top|length }};
+  extra.forEach(r => r.hidden = true);
+  btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    extra.forEach(r => r.hidden = open);
+    btn.setAttribute('aria-expanded', String(!open));
+    btn.textContent = open ? `Show all ${total}` : `Show top ${shown} only`;
+  });
+})();
+</script>
 {% endblock %}

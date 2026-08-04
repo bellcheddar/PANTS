@@ -69,7 +69,9 @@ img, canvas, svg { max-width: 100%; }
 table.data { border-collapse: collapse; width: 100%; font-size: 14px; }
 table.data th, table.data td { padding: 8px 10px; border-bottom: 1px solid var(--md-border); text-align: left; }
 table.data th { background: var(--md-bg-alt); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
-table.data th[data-sort]::after { content: ' \\2195'; color: var(--md-text-muted); font-size: 11px; }
+/* The literal character, not a \2195 escape: written through a shell heredoc the
+   backslash got doubled and CSS printed the escape as text in every header. */
+table.data th[data-sort]::after { content: ' \2195'; color: var(--pv-dim); font-size: 11px; opacity: .6; }
 table.data tbody tr:hover { background: var(--md-bg-alt); }
 td.num, th.num { text-align: right; font-family: 'Roboto Mono', monospace; }
 
@@ -253,6 +255,13 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
      acronym is explained. */
   color: var(--pv-accent-2);
 }
+.md-tagline {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--pv-dim);
+  max-width: 62ch;
+}
 
 /* --- tabs, hanging off the bottom of the slab --- */
 .md-nav { display: flex; gap: 22px; padding: 12px 0 0; overflow-x: auto; }
@@ -272,6 +281,11 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
 @media (max-width: 560px) {
   .md-banner { font-size: 6px; }
   .md-strap { font-size: 11px; letter-spacing: .06em; }
+  .md-tagline { font-size: 11px; }
   .md-nav { gap: 16px; }
   .md-credit-links a { padding: 1px 8px; }
 }
+
+/* Strapline and tagline move as one block beside the banner, so they wrap
+   together instead of the tagline detaching on a narrow viewport. */
+.md-titles { padding-bottom: 2px; }

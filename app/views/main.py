@@ -72,9 +72,9 @@ def home():
             "FROM candidates c "
             "LEFT JOIN structures s ON s.candidate_id=c.candidate_id "
             "LEFT JOIN geometry g ON g.candidate_id=c.candidate_id "
-            "ORDER BY c.recall_bitscore DESC LIMIT 10")]
+            "ORDER BY c.recall_bitscore DESC")]
     return render_template("home.html", active="home", counts=counts,
-                           by_env=by_env, top=top, env_label=ENV_LABEL)
+                           by_env=by_env, top=top, n_visible=10, env_label=ENV_LABEL)
 
 
 @bp.route("/catalogue")
