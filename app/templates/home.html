@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="md-card">
+  <h2>Therapeutic polyesterase triage</h2>
+  <p>PANTS mines metagenomic sequence space for PET-degrading enzymes and ranks them on axes
+  that matter at 37 °C in serum, not at 70 °C in a reactor.</p>
+  <div class="caveat">
+    <strong>Read the Methods page before using any score.</strong> Of {{ counts.positives }} positives
+    only <strong>{{ counts.evidenced }}</strong> carry experimental evidence; the rest are automatic
+    annotation. A classifier trained on those labels scores AUC 1.000 by reproducing the annotation
+    rule, so this catalogue currently ranks by <em>retrieval plus geometry</em>, not by a
+    demonstrated model of PET activity.
+  </div>
+</div>
+
+<div class="md-grid" style="margin-top:16px">
+  <div class="md-card"><div class="kpi">{{ counts.candidates }}</div><div class="kpi-label">candidates recovered</div></div>
+  <div class="md-card"><div class="kpi">{{ counts.structures }}</div><div class="kpi-label">predicted structures</div></div>
+  <div class="md-card"><div class="kpi">{{ counts.evidenced }}</div><div class="kpi-label">experimentally evidenced positives</div></div>
+  <div class="md-card"><div class="kpi">{{ counts.measurements }}</div><div class="kpi-label">activity measurements, all cited</div></div>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>By source environment</h2>
+  <div class="tbl-wrap">
+  <table class="data">
+    <thead><tr><th>Environment</th><th class="num">Candidates</th><th class="num">Mean identity to nearest characterised</th></tr></thead>
+    <tbody>
+    {% for r in by_env %}
+      <tr>
+        <td><span class="pill {{ r.env }}">{{ env_label.get(r.env, r.env) }}</span></td>
+        <td class="num">{{ r.n }}</td>
+        <td class="num">{{ '%.3f'|format(r.mean_ident) if r.mean_ident else '-' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted" style="margin-top:10px">Every marine plastisphere candidate sits below 40% identity to
+  anything characterised: nothing in that cohort is a rediscovery. Compost, where the field has already
+  looked, returns near-identical copies of known enzymes.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Top 10 by retrieval bitscore</h2>
+  <p class="muted">Ranked by the retrieval baseline, which deliberately favours what is already known.</p>
+  <div class="tbl-wrap">
+  <table class="data">
+    <thead><tr><th>Candidate</th><th>Environment</th><th class="num">Length</th><th class="num">Bitscore</th>
+    <th class="num">Identity</th><th class="num">pLDDT</th><th class="num">Cleft Å</th><th>Nearest</th></tr></thead>
+    <tbody>
+    {% for r in top %}
+      <tr>
+        <td><a href="{{ url_for('main.candidate', cid=r.candidate_id) }}" class="mono">{{ r.candidate_id }}</a></td>
+        <td><span class="pill {{ r.source_environment }}">{{ env_label.get(r.source_environment, '?') }}</span></td>
+        <td class="num">{{ r.seq_length }}</td>
+        <td class="num">{{ '%.1f'|format(r.recall_bitscore) if r.recall_bitscore else '-' }}</td>
+        <td class="num">{{ '%.2f'|format(r.recall_profile_identity) if r.recall_profile_identity else '-' }}</td>
+        <td class="num">{{ '%.0f'|format(r.plddt_mean) if r.plddt_mean else '-' }}</td>
+        <td class="num">{{ r.cleft_width_A or '-' }}</td>
+        <td class="mono muted">{{ r.nearest_characterised_id or '-' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

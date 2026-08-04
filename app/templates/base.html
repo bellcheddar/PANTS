@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Marc C. Deller, D.Phil.">
+  <meta name="description" content="PANTS: PETase annotation and triage for therapeutic use at 37 degrees C.">
+  <title>{% block title %}PANTS{% endblock %} | Marc C. Deller</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pants.css') }}?v={{ data_version }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<header class="md-header">
+  <div class="md-header-inner">
+    <div class="md-header-brand">
+      <a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">
+        <span class="md-logo-dot"></span>
+        <span class="md-logo-text">Marc C. Deller, D.Phil.</span>
+      </a>
+    </div>
+    <div class="md-header-title">
+      <h1>PANTS: PETase ANnotation and Triage System</h1>
+    </div>
+    <div class="md-header-links">
+      <a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">🌐 marcdeller.com</a>
+      <a href="mailto:marc@marcdeller.com">✉️ marc@marcdeller.com</a>
+    </div>
+  </div>
+</header>
+
+<nav class="md-nav">
+  <div class="md-nav-inner">
+    <a href="{{ url_for('main.home') }}" class="{{ 'active' if active == 'home' }}">Home</a>
+    <a href="{{ url_for('main.catalogue') }}" class="{{ 'active' if active == 'catalogue' }}">Catalogue</a>
+    <a href="{{ url_for('main.compare') }}" class="{{ 'active' if active == 'compare' }}">Superpose</a>
+    <a href="{{ url_for('main.methods') }}" class="{{ 'active' if active == 'methods' }}">Methods</a>
+  </div>
+</nav>
+
+<main class="md-main">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="md-footer">
+  Built by <a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">Marc C. Deller, D.Phil.</a>
+  · <a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a><br>
+  <span class="muted">data version {{ data_version }} · schema v{{ schema_version }} · {{ n_structures }} structures</span>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Catalogue{% endblock %}
+{% block content %}
+<div class="md-card">
+  <h2>Catalogue <span class="muted">({{ rows|length }} candidates)</span></h2>
+  <form method="get" style="margin:10px 0">
+    <label>Environment
+      <select name="env" onchange="this.form.submit()">
+        <option value="">all</option>
+        {% for e in envs %}<option value="{{ e }}" {{ 'selected' if e==env }}>{{ env_label.get(e,e) }}</option>{% endfor %}
+      </select>
+    </label>
+    <noscript><button type="submit">Filter</button></noscript>
+  </form>
+  <div class="caveat">Sorted by retrieval bitscore. That ranking favours candidates resembling
+  already-characterised enzymes, which is the bias PANTS exists to correct rather than a
+  recommendation. Low-identity candidates are the unexplored ones.</div>
+  <div class="tbl-wrap">
+  <table class="data" id="cat">
+    <thead><tr>
+      <th data-sort="str">Candidate</th><th data-sort="str">Environment</th>
+      <th class="num" data-sort="num">Length</th><th class="num" data-sort="num">E-value</th>
+      <th class="num" data-sort="num">Bitscore</th><th class="num" data-sort="num">Identity</th>
+      <th class="num" data-sort="num">pLDDT</th><th class="num" data-sort="num">Cleft Å</th>
+      <th>Triad</th><th>Nearest characterised</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a href="{{ url_for('main.candidate', cid=r.candidate_id) }}" class="mono">{{ r.candidate_id }}</a></td>
+        <td><span class="pill {{ r.source_environment }}">{{ env_label.get(r.source_environment,'?') }}</span></td>
+        <td class="num">{{ r.seq_length }}</td>
+        <td class="num">{{ '%.1e'|format(r.recall_evalue) if r.recall_evalue else '-' }}</td>
+        <td class="num">{{ '%.1f'|format(r.recall_bitscore) if r.recall_bitscore else '-' }}</td>
+        <td class="num">{{ '%.2f'|format(r.recall_profile_identity) if r.recall_profile_identity else '-' }}</td>
+        <td class="num">{{ '%.0f'|format(r.plddt_mean) if r.plddt_mean else '-' }}</td>
+        <td class="num">{{ r.cleft_width_A or '-' }}</td>
+        <td class="mono muted">{% if r.triad_ser_resnum %}S{{ r.triad_ser_resnum }}/D{{ r.triad_asp_resnum }}/H{{ r.triad_his_resnum }}{% else %}-{% endif %}</td>
+        <td class="mono muted">{{ r.nearest_characterised_id or '-' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+<script>
+// Click-to-sort. Vanilla, no library: the table is a few hundred rows.
+document.querySelectorAll('#cat th[data-sort]').forEach((th, idx) => {
+  let asc = true;
+  th.addEventListener('click', () => {
+    const tb = th.closest('table').tBodies[0];
+    const rows = Array.from(tb.rows);
+    const num = th.dataset.sort === 'num';
+    rows.sort((a, b) => {
+      const x = a.cells[idx].innerText.trim(), y = b.cells[idx].innerText.trim();
+      if (num) {
+        const nx = parseFloat(x) , ny = parseFloat(y);
+        const ax = isNaN(nx) ? -Infinity : nx, ay = isNaN(ny) ? -Infinity : ny;
+        return asc ? ax - ay : ay - ax;
+      }
+      return asc ? x.localeCompare(y) : y.localeCompare(x);
+    });
+    rows.forEach(r => tb.appendChild(r));
+    asc = !asc;
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Methods{% endblock %}
+{% block content %}
+<div class="md-card">
+  <h2>Methods and limitations</h2>
+  <p>Spec section 7 calls this page non-negotiable "given how easily this kind of tool is
+  over-read". This project has more to disclose than most.</p>
+
+  <div class="caveat">
+    <strong>The headline caveat.</strong> A classifier trained on this catalogue's own labels
+    scores AUC 1.000 against hard negatives. That is a failure, not a success:
+    {{ counts.positives - counts.evidenced }} of {{ counts.positives }} positives were labelled by
+    sequence similarity (ECO:0000256), so a sequence-embedding model reproducing them is close to
+    tautological. Only <strong>{{ counts.evidenced }}</strong> positives carry experimental evidence,
+    and they all fall in a single cluster at 30% identity, so a head trained on measured activity
+    alone cannot currently be evaluated by cluster-split cross-validation at all.
+  </div>
+  <p>What this catalogue therefore <em>is</em>: a retrieval ranking over triad-complete metagenomic
+  candidates, with annotation-independent geometry measured on predicted structures. What it is
+  <em>not</em>: a demonstrated model of PET-hydrolysing activity.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Positives by evidence tier</h2>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>Tier</th><th class="num">n</th></tr></thead>
+    <tbody>{% for t in tiers %}<tr><td class="mono">{{ t.tier }}</td><td class="num">{{ t.n }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Training runs</h2>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>Head</th><th class="num">Pos</th><th class="num">Neg</th><th class="num">Clusters</th>
+    <th class="num">AUC</th><th class="num">Composition baseline</th><th>Evidence</th></tr></thead>
+    <tbody>{% for t in training %}
+      <tr><td>{{ t.head_name }}</td><td class="num">{{ t.n_positives }}</td><td class="num">{{ t.n_negatives }}</td>
+      <td class="num">{{ t.n_positive_clusters }}</td>
+      <td class="num">{{ '%.3f'|format(t.auc) if t.auc else 'not evaluable' }}</td>
+      <td class="num">{{ '%.3f'|format(t.composition_baseline_auc) if t.composition_baseline_auc else '-' }}</td>
+      <td class="muted">{{ t.evidence_level }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <p class="muted">The composition baseline uses amino-acid fractions and length only. Any model claim
+  must clear it as well as the retrieval baseline.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Pipeline runs</h2>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>Stage</th><th>Label</th><th>Status</th><th class="num">In</th><th class="num">Out</th>
+    <th class="num">Discarded</th><th>Started</th></tr></thead>
+    <tbody>{% for r in runs %}
+      <tr><td>{{ r.stage }}</td><td class="muted">{{ r.label }}</td><td>{{ r.status }}</td>
+      <td class="num">{{ '{:,}'.format(r.n_input) }}</td><td class="num">{{ r.n_output }}</td>
+      <td class="num">{{ '{:,}'.format(r.n_discarded) }}</td><td class="muted">{{ r.started_at }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Data sources</h2>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>Source</th><th>Version</th><th class="num">Records</th><th>Licence</th><th>Retrieved</th></tr></thead>
+    <tbody>{% for s in sources %}<tr><td>{{ s.name }}</td><td>{{ s.version }}</td>
+      <td class="num">{{ s.n_records }}</td><td>{{ s.license }}</td><td class="muted">{{ s.retrieved_at }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Limitations</h2>
+  <ol>
+    <li>Positives number in the low hundreds and most carry family annotation rather than measured PET activity.</li>
+    <li>Published activity data is not harmonised across assay formats. Absolute rate predictions should not be trusted.</li>
+    <li>Crystalline PET degradation at 37 °C by any known enzyme is slow. PANTS ranks relative promise, not therapeutic viability.</li>
+    <li>Predicted structures are predictions. Cleft geometry on a metagenomic sequence with no close homologue carries real uncertainty, and a brittle version of that measurement scored IsPETase's own prediction at half its crystal value before being fixed.</li>
+    <li>Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo.</li>
+    <li>Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.</li>
+    <li>Cleft width currently separates a fungal cutinase from the polyesterase family, but does not order that family by PET activity. Family-level separation is a much easier task than the one that matters.</li>
+  </ol>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Recent manifests</h2>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>Stage</th><th>Model</th><th class="num">Schema</th><th>Commit</th><th class="num">Wall (s)</th><th>Written</th></tr></thead>
+    <tbody>{% for m in manifests %}<tr><td>{{ m.stage }}</td><td class="muted mono" style="font-size:11px">{{ m.model_version or '-' }}</td>
+      <td class="num">{{ m.schema_version }}</td><td class="mono">{{ m.git_commit or '-' }}</td>
+      <td class="num">{{ '%.1f'|format(m.wall_time_s) if m.wall_time_s else '-' }}</td><td class="muted">{{ m.written_at }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

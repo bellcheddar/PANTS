@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ c.candidate_id }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@4.9.0/build/viewer/molstar.css">
+{% endblock %}
+{% block content %}
+<div class="md-card">
+  <h2 class="mono">{{ c.candidate_id }}</h2>
+  <p>
+    <span class="pill {{ c.source_environment }}">{{ env_label.get(c.source_environment,'?') }}</span>
+    <span class="muted">{{ c.seq_length }} aa · assembly {{ c.assembly_id }} · contig {{ c.contig_id }}</span>
+  </p>
+</div>
+
+<div class="md-grid" style="margin-top:16px">
+  <div class="md-card">
+    <h2>Retrieval</h2>
+    <table class="data">
+      <tr><td>E-value</td><td class="num">{{ '%.2e'|format(c.recall_evalue) if c.recall_evalue else '-' }}</td></tr>
+      <tr><td>Bitscore</td><td class="num">{{ '%.1f'|format(c.recall_bitscore) if c.recall_bitscore else '-' }}</td></tr>
+      <tr><td>Identity to nearest</td><td class="num">{{ '%.3f'|format(c.recall_profile_identity) if c.recall_profile_identity else '-' }}</td></tr>
+      <tr><td>Nearest characterised</td><td class="mono">{{ c.nearest_characterised_id or '-' }}</td></tr>
+    </table>
+  </div>
+  <div class="md-card">
+    <h2>Structure</h2>
+    <table class="data">
+      <tr><td>Method</td><td>{{ c.structure_method or 'not folded' }}</td></tr>
+      <tr><td>Mean pLDDT</td><td class="num">{{ '%.1f'|format(c.plddt_mean) if c.plddt_mean else '-' }}</td></tr>
+      <tr><td>RMSD to IsPETase</td><td class="num">{{ '%.2f'|format(c.rmsd_ca_to_ispetase_A) if c.rmsd_ca_to_ispetase_A else '-' }} Å</td></tr>
+      <tr><td>Aligned fraction</td><td class="num">{{ '%.3f'|format(c.tm_score_to_ispetase) if c.tm_score_to_ispetase else '-' }}</td></tr>
+    </table>
+    <p class="muted" style="font-size:12px">Aligned fraction is a length-normalised gemmi superposition
+    statistic, not a true TM-score.</p>
+  </div>
+  {% if g %}
+  <div class="md-card">
+    <h2>Active site</h2>
+    <table class="data">
+      <tr><td>Triad</td><td class="mono">S{{ g.triad_ser_resnum }}/D{{ g.triad_asp_resnum }}/H{{ g.triad_his_resnum }}</td></tr>
+      <tr><td>Ser–His</td><td class="num">{{ g.ser_og_his_ne2_dist_A }} Å</td></tr>
+      <tr><td>His–Asp</td><td class="num">{{ g.his_nd1_asp_od_dist_A }} Å</td></tr>
+      <tr><td>Cleft width</td><td class="num">{{ g.cleft_width_A }} Å</td></tr>
+      <tr><td>Cleft depth</td><td class="num">{{ g.cleft_depth_A }} Å</td></tr>
+    </table>
+    <p class="muted" style="font-size:12px">Aromatic clamp:
+      {{ (g.aromatic_clamp_residues_json or '[]')|replace('"','')|replace('[','')|replace(']','') }}</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if c.plddt_mean %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Structure, superposed on IsPETase</h2>
+  <div class="viewer-shell">
+    <div id="viewer"></div>
+      <div id="viewer-error" class="caveat" style="display:none"></div>
+    <div class="viewer-controls">
+      <label><input type="checkbox" id="ref-toggle" checked>
+        <span class="swatch" style="background:#9aa5b1"></span> IsPETase 6EQE</label>
+      <label><input type="checkbox" id="cand-toggle" checked>
+        <span class="swatch" style="background:#1e73be"></span> this candidate</label>
+      <button id="reset" style="margin-top:10px">Reset view</button>
+      <div class="viewer-note">Catalytic triad drawn as ball-and-stick from the measured residues.</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Sequence</h2>
+  <p class="mono" style="word-break:break-all;font-size:12px">{{ c.sequence }}</p>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if c.plddt_mean %}
+<script src="https://cdn.jsdelivr.net/npm/molstar@4.9.0/build/viewer/molstar.js"></script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ data_version }}"></script>
+<script>
+(async () => {
+  await PANTSViewer.init('viewer');
+  await PANTSViewer.add('reference', '/static/reference/6EQE.cif', {isReference: true,
+    triad: {ser:160, asp:206, his:237}});
+  await PANTSViewer.add('{{ c.candidate_id }}', '/static/structures/{{ c.candidate_id }}.cif', {
+    colour: '#1e73be',
+    triad: {ser: {{ g.triad_ser_resnum or 'null' }}, asp: {{ g.triad_asp_resnum or 'null' }}, his: {{ g.triad_his_resnum or 'null' }}}
+  });
+})();
+document.getElementById('ref-toggle').addEventListener('change', e => PANTSViewer.setVisible('reference', e.target.checked));
+document.getElementById('cand-toggle').addEventListener('change', e => PANTSViewer.setVisible('{{ c.candidate_id }}', e.target.checked));
+document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());
+</script>
+{% endif %}
+{% endblock %}

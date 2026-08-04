@@ -1,0 +1,149 @@
+/* PANTS house theme: marcdeller.com brand tokens.
+   British English, mobile responsive, sticky header that does not overlap content. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+:root {
+  --md-primary:       #1e73be;
+  --md-primary-dark:  #155a9c;
+  --md-primary-light: #4a9fd4;
+
+  --md-bg:            #ffffff;
+  --md-bg-alt:        #f4f7fb;
+  --md-surface:       #ffffff;
+  --md-border:        #dde4ed;
+
+  --md-text:          #1a1a2e;
+  --md-text-muted:    #6b7c93;
+  --md-text-light:    #ffffff;
+
+  --md-accent-green:  #00d084;
+  --md-accent-orange: #ff6900;
+  --md-accent-purple: #9b51e0;
+  --md-accent-amber:  #fcb900;
+
+  --md-shadow-sm:     6px 6px 9px rgba(0,0,0,0.12);
+  --md-radius:        8px;
+  --md-radius-lg:     16px;
+
+  /* Environment colours, used consistently in tables, plots and the viewer. */
+  --env-compost:   #00d084;
+  --env-marine:    #1e73be;
+  --env-landfill:  #ff6900;
+  --env-waste:     #9b51e0;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px; line-height: 1.6;
+  color: var(--md-text); background: var(--md-bg);
+}
+code, pre, .mono { font-family: 'Roboto Mono', monospace; }
+a { color: var(--md-primary); }
+img, canvas, svg { max-width: 100%; }
+
+/* ---------- header ---------- */
+.md-header {
+  background: linear-gradient(135deg, var(--md-primary-dark) 0%, var(--md-primary) 100%);
+  color: var(--md-text-light);
+  box-shadow: var(--md-shadow-sm);
+  position: sticky; top: 0; z-index: 100;
+}
+.md-header-inner {
+  max-width: 1400px; margin: 0 auto; padding: 12px 24px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.md-header-brand a {
+  display: flex; align-items: center; gap: 8px;
+  color: rgba(255,255,255,0.9); text-decoration: none;
+  font-weight: 600; font-size: 13px; letter-spacing: 0.02em; white-space: nowrap;
+}
+.md-header-brand a:hover { color: #fff; }
+.md-logo-dot { width: 10px; height: 10px; background: var(--md-accent-amber); border-radius: 50%; flex-shrink: 0; }
+.md-header-title { flex: 1; min-width: 0; }
+.md-header-title h1 {
+  font-size: 16px; font-weight: 700; color: #fff; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.md-header-links { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+.md-header-links a {
+  color: rgba(255,255,255,0.85); text-decoration: none; font-size: 12px;
+  padding: 4px 12px; border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
+  transition: all 0.2s; white-space: nowrap;
+}
+.md-header-links a:hover { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.6); }
+
+/* ---------- nav ---------- */
+.md-nav { background: var(--md-bg-alt); border-bottom: 1px solid var(--md-border); }
+.md-nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; gap: 4px; overflow-x: auto; }
+.md-nav a {
+  padding: 10px 16px; text-decoration: none; color: var(--md-text-muted);
+  font-size: 14px; font-weight: 500; border-bottom: 3px solid transparent; white-space: nowrap;
+}
+.md-nav a:hover { color: var(--md-primary); }
+.md-nav a.active { color: var(--md-primary); border-bottom-color: var(--md-primary); }
+
+/* ---------- layout ---------- */
+.md-main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+.md-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.md-card {
+  background: var(--md-surface); border: 1px solid var(--md-border);
+  border-radius: var(--md-radius); padding: 20px; box-shadow: var(--md-shadow-sm);
+}
+.md-card h2 { margin-top: 0; font-size: 18px; }
+.kpi { font-size: 30px; font-weight: 700; color: var(--md-primary); line-height: 1.1; }
+.kpi-label { font-size: 13px; color: var(--md-text-muted); }
+.muted { color: var(--md-text-muted); font-size: 13px; }
+
+/* ---------- caveat callout: this project has a lot to disclose ---------- */
+.caveat {
+  border-left: 4px solid var(--md-accent-amber);
+  background: #fffbea; padding: 12px 16px; border-radius: 0 var(--md-radius) var(--md-radius) 0;
+  font-size: 14px; margin: 16px 0;
+}
+.caveat strong { color: #8a6d00; }
+
+/* ---------- tables ---------- */
+.tbl-wrap { overflow-x: auto; }
+table.data { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.data th, table.data td { padding: 8px 10px; border-bottom: 1px solid var(--md-border); text-align: left; }
+table.data th { background: var(--md-bg-alt); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+table.data th[data-sort]::after { content: ' \\2195'; color: var(--md-text-muted); font-size: 11px; }
+table.data tbody tr:hover { background: var(--md-bg-alt); }
+td.num, th.num { text-align: right; font-family: 'Roboto Mono', monospace; }
+
+.pill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; }
+.pill.compost  { background: var(--env-compost); }
+.pill.marine_plastisphere { background: var(--env-marine); }
+.pill.landfill { background: var(--env-landfill); }
+.pill.wastewater { background: var(--env-waste); }
+.pill.unknown  { background: var(--md-text-muted); }
+
+/* ---------- structure viewer ---------- */
+.viewer-shell { display: grid; grid-template-columns: 1fr 260px; gap: 16px; }
+#viewer {
+  position: relative; width: 100%; height: 560px;
+  border: 1px solid var(--md-border); border-radius: var(--md-radius); overflow: hidden; background: #101418;
+}
+.viewer-controls { font-size: 13px; }
+.viewer-controls h3 { font-size: 14px; margin: 0 0 8px; }
+.viewer-controls label { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.viewer-note { margin-top: 12px; font-size: 12px; color: var(--md-text-muted); }
+
+@media (max-width: 900px) {
+  .viewer-shell { grid-template-columns: 1fr; }
+  #viewer { height: 380px; }
+}
+@media (max-width: 768px) {
+  .md-card { padding: 14px; }
+  .md-main { padding: 16px; }
+  .hide-mobile { display: none !important; }
+}
+
+footer.md-footer {
+  text-align: center; padding: 24px; color: var(--md-text-muted); font-size: 13px;
+  border-top: 1px solid var(--md-border); margin-top: 32px;
+}

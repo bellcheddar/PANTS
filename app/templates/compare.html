@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Superpose{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@4.9.0/build/viewer/molstar.css">
+{% endblock %}
+{% block content %}
+<div class="md-card">
+  <h2>Superposed structures</h2>
+  <p class="muted">Every structure was aligned onto IsPETase (PDB 6EQE) when it was written, so these
+  overlay directly: the browser does no alignment. Catalytic triads are drawn as ball-and-stick,
+  using the residues the geometry stage actually measured rather than positions inferred from an alignment.</p>
+
+  <div class="viewer-shell" style="margin-top:14px">
+    <div id="viewer"></div>
+      <div id="viewer-error" class="caveat" style="display:none"></div>
+    <div class="viewer-controls">
+      <h3>Structures</h3>
+      <label>
+        <input type="checkbox" id="ref-toggle" checked>
+        <span class="swatch" style="background:#9aa5b1"></span> IsPETase 6EQE (reference)
+      </label>
+      <div id="picker" style="max-height:380px;overflow-y:auto;margin-top:8px"></div>
+      <button id="reset" style="margin-top:10px">Reset view</button>
+      <div class="viewer-note">
+        Interaction is deliberately minimal for now: pick structures, toggle the reference, reset the camera.
+        How candidates get chosen, how the triad is surfaced and whether pLDDT colouring becomes the default
+        are still to be designed.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/molstar@4.9.0/build/viewer/molstar.js"></script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ data_version }}"></script>
+<script>
+const ROWS = {{ rows|tojson }};
+const PRESELECT = new Set({{ preselect|tojson }});
+const picker = document.getElementById('picker');
+
+ROWS.forEach((r, i) => {
+  const id = r.candidate_id;
+  const colour = PANTSViewer.PALETTE[i % PANTSViewer.PALETTE.length];
+  const lab = document.createElement('label');
+  lab.innerHTML = `<input type="checkbox" data-id="${id}">` +
+    `<span class="swatch" style="background:${colour}"></span>` +
+    `<span class="mono" style="font-size:12px">${id.replace('PANTS-','')}</span>` +
+    `<span class="muted" style="font-size:11px">${r.plddt_mean ? r.plddt_mean.toFixed(0) : '-'}</span>`;
+  picker.appendChild(lab);
+  const cb = lab.querySelector('input');
+  cb.addEventListener('change', async () => {
+    if (cb.checked) {
+      await PANTSViewer.add(id, `/static/structures/${id}.cif`, {
+        colour, triad: {ser: r.triad_ser_resnum, asp: r.triad_asp_resnum, his: r.triad_his_resnum}
+      });
+    } else {
+      await PANTSViewer.remove(id);
+    }
+  });
+  if (PRESELECT.has(id)) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+});
+
+(async () => {
+  await PANTSViewer.init('viewer');
+  await PANTSViewer.add('reference', '/static/reference/6EQE.cif', {isReference: true,
+    triad: {ser: 160, asp: 206, his: 237}});
+  // Nothing selected yet: show the two highest-confidence candidates so the page is not empty.
+  if (!PRESELECT.size) {
+    const first = picker.querySelectorAll('input');
+    for (let i = 0; i < Math.min(2, first.length); i++) {
+      first[i].checked = true; first[i].dispatchEvent(new Event('change'));
+    }
+  }
+})();
+
+document.getElementById('ref-toggle').addEventListener('change', e =>
+  PANTSViewer.setVisible('reference', e.target.checked));
+document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());
+</script>
+{% endblock %}
