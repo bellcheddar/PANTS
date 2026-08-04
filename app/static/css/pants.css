@@ -31,6 +31,7 @@
   --env-marine:    #1e73be;
   --env-landfill:  #ff6900;
   --env-waste:     #9b51e0;
+  --env-gut:       #e5195f;   /* human gut: the therapeutic-relevant environment */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -80,6 +81,7 @@ td.num, th.num { text-align: right; font-family: 'Roboto Mono', monospace; }
 .pill.marine_plastisphere { background: var(--env-marine); }
 .pill.landfill { background: var(--env-landfill); }
 .pill.wastewater { background: var(--env-waste); }
+.pill.human_gut { background: var(--env-gut); }
 .pill.unknown  { background: var(--md-text-muted); }
 
 /* ---------- structure viewer ---------- */

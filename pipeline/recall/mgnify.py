@@ -194,6 +194,23 @@ STUDY_BIOME = {
     "MGYS00004882": ("landfill", "root:Engineered:Solid waste:Landfill"),
     "MGYS00005026": ("compost", "root:Engineered:Solid waste:Composting"),
     "MGYS00004904": ("wastewater", "root:Engineered:Wastewater"),
+    # --- human gut, added 2026-08-04 ---
+    # The other four environments are all external. The gut is the one that matches
+    # the therapeutic framing directly: an enzyme resident at 37 C, pH 7.4 and under
+    # proteolytic pressure has been selected near the target conditions rather than
+    # being asked to work far from its optimum.
+    #
+    # HGMP01 (Int J Biol Macromol 2024, PMID 39551294) is a PET hydrolase found in
+    # exactly this environment, and that paper reports HGMP01-like genes as widely
+    # distributed across the human gut microbiome. Its own sequence is not in UniProt
+    # or NCBI under that name and lives in the paper's supplementary, so PANTS cannot
+    # seed with it. Recovering HGMP01-like candidates from gut assemblies WITHOUT the
+    # seed is therefore a blind test of recall, which is worth more than seeding.
+    "MGYS00006069": ("human_gut", "root:Host-associated:Human"),
+    "MGYS00003619": ("human_gut", "root:Host-associated:Human:Digestive system"),
+    "MGYS00006759": ("human_gut", "root:Host-associated:Human:Digestive system:Large intestine:Fecal"),
+    "MGYS00006006": ("human_gut", "root:Host-associated:Human:Digestive system"),
+    "MGYS00002425": ("human_gut", "root:Host-associated:Human:Digestive system:Large intestine"),
 }
 
 # Which ERZ assembly accession came from which study, so a downloaded FASTA can be
@@ -206,6 +223,13 @@ ASSEMBLY_STUDY = {
     "ERZ794970":   "MGYS00005026",
     "ERZ794971":   "MGYS00005026",
     "ERZ795023":   "MGYS00004904",
+    # --- human gut ---
+    "ERZ24812767":   "MGYS00006759",
+    "ERZ24812776":   "MGYS00006759",
+    "ERZ652587":   "MGYS00003619",
+    "ERZ652604":   "MGYS00003619",
+    "ERZ857676":   "MGYS00002425",
+    "ERZ857686":   "MGYS00002425",
 }
 
 

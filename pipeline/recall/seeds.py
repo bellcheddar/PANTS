@@ -170,8 +170,22 @@ VARIANTS: List[Variant] = [
 ]
 
 # HGMP01 is named in spec section 1 but is metagenome-derived rather than a variant of a
-# characterised parent, so it does not belong in VARIANTS. It is left for the recall stage
-# to recover from sequence space, which is a fair test of whether recall works.
+# characterised parent, so it does not belong in VARIANTS.
+#
+# Checked 2026-08-04: it is NOT retrievable programmatically. Zero hits in UniProt (by
+# name, gene or protein name) and zero in NCBI protein/nuccore; the paper that describes
+# it (Int J Biol Macromol 2024, PMID 39551294, "Identification of a PET hydrolytic enzyme
+# from the human gut microbiome") has no linked sequence records, so the sequence lives in
+# its supplementary material. It is deliberately NOT reconstructed here: a fabricated seed
+# would poison the profiles and every score downstream, and would be undetectable.
+#
+# That turns out to be an advantage. The same paper reports HGMP01-LIKE genes as widely
+# distributed across the human gut microbiome, so running recall over gut assemblies
+# WITHOUT the seed is a blind test of whether the pipeline finds them unaided. Seeding
+# with the sequence would have made that test circular.
+#
+# TODO: pull the sequence from the paper's supplementary by hand for a direct comparison
+# against whatever the gut recall returns.
 
 
 def parse_mutation(mut: str) -> Tuple[str, int, str]:

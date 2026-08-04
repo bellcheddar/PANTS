@@ -23,6 +23,7 @@ ENV_LABEL = {
     "marine_plastisphere": "Marine plastisphere",
     "landfill": "Landfill",
     "wastewater": "Wastewater",
+    "human_gut": "Human gut",
     "unknown": "Unknown",
 }
 
