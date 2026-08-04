@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ c.candidate_id }}{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@4.9.0/build/viewer/molstar.css">
+
 {% endblock %}
 {% block content %}
 <div class="md-card">
@@ -74,14 +74,14 @@
 {% endblock %}
 {% block scripts %}
 {% if c.plddt_mean %}
-<script src="https://cdn.jsdelivr.net/npm/molstar@4.9.0/build/viewer/molstar.js"></script>
+<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
 <script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ data_version }}"></script>
 <script>
 (async () => {
   await PANTSViewer.init('viewer');
-  await PANTSViewer.add('reference', '/static/reference/6EQE.cif', {isReference: true,
+  await PANTSViewer.add('reference', '/static/reference/6EQE.pdb', {isReference: true,
     triad: {ser:160, asp:206, his:237}});
-  await PANTSViewer.add('{{ c.candidate_id }}', '/static/structures/{{ c.candidate_id }}.cif', {
+  await PANTSViewer.add('{{ c.candidate_id }}', '/static/structures/{{ c.candidate_id }}.pdb', {
     colour: '#1e73be',
     triad: {ser: {{ g.triad_ser_resnum or 'null' }}, asp: {{ g.triad_asp_resnum or 'null' }}, his: {{ g.triad_his_resnum or 'null' }}}
   });

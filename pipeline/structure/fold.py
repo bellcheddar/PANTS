@@ -112,6 +112,68 @@ def superpose_onto_reference(pdb_text: str, reference_cif: Path
     return cif, rmsd, frac
 
 
+def secondary_structure(pdb_text: str) -> Dict[int, str]:
+    """Per-residue secondary structure, as {residue number: 'h'|'s'|'c'}.
+
+    ESMFold emits no HELIX or SHEET records, and neither gemmi's mmCIF nor a bare PDB then
+    gives a viewer anything to build a cartoon from: 3Dmol renders a featureless tube and
+    Mol* falls back to lines. biotite's P-SEA implementation assigns it from coordinates,
+    which is the same route AlphaFraud takes for its ribbon viewer.
+    """
+    import io
+    import biotite.structure as struc
+    import biotite.structure.io.pdb as pdb_io
+
+    try:
+        f = pdb_io.PDBFile.read(io.StringIO(pdb_text))
+        arr = f.get_structure(model=1)
+        arr = arr[struc.filter_amino_acids(arr)]
+        sse = struc.annotate_sse(arr)              # 'a' | 'b' | 'c' per residue
+        res_ids = struc.get_residues(arr)[0]
+    except Exception:
+        return {}
+
+    mapping: Dict[int, str] = {}
+    for rid, code in zip(res_ids, sse):
+        mapping[int(rid)] = {"a": "h", "b": "s"}.get(str(code), "c")
+    return mapping
+
+
+def _ss_records(ss: Dict[int, str]) -> str:
+    """HELIX/SHEET records from a per-residue map, in real PDB columns.
+
+    3Dmol's build does not set atom.ss from these itself, but the client parses them to do
+    so (the same trick AlphaFraud uses). Writing them is what turns a tube into a cartoon.
+    """
+    if not ss:
+        return ""
+    lines: List[str] = []
+    runs: List[Tuple[str, int, int]] = []
+    prev_code, start, prev_num = None, None, None
+    for num in sorted(ss):
+        code = ss[num]
+        if code != prev_code or (prev_num is not None and num != prev_num + 1):
+            if prev_code in ("h", "s") and start is not None:
+                runs.append((prev_code, start, prev_num))
+            start, prev_code = num, code
+        prev_num = num
+    if prev_code in ("h", "s") and start is not None:
+        runs.append((prev_code, start, prev_num))
+
+    h = e = 0
+    for code, a, b in runs:
+        if b - a < 2:                       # a two-residue "helix" is noise
+            continue
+        if code == "h":
+            h += 1
+            lines.append(f"HELIX  {h:>3} {h:>3} ALA A {a:>4}  ALA A {b:>4}  1"
+                         f"{'':30}{b-a+1:>5}")
+        else:
+            e += 1
+            lines.append(f"SHEET  {e:>3} {e:>3} 1 ALA A {a:>4}  ALA A {b:>4}  0")
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
 def already_done(candidate_id: str, out_dir: Path) -> bool:
     p = out_dir / f"{candidate_id}.cif"
     return p.exists() and p.stat().st_size > 0
@@ -156,6 +218,11 @@ def run(candidates: Sequence[Tuple[str, str]], out_dir: Optional[Path] = None,
             # Superposition failed: keep the raw prediction rather than losing the fold.
             path = out_dir / f"{cid}.pdb"
             path.write_text(pdb)
+        else:
+            # The viewer eats PDB, not mmCIF: gemmi's mmCIF omits _entity_poly_seq, so
+            # viewers cannot classify the chain as a polymer and refuse to draw a cartoon.
+            # The PDB carries the superposed coordinates plus computed HELIX/SHEET records.
+            write_viewer_pdb(cif, out_dir / f"{cid}.pdb")
 
         site = geometry.measure(path)
         el = time.monotonic() - t0
@@ -171,6 +238,20 @@ def run(candidates: Sequence[Tuple[str, str]], out_dir: Optional[Path] = None,
               f"cleft {site.cleft_width_A}", flush=True)
 
     return results
+
+
+def write_viewer_pdb(cif_text: str, dest: Path) -> Optional[Path]:
+    """Superposed coordinates as PDB, with computed HELIX/SHEET records prepended."""
+    import gemmi
+    try:
+        st = gemmi.read_structure_string(cif_text, format=gemmi.CoorFormat.Mmcif)
+        st.setup_entities()
+        body = st.make_pdb_string()
+    except Exception:
+        return None
+    ss = secondary_structure(body)
+    dest.write_text(_ss_records(ss) + body)
+    return dest
 
 
 def _persist(cid: str, path: Path, plddt: float, frac: Optional[float],

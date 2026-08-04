@@ -1,144 +1,177 @@
-/* Superposed structure viewer, built on Mol*.
+/* Superposed structure viewer, on 3Dmol.js.
  *
- * The design point that makes this cheap: every mmCIF served from /static/structures/ has
- * ALREADY been superposed onto IsPETase (6EQE) at write time by pipeline/structure/fold.py.
- * So overlaying candidates is just loading several files into one viewer. No alignment
- * happens in the browser, which is what keeps an N-structure overlay responsive on a
- * phone and avoids shipping an alignment library to the client.
+ * Two design points.
  *
- * If a structure ever appears misaligned, the bug is in the pipeline, not here.
+ * 1. Every PDB served from /static/structures/ has ALREADY been superposed onto IsPETase
+ *    (6EQE) at write time by pipeline/structure/fold.py. Overlaying candidates is just
+ *    loading several files: no alignment happens in the browser. If structures ever look
+ *    misaligned, the bug is in the pipeline, not here.
+ *
+ * 2. 3Dmol rather than Mol*. The Mol* UMD viewer bundle exports only `Viewer` (no Color,
+ *    no MolScriptBuilder, no selection API), so per-structure colouring and residue
+ *    selection are simply not reachable from it. 3Dmol exposes both directly, and is what
+ *    the sibling AlphaFraud and BoltzMaker viewers already use.
+ *
+ * The cartoon depends on the HELIX/SHEET records the pipeline computes with biotite. This
+ * 3Dmol build does not set atom.ss from them itself, so they are parsed here and applied.
+ * Without that step every structure renders as a featureless tube.
  */
 
 const PANTSViewer = (() => {
   'use strict';
 
-  // Distinct, colour-blind-safe-ish palette. The reference is deliberately grey so
-  // candidates read as the subject and IsPETase as the backdrop.
   const PALETTE = ['#1e73be', '#ff6900', '#00d084', '#9b51e0', '#fcb900', '#e0245e'];
   const REFERENCE_COLOUR = '#9aa5b1';
 
-  let plugin = null;
-  const loaded = new Map();   // id -> { ref, colour, triad }
+  let viewer = null;
+  const loaded = new Map();   // id -> { model, colour, triad, isReference }
 
-  async function init(elementId) {
-    if (plugin) return plugin;
-    plugin = await molstar.Viewer.create(elementId, {
-      layoutIsExpanded: false,
-      layoutShowControls: false,
-      layoutShowSequence: false,
-      layoutShowLog: false,
-      viewportShowExpand: true,
-      viewportShowSelectionMode: false,
-      pdbProvider: 'rcsb',
-    });
-    return plugin;
-  }
-
-  function colourFor(index, isReference) {
-    return isReference ? REFERENCE_COLOUR : PALETTE[index % PALETTE.length];
-  }
-
-  /**
-   * Load one structure.
-   * @param {string} id        candidate id (or 'reference')
-   * @param {string} url       mmCIF/PDB URL, already superposed
-   * @param {object} opts      { colour, isReference, triad: {ser, asp, his} }
-   */
   function showError(msg) {
     const el = document.getElementById('viewer-error');
     if (el) { el.textContent = msg; el.style.display = 'block'; }
     console.error('[PANTSViewer]', msg);
   }
 
-  async function add(id, url, opts = {}) {
-    if (loaded.has(id)) return;
-    await init('viewer');
-    try {
+  function init(elementId) {
+    if (viewer) return viewer;
+    const el = document.getElementById(elementId);
+    if (!el) { showError('viewer container not found'); return null; }
+    if (typeof $3Dmol === 'undefined') { showError('3Dmol failed to load'); return null; }
+    viewer = $3Dmol.createViewer(el, { backgroundColor: '#101418' });
+    return viewer;
+  }
 
-    const format = url.endsWith('.pdb') ? 'pdb' : 'mmcif';
-    const colour = opts.colour || colourFor(loaded.size, opts.isReference);
+  /* HELIX/SHEET -> per-residue code. Fixed PDB columns rather than whitespace splitting:
+     residue numbers can run into the chain id at wide numbering. */
+  function ssMapFromPdb(pdb) {
+    const map = {};
+    pdb.split('\n').forEach(line => {
+      if (line.startsWith('HELIX')) {
+        const s = parseInt(line.substring(21, 25), 10), e = parseInt(line.substring(33, 37), 10);
+        if (!isNaN(s) && !isNaN(e)) for (let i = s; i <= e; i++) map[i] = 'h';
+      } else if (line.startsWith('SHEET')) {
+        const s = parseInt(line.substring(22, 26), 10), e = parseInt(line.substring(33, 37), 10);
+        if (!isNaN(s) && !isNaN(e)) for (let i = s; i <= e; i++) map[i] = 's';
+      }
+    });
+    return map;
+  }
 
-    const data = await plugin.plugin.builders.data.download({ url, isBinary: false });
-    const trajectory = await plugin.plugin.builders.structure.parseTrajectory(data, format);
-    const model = await plugin.plugin.builders.structure.createModel(trajectory);
-    const structure = await plugin.plugin.builders.structure.createStructure(model);
+  function applySS(model, pdb) {
+    const map = ssMapFromPdb(pdb);
+    model.selectedAtoms({}).forEach(a => { a.ss = map[a.resi] || 'c'; });
+  }
 
-    // applyPreset rather than addRepresentation: the preset builds the polymer component
-    // first, which is what makes a cartoon possible. Adding a bare 'cartoon'
-    // representation to the whole structure renders every atom as lines instead, because
-    // nothing has classified the chains as polymer yet.
-    const value = parseInt(colour.slice(1), 16);
-    const cartoon = await plugin.plugin.builders.structure.representation.applyPreset(
-      structure, 'polymer-cartoon',
-      { theme: { globalName: 'uniform', globalColorParams: { value } } }
-    );
+  function styleFor(colour, isReference) {
+    return isReference
+      ? { cartoon: { color: colour, opacity: 0.5 } }
+      : { cartoon: { color: colour } };
+  }
 
-    loaded.set(id, { structure, cartoon, colour, triad: opts.triad || null, reps: [] });
-
-    if (opts.triad) await highlightTriad(id, opts.triad);
-    return id;
-    } catch (err) {
-      showError(`Could not load ${id}: ${err && err.message ? err.message : err}`);
-      throw err;
+  /**
+   * Draw the catalytic triad as sticks, with a translucent sphere marking the nucleophile.
+   *
+   * Residue numbers come from the geometry stage, which found the triad by GEOMETRY (a
+   * spatially connected Ser/His/Asp) rather than by sequence position, so what is drawn is
+   * what was actually measured, not a guess from an alignment.
+   */
+  function highlightTriad(model, triad, isReference) {
+    const nums = [triad.ser, triad.asp, triad.his].filter(n => Number.isFinite(n));
+    if (!nums.length) return;
+    const radius = isReference ? 0.15 : 0.25;
+    // add=true so the cartoon underneath survives.
+    model.setStyle({ resi: nums }, { stick: { radius, colorscheme: 'default' } }, true);
+    if (Number.isFinite(triad.ser)) {
+      model.setStyle({ resi: [triad.ser] }, {
+        stick: { radius, colorscheme: 'default' },
+        sphere: { radius: 0.8, color: '#ff2d55', opacity: 0.4 },
+      }, true);
     }
   }
 
   /**
-   * Draw the catalytic triad as ball-and-stick.
-   *
-   * Residue numbers come from the geometry table, which found them by GEOMETRY (a
-   * spatially connected Ser/His/Asp) rather than by sequence position, so what is drawn
-   * here is what was actually measured, not a guess from an alignment.
+   * Load one structure.
+   * @param {string} id     candidate id, or 'reference'
+   * @param {string} url    PDB URL, already superposed
+   * @param {object} opts   { colour, isReference, triad: {ser, asp, his} }
    */
-  async function highlightTriad(id, triad) {
-    const entry = loaded.get(id);
-    if (!entry || !triad) return;
-    const nums = [triad.ser, triad.asp, triad.his].filter(n => Number.isFinite(n));
-    if (!nums.length) return;
-    const MS = molstar.MolScriptBuilder;
-    if (!MS) {
-      console.warn('[PANTSViewer] MolScriptBuilder unavailable; triad not drawn');
-      return;
+  async function add(id, url, opts = {}) {
+    if (loaded.has(id)) return id;
+    if (!init('viewer')) return null;
+
+    const colour = opts.colour || (opts.isReference
+      ? REFERENCE_COLOUR : PALETTE[loaded.size % PALETTE.length]);
+
+    let text;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      text = await resp.text();
+    } catch (err) {
+      showError(`Could not fetch ${id}: ${err.message}`);
+      return null;
     }
 
-    const expr = MS.struct.generator.atomGroups({
-      'residue-test': MS.core.set.has([
-        MS.set(...nums),
-        MS.struct.atomProperty.macromolecular.auth_seq_id(),
-      ]),
+    const model = viewer.addModel(text, 'pdb');
+    applySS(model, text);
+    model.setStyle({}, styleFor(colour, opts.isReference));
+    if (opts.triad) highlightTriad(model, opts.triad, opts.isReference);
+
+    loaded.set(id, { model, colour, triad: opts.triad || null,
+                     isReference: !!opts.isReference });
+    focusActiveSite();
+    viewer.render();
+    return id;
+  }
+
+  function setTriadVisible(on) {
+    loaded.forEach(entry => {
+      entry.model.setStyle({}, styleFor(entry.colour, entry.isReference));
+      if (on && entry.triad) highlightTriad(entry.model, entry.triad, entry.isReference);
     });
-
-    const sel = await plugin.plugin.builders.structure.tryCreateComponentFromExpression(
-      entry.structure, expr, `triad-${id}`, { label: `Catalytic triad (${id})` }
-    );
-    if (sel) {
-      const rep = await plugin.plugin.builders.structure.representation.addRepresentation(sel, {
-        type: 'ball-and-stick',
-        color: 'element-symbol',
-        typeParams: { sizeFactor: 0.35 },
-      });
-      entry.reps.push(rep);
-    }
+    viewer.render();
   }
 
-  async function remove(id) {
+  function remove(id) {
     const entry = loaded.get(id);
     if (!entry) return;
-    await plugin.plugin.build().delete(entry.structure).commit();
+    viewer.removeModel(entry.model);
     loaded.delete(id);
+    viewer.render();
   }
 
-  async function setVisible(id, visible) {
+  function setVisible(id, visible) {
     const entry = loaded.get(id);
     if (!entry) return;
-    molstar.setSubtreeVisibility(plugin.plugin.state.data, entry.structure.ref, !visible);
+    entry.model.setStyle({}, visible ? styleFor(entry.colour, entry.isReference) : {});
+    if (visible && entry.triad) highlightTriad(entry.model, entry.triad, entry.isReference);
+    viewer.render();
   }
 
-  function reset() { if (plugin) plugin.plugin.managers.camera.reset(); }
-
-  async function clear() {
-    for (const id of Array.from(loaded.keys())) await remove(id);
+  /* Frame the active site rather than the whole model.
+   *
+   * zoomTo() with no selection fits everything, and ESMFold predictions carry long
+   * disordered termini that are far from the fold: fitting those shrinks the actual
+   * protein to a knot in the middle of the viewport. Framing the catalytic triad puts the
+   * thing being compared at the centre, which is the point of a superposed view. */
+  function focusActiveSite() {
+    if (!viewer) return;
+    const nums = [];
+    loaded.forEach(e => {
+      if (e.triad) [e.triad.ser, e.triad.asp, e.triad.his]
+        .filter(n => Number.isFinite(n)).forEach(n => nums.push(n));
+    });
+    if (nums.length) viewer.zoomTo({ resi: nums });
+    else viewer.zoomTo();
+    viewer.zoom(0.55);          // pull back so the surrounding fold stays in frame
   }
 
-  return { init, add, remove, setVisible, reset, clear, colourFor, PALETTE, REFERENCE_COLOUR };
+  function reset() { if (viewer) { focusActiveSite(); viewer.render(); } }
+
+  function zoomAll() { if (viewer) { viewer.zoomTo(); viewer.render(); } }
+
+  function clear() { Array.from(loaded.keys()).forEach(remove); }
+
+  return { init, add, remove, setVisible, setTriadVisible, reset, zoomAll, clear,
+           PALETTE, REFERENCE_COLOUR };
 })();
