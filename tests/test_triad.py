@@ -94,3 +94,46 @@ def test_ispetase_reference_triad_is_the_verified_one():
     """These three numbers were checked against the real UniProt sequence in Phase 1.
     Changing them silently re-anchors every triad call in the project."""
     assert triad.ISPETASE_TRIAD == {"ser": 160, "asp": 206, "his": 237}
+
+
+# --- anchors: the per-cluster replacement for a single hardcoded reference -------------
+
+def test_anchor_consistency_requires_sdh():
+    from pipeline.recall.anchors import Anchor
+    seq = "AAASAAADAAAH"          # S at 4, D at 8, H at 12
+    good = Anchor("x", "P1", seq, ser=4, asp=8, his=12, source="uniprot")
+    assert good.is_consistent
+    assert good.residues() == "SDH"
+
+    bad = Anchor("y", "P2", seq, ser=1, asp=8, his=12, source="uniprot")
+    assert not bad.is_consistent
+
+
+def test_anchor_assigns_triad_by_residue_not_by_description():
+    """UniProt's charge-relay entries do not say which member is Asp and which is His, so
+    assignment must come from the residue itself."""
+    import pipeline.recall.anchors as A
+
+    seq = "MMMSMMMMDMMMH"        # S4, D9, H13
+    def fake(_acc):
+        # deliberately unordered, with vague descriptions
+        return seq, [(13, "charge relay system"), (4, "nucleophile"), (9, "charge relay system")]
+
+    orig, A.fetch_active_sites = A.fetch_active_sites, fake
+    try:
+        a = A.anchor_from_uniprot("z", "P0")
+    finally:
+        A.fetch_active_sites = orig
+
+    assert a is not None
+    assert (a.ser, a.asp, a.his) == (4, 9, 13)
+    assert a.is_consistent
+
+
+def test_anchor_rejected_when_fewer_than_three_sites():
+    import pipeline.recall.anchors as A
+    orig, A.fetch_active_sites = A.fetch_active_sites, lambda _a: ("MSMDMH", [(2, "nucleophile")])
+    try:
+        assert A.anchor_from_uniprot("z", "P0") is None
+    finally:
+        A.fetch_active_sites = orig
