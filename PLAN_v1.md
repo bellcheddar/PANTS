@@ -78,6 +78,27 @@ Phased, each task sized for a solo developer using Claude Code, working days unl
 - **7.4 Candidate tab** (1.5 days): Mol\* viewer over static mmCIF, per-residue pLDDT track, score panel, sequence with triad annotated, nearest characterised relatives.
 - **7.5 Methods tab** (1 day): mostly templating over `manifests`/`training_runs`, limitations section lifted verbatim from spec section 9.
 - **7.6 Mol\* wrapper** (0.5 day, shared component reused across tabs).
+- **7.7 Superposed interactive structure viewer** (1.5 to 2 days, **requirement added 2026-08-04**): promoted from a component of the Candidate tab to a first-class deliverable. The app must let a user view candidate structures **superimposed, interactively, with the catalytic triad highlighted**. The exact interaction is deliberately left open and will be designed later.
+
+  Why it is first-class rather than a detail: geometry is the only annotation-independent signal PANTS has. Phase 5 showed a head trained on the sequence labels scores AUC 1.000 by reproducing a similarity rule with a similarity representation, so a user judging a candidate needs to *look at it* against IsPETase rather than trust a score.
+
+  Already in place, and not to be undone:
+
+  | Piece | State |
+  |---|---|
+  | Superposition | Done **at write time** onto IsPETase 6EQE in `pipeline/structure/fold.py`. Every mmCIF in `app/static/structures/` is already in a common frame, so the browser does no alignment and an overlay is just several file loads |
+  | Triad positions | Per candidate in `geometry.triad_ser_resnum` / `_asp_` / `_his_`, so highlighting needs no recomputation |
+  | Fit to reference | `structures.rmsd_ca_to_ispetase_A` and `tm_score_to_ispetase` (a length-normalised alignment fraction from gemmi, **not** a true TM-score, named honestly in the schema) |
+  | pLDDT | `structures.plddt_mean`, rescaled to 0 to 100 |
+
+  Still open, deliberately:
+
+  - How the overlay set is chosen: from the Catalogue, from a Candidate page, an accumulating basket, or a dedicated Compare route.
+  - How the triad is surfaced: always-on sticks, a toggle, click-to-focus, or linked to a per-residue track.
+  - Whether IsPETase is always drawn as a ghost reference, and whether the cleft surface toggles alongside it.
+  - Whether pLDDT colouring is the default, given a prediction should not look as authoritative as a crystal structure.
+
+  Constraints unchanged: Mol\* from CDN, one shared viewer component, no React and no build step.
 
 ### Phase 8: Deploy (depends on 7) — **critical path tail**
 
