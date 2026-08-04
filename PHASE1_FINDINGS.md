@@ -417,3 +417,91 @@ Everything of interest lives in a very tight region of the embedding space. The 
 therefore discriminating small differences inside a dense cluster, not separating
 well-spaced groups, which is a further reason to trust calibration curves over headline
 AUC (spec section 8).
+
+---
+
+# Phase 5: the labelling experiment, and why the head cannot yet be trusted
+
+Three labelling schemes, cluster-grouped at 30% identity, on frozen ESM-2 embeddings.
+
+| Scheme | Positives | Unlabelled | Negatives | Clusters with positives | Folds | AUC |
+|---|---|---|---|---|---|---|
+| naive (annotation as truth) | 500 | 0 | 220 | 25 | 4 | **1.000 +/- 0.000** |
+| evidence only (ECO:0000269) | 13 | 0 | 220 | **1** | **0** | not evaluable |
+| PU (Elkan-Noto) | 13 | 487 | 220 | **1** | **0** | not evaluable |
+
+## 18. AUC 1.000 is the failure, not the success
+
+The naive head separates the 500 annotated positives from the 220 hard negatives
+perfectly, across every cluster-grouped fold, and beats the composition baseline decisively
+(1.000 against 0.778).
+
+That is not evidence it learned PET chemistry. **449 of those 500 labels were themselves
+assigned by sequence similarity** (`ECO:0000256`), so a sequence-embedding model
+reproducing them is close to tautological: the head recovered the annotation rule, which
+was a similarity rule, using a similarity-based representation. The task as labelled is
+circular, and a perfect score is what circularity looks like.
+
+This is exactly the failure spec section 5.3 warns about from the other direction, and it
+would have been invisible without deliberately splitting the labels by evidence.
+
+## 19. The evidenced positives are one cluster, again
+
+Only 13 of the filtered training positives carry experimental evidence, and **all 13 fall
+into a single cluster at 30% identity**. StratifiedGroupKFold therefore cannot construct a
+fold with evidenced positives in both train and test, so both the evidence-only and PU
+schemes produce zero valid folds.
+
+This is the Phase 1 finding recurring at a different scale. It is not an artefact of the
+filtering: the experimentally characterised PET hydrolase field genuinely is one tight
+sequence neighbourhood (IsPETase, LCC, TfCut1/2, Cut190, *T. alba* and *T. cellulosilytica*
+cutinases all sit together).
+
+**Consequence: a head trained only on measured PET activity cannot currently be evaluated
+by the protocol spec section 8 requires.** Not "scores badly": cannot be scored at all.
+
+## 20. The two schemes disagree exactly where it matters
+
+Despite the evaluation problem, both heads can still be fitted and used to rank the 128
+candidates:
+
+| | naive | evidence only |
+|---|---|---|
+| Mean score | 0.564 | 0.234 |
+| Median score | 0.519 | 0.094 |
+| Candidates scored above 0.5 | 71 / 128 | 26 / 128 |
+| Spearman rho between them | 0.882 | |
+| **Top-10 overlap** | **3 / 10** | |
+
+Broad agreement (rho 0.88) with sharp disagreement at the top, which is precisely the part
+that matters: the structure budget takes the top 50, and the two schemes would send
+substantially different candidates for folding.
+
+Both also correlate with the retrieval baseline they are supposed to improve on
+(Spearman rho 0.569 naive, 0.622 evidence-only against -log10 E-value), so a large part of
+what either head is doing is reproducing the ranking retrieval already gave us.
+
+## 21. What this settles
+
+The experiment was run to decide whether extended curation or structural features should
+come next. It answered clearly: **labels are the bottleneck, and the specific thing needed
+is evidenced positives from sequence clusters other than the one the field already knows.**
+
+That is a hard requirement, not a matter of effort. Options, honestly ranked:
+
+1. **Extend the evidenced set outward.** PAZy and the wider plastic-degrading literature
+   cover polyesterases beyond the PET-cutinase cluster (PHB depolymerases, polyurethanases,
+   polyamidases, MHETase). Broadening the target from "PET hydrolase" to "polyesterase"
+   would buy cluster diversity at the cost of specificity, which is a real trade and should
+   be a deliberate decision rather than a drift.
+2. **Report the ranking honestly as retrieval plus a family prior**, and drop the claim of
+   learned PET discrimination for v1. Spec section 2 already anticipates this: "if the
+   model cannot beat E-value rank on held-out characterised enzymes, that is a cheap and
+   publishable negative result." That is where the evidence currently points.
+3. **Use the structure stage as the discriminator instead.** Cleft width and the aromatic
+   clamp are the features the spec expects to separate real polyesterases from
+   soluble-ester esterases, and they are measured from geometry rather than inherited from
+   an annotation. This route does not depend on more labels.
+
+Option 3 is the only one that adds genuinely independent signal, and it is unblocked: the
+128 candidates can be folded and measured without any further curation.
