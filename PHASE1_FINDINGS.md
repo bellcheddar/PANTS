@@ -559,3 +559,73 @@ Cleft width is different in kind. It is measured off coordinates, so it is the f
 feature here that is independent of the annotation, and on the four structures where the
 answer is known it already orders them by the property of interest. That is the route out
 of the circularity, and it needs no further curation.
+
+---
+
+# Phase 6 continued: ESMFold works, and section 23 above was partly wrong
+
+## 25. CORRECTION to section 23
+
+Section 23 reported cleft widths of IsPETase 20.90, LCC 17.82, TfCut2 12.77 and
+*F. solani* cutinase 11.17 Å, and called it "nearly a two-fold range, ordered correctly".
+**That ordering was an artefact of a brittle metric, and the claim was overstated.**
+
+The measure took a MAX over pairwise aromatic separations within a hard 12 Å radius of the
+nucleophile. Folding IsPETase with ESMFold and measuring its own prediction exposed it:
+
+| | Cleft width |
+|---|---|
+| 6EQE crystal | 20.90 Å |
+| ESMFold prediction of the same protein | **11.09 Å** |
+
+The fold was fine. PHE201 sits 11.7 Å from the nucleophile in the crystal and 12.1 Å in
+the prediction, so a **0.4 Å coordinate shift moved one residue across the cutoff**, and
+because the width was a max over pairs, that single membership change halved the answer.
+It would have placed the reference PETase in cutinase territory. Both numbers looked
+perfectly plausible, which is what makes this class of bug dangerous.
+
+Fixed by widening the radius to 16 Å and taking the **90th percentile** of pairwise
+separations rather than the max, so no single residue can decide the value.
+Crystal-to-prediction disagreement fell from 9.81 Å to 1.81 Å.
+
+**What survives, stated honestly:**
+
+| Enzyme | Cleft width (p90) |
+|---|---|
+| LCC | 24.22 Å |
+| TfCut2 | 22.43 Å |
+| IsPETase | 21.27 Å |
+| *F. solani* cutinase | **14.93 Å** |
+
+The classic fungal cutinase is clearly narrower than the Polyesterase-lipase-cutinase
+family members, by around 7 Å. But those members **do not order among themselves by PET
+activity**: IsPETase, the best ambient-temperature PET degrader of the three, has the
+narrowest cleft of them.
+
+So the demonstrated result is a **family-level separation**, not a PET-activity one.
+Separating a fungal cutinase from the PLC family is a much easier task than separating
+PET-active from PET-inactive within the PLC family, and only the former is shown. That
+weakens, but does not eliminate, the case for geometry as the route out of the Phase 5
+circularity: it is still an annotation-independent measurement, it just has not yet been
+shown to track the property of interest.
+
+## 26. ESMFold: risk 4 cleared, with a caveat about size
+
+| | |
+|---|---|
+| Model | `facebook/esmfold_v1`, a single **8.44 GB** weights file (it bundles ESM-2 **3B**) |
+| Download | ~50 min on this connection |
+| Load time | 1,849 s (31 min), 11.3 GB resident |
+| Fold time | **109 s for 290 residues** (0.38 s/residue) |
+| Extrapolated for 50 candidates | **~94 minutes** |
+| Mean pLDDT | 0.90 on a 0 to 1 scale (equivalent to 90) |
+
+Folding is fast enough; the cost is loading. No fallback to Boltz-2 is needed.
+
+**The prediction reproduces the crystal active site exactly**: S160/D206/H237, connected,
+Ser-His 2.98 Å and His-Asp 2.78 Å against the crystal's 2.94 and 3.07 Å. The aromatic
+clamp comes back with TRP185 and TYR87.
+
+Note for anyone reading the code: ESMFold's pLDDT is on a **0 to 1** scale here, not
+0 to 100. The smoke test first printed "mean pLDDT 1.0", which looked like a broken tensor
+read and was actually a rounded CA-atom mean on the unfamiliar scale.

@@ -34,7 +34,24 @@ HBOND_MAX_A = 3.5
 AROMATIC = {"TRP", "TYR", "PHE"}
 
 # Radius around the catalytic serine within which cleft-lining residues are counted.
-CLEFT_RADIUS_A = 12.0
+#
+# 16 A, not 12, and the width below is a PERCENTILE rather than a maximum. Both changes
+# come from a specific failure: measuring IsPETase's crystal (6EQE) gave a 20.90 A cleft
+# and its own ESMFold prediction gave 11.09 A, which would have placed the reference
+# PETase in cutinase territory. The fold was fine. PHE201 sits 11.7 A from the nucleophile
+# in the crystal and 12.1 A in the prediction, so a 0.4 A coordinate shift moved one
+# residue across a hard cutoff, and because the width was a max over pairwise distances
+# that single membership change halved the answer.
+#
+# A hard cutoff feeding a max is brittle by construction: it makes the metric depend on a
+# knife-edge decision about one residue. Both numbers looked plausible, so nothing would
+# have flagged it downstream.
+CLEFT_RADIUS_A = 16.0
+
+# Percentile of pairwise aromatic separations used as the width. The max is what made the
+# metric hostage to a single residue; a high percentile keeps the same meaning (how far
+# apart the clamp residues sit) without one outlier deciding it.
+CLEFT_WIDTH_PERCENTILE = 90
 
 
 @dataclass
@@ -51,6 +68,10 @@ class ActiveSite:
     cleft_depth_A: Optional[float] = None
     aromatic_clamp: List[str] = field(default_factory=list)
     n_cleft_residues: Optional[int] = None
+    n_aromatic_lining: Optional[int] = None
+    # Kept alongside the percentile so the brittle quantity stays visible: a large gap
+    # between the two means one residue is dominating and the measure is unstable there.
+    cleft_width_max_A: Optional[float] = None
 
     @property
     def triad_is_connected(self) -> bool:
@@ -210,10 +231,13 @@ def measure(path: str | Path, chain_id: Optional[str] = None) -> ActiveSite:
         pts = [p for p in pts if p is not None]
         if pts:
             centroids.append(np.mean(pts, axis=0))
+    site.n_aromatic_lining = len(centroids)
     if len(centroids) >= 2:
         M = np.array(centroids)
         dists = np.linalg.norm(M[:, None, :] - M[None, :, :], axis=-1)
-        site.cleft_width_A = round(float(dists.max()), 2)
+        upper = dists[np.triu_indices(len(M), k=1)]
+        site.cleft_width_A = round(float(np.percentile(upper, CLEFT_WIDTH_PERCENTILE)), 2)
+        site.cleft_width_max_A = round(float(upper.max()), 2)
 
     # Cleft depth: how far the nucleophile sits below the local surface, approximated as
     # the distance from OG to the centroid of the lining CA atoms.

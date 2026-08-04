@@ -75,17 +75,38 @@ def test_tfcut2_offset_is_the_signal_peptide_not_an_error():
     assert offsets == {40}
 
 
-def test_cleft_width_orders_polyesterases_above_cutinases():
-    """The discriminating feature spec section 6 predicts, tested on known structures.
+def test_cleft_width_separates_plc_family_from_fungal_cutinase():
+    """What the robust metric actually supports, which is less than first claimed.
 
-    IsPETase's cleft is wider than a classic fungal cutinase's, and that ordering is the
-    whole reason the structure stage can discriminate where sequence annotation cannot.
+    An earlier version used a MAX over pairwise aromatic separations inside a hard 12 A
+    radius, and reported IsPETase 20.9 > LCC 17.8 > TfCut2 12.8 > cutinase 11.2: a neat
+    two-fold range in the expected order. That ordering was an artefact. The max made the
+    measure hostage to a single residue crossing the radius, and IsPETase's own ESMFold
+    prediction scored 11.09 against its crystal's 20.90 for exactly that reason.
+
+    With the percentile measure the honest claim is narrower: the classic FUNGAL cutinase
+    (1CEX) is clearly narrower than the Polyesterase-lipase-cutinase family members, but
+    those members do not order among themselves by PET activity. Separating families is
+    not the same as separating PET-active from PET-inactive within a family, and only the
+    former is demonstrated here.
     """
     ispetase = geometry.measure(_cif("6EQE")).cleft_width_A
     lcc = geometry.measure(_cif("4EB0")).cleft_width_A
+    tfcut2 = geometry.measure(_cif("4CG1")).cleft_width_A
     cutinase = geometry.measure(_cif("1CEX")).cleft_width_A
-    assert ispetase is not None and cutinase is not None
-    assert ispetase > lcc > cutinase
+    assert min(ispetase, lcc, tfcut2) > cutinase + 3.0
+
+
+def test_cleft_width_is_stable_between_crystal_and_prediction():
+    """The regression that motivated the percentile: a 0.4 A shift in one residue must not
+    move the answer by 9 A."""
+    pred = config.INTERIM_DIR / "structures" / "IsPETase_esmfold.pdb"
+    if not pred.exists():
+        pytest.skip("ESMFold prediction not present")
+    xtal = geometry.measure(_cif("6EQE")).cleft_width_A
+    predicted = geometry.measure(pred).cleft_width_A
+    assert abs(xtal - predicted) < 4.0, (
+        f"crystal {xtal} vs prediction {predicted}: the measure is unstable again")
 
 
 def test_ispetase_aromatic_clamp_contains_the_mobile_tryptophan():
