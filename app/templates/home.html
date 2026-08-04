@@ -26,14 +26,16 @@
   <h2>By source environment</h2>
   <div class="tbl-wrap">
   <table class="data">
-    <thead><tr><th>Environment</th><th class="num">Sequences</th><th class="num">Candidates</th><th class="num">Mean identity to nearest characterised</th></tr></thead>
+    <thead><tr><th>Environment</th><th class="num">Sequences</th><th class="num">Candidates</th><th class="num">Per million</th><th class="num">Mean %ID to nearest</th></tr></thead>
     <tbody>
     {% for r in by_env %}
       <tr>
         <td><span class="pill {{ r.env }}">{{ env_label.get(r.env, r.env) }}</span></td>
         <td class="num">{{ '{:,}'.format(r.scanned) if r.scanned else '-' }}</td>
         <td class="num">{{ r.n }}</td>
-        <td class="num">{{ '%.3f'|format(r.mean_ident) if r.mean_ident else '-' }}</td>
+        <td class="num">{{ '%.0f'|format(r.per_million) if r.per_million else '-' }}</td>
+        {# identity is stored as a fraction; the header says %ID so the cell must too #}
+        <td class="num">{{ '%.1f'|format(r.mean_ident * 100) if r.mean_ident else '-' }}</td>
       </tr>
     {% endfor %}
     </tbody>

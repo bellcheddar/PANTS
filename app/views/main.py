@@ -80,6 +80,9 @@ def home():
             "FROM candidates GROUP BY 1 ORDER BY n DESC")]
         for row in by_env:
             row["scanned"] = scanned.get(row["env"], 0)
+            # Yield per million is the comparable figure: raw candidate counts compare
+            # environments that were sampled to very different depths.
+            row["per_million"] = (1e6 * row["n"] / row["scanned"]) if row["scanned"] else None
         top = [dict(r) for r in conn.execute(
             "SELECT c.candidate_id, c.source_environment, c.seq_length, "
             "       c.recall_bitscore, c.recall_profile_identity, c.nearest_characterised_id, "
