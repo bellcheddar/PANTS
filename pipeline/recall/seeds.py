@@ -172,12 +172,29 @@ VARIANTS: List[Variant] = [
 # HGMP01 is named in spec section 1 but is metagenome-derived rather than a variant of a
 # characterised parent, so it does not belong in VARIANTS.
 #
-# Checked 2026-08-04: it is NOT retrievable programmatically. Zero hits in UniProt (by
-# name, gene or protein name) and zero in NCBI protein/nuccore; the paper that describes
-# it (Int J Biol Macromol 2024, PMID 39551294, "Identification of a PET hydrolytic enzyme
-# from the human gut microbiome") has no linked sequence records, so the sequence lives in
-# its supplementary material. It is deliberately NOT reconstructed here: a fabricated seed
-# would poison the profiles and every score downstream, and would be undetectable.
+# Checked exhaustively 2026-08-04. HGMP01's sequence is NOT obtainable by any programmatic
+# route. Every avenue tried and its result:
+#
+#   UniProt, 4 query forms (name / gene / protein_name / gut+EC)   0 hits
+#   NCBI protein                                                   0 hits
+#   NCBI nuccore                                                   0 hits
+#   NCBI elink from PMID 39551294                                  no sequence records,
+#                                                                  only pubmed cross-links
+#   PubMed record                                                  no accessions, no DAS
+#   ScienceDirect full text                                        HTTP 403, subscription
+#   Europe PMC                                                     isOpenAccess N, inEPMC N,
+#                                                                  hasSuppl N, no data
+#                                                                  availability statement
+#   MGnify protein API                                             endpoint does not exist
+#                                                                  (404; the API exposes
+#                                                                  studies/assemblies only)
+#
+# The paper is Int J Biol Macromol 2024, PMID 39551294, doi 10.1016/j.ijbiomac.2024.137732.
+# The sequence is in a supplementary PDF behind a subscription. Retrieving it needs
+# institutional access, which is a human step, not an automatable one.
+#
+# It is deliberately NOT reconstructed: a fabricated seed would poison the profiles and
+# every score downstream, and would be undetectable afterwards.
 #
 # That turns out to be an advantage. The same paper reports HGMP01-LIKE genes as widely
 # distributed across the human gut microbiome, so running recall over gut assemblies
