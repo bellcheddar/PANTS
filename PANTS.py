@@ -100,6 +100,45 @@ def cmd_curate_seeds(args) -> int:
     return 0
 
 
+def cmd_harvest_negatives(args) -> int:
+    """Harvest ESTHER hard negatives and near misses, matched to the positives."""
+    from pipeline.db.manifest import stage_manifest
+    from pipeline.negatives import esther, match
+
+    positives = match.positives_from_db()
+    if not positives:
+        print("no sequence-resolved positives in the database: run curate-seeds first")
+        return 1
+    lengths = [len(s) for _, s in positives]
+    lo, hi = min(lengths) - args.length_pad, max(lengths) + args.length_pad
+    print(f"positives: {len(positives)} ({min(lengths)} to {max(lengths)} aa)")
+    print(f"scanning ESTHER slice, length {lo} to {hi}, up to {args.max_scan} entries")
+
+    with stage_manifest("negatives", label=args.label,
+                        params={"length_min": lo, "length_max": hi,
+                                "max_scan": args.max_scan, "n_target": args.n}) as m:
+        harvest = esther.harvest(lo, hi, max_scan=args.max_scan)
+        chosen, extra = match.select(harvest["negatives"], positives,
+                                     n_target=args.n, seed=args.seed)
+        n_written = match.write(chosen, harvest["near_misses"],
+                                extra["identity"], extra["nearest"])
+        m.counts(n_input=harvest["n_scanned"], n_output=n_written,
+                 n_discarded=harvest["n_scanned"] - n_written)
+
+    r = extra["report"]
+    print(f"\nscanned {harvest['n_scanned']}, pool {r['n_pool']}, "
+          f"selected {r['n_chosen']} negatives + {len(harvest['near_misses'])} near misses")
+    print(f"  length   positives mean {r['positive_length_mean']} {r['positive_length_range']}")
+    print(f"           negatives mean {r['chosen_length_mean']} {r['chosen_length_range']}")
+    print(f"  identity to nearest positive: mean {r['identity_mean']}, max {r['identity_max']} "
+          f"({r['n_with_any_identity']}/{r['n_chosen']} have any detectable hit)")
+    print(f"  taxonomy: {r['n_genera']} genera, top {r['top_genera'][:4]}")
+    print("  families:")
+    for fam, n in r["family_breakdown"][:10]:
+        print(f"    {n:>4}  {fam}")
+    return 0
+
+
 def cmd_serve(args) -> int:
     from app import create_app
     create_app().run(host=args.host, port=args.port, debug=args.debug)
@@ -122,6 +161,17 @@ def main(argv=None) -> int:
                           help="fetch characterised wild types from UniProt, derive variants")
     p_cs.add_argument("--label", default="v1", help="run label recorded in the manifest")
     p_cs.set_defaults(func=cmd_curate_seeds)
+
+    p_hn = sub.add_parser("harvest-negatives",
+                          help="harvest ESTHER hard negatives matched to the positives")
+    p_hn.add_argument("--label", default="v1")
+    p_hn.add_argument("-n", type=int, default=400, help="target number of negatives")
+    p_hn.add_argument("--max-scan", type=int, default=20000,
+                      help="cap on ESTHER entries streamed from UniProt")
+    p_hn.add_argument("--length-pad", type=int, default=50,
+                      help="widen the positive length window by this many residues")
+    p_hn.add_argument("--seed", type=int, default=0)
+    p_hn.set_defaults(func=cmd_harvest_negatives)
 
     p_serve = sub.add_parser("serve", help="local dev web server")
     p_serve.add_argument("--host", default="127.0.0.1")

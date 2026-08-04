@@ -28,6 +28,58 @@ def _upsert(conn, **row) -> None:
     )
 
 
+def load_family_positives(label: str = "v1", max_scan: int = 40000,
+                          length_min: int = 200, length_max: int = 500) -> Dict[str, object]:
+    """Add the whole ESTHER Polyesterase-lipase-cutinase family as annotation-only positives.
+
+    Why this exists: the nine hand-curated positives (IsPETase and its variants, LCC and
+    LCC-ICCG, TfCut2, Cut190) collapse into ONE cluster at both 30% and 50% identity. By
+    spec section 8's own rule (split by cluster, never by sequence) that is a single
+    independent example, so no cluster-split evaluation is possible and any
+    cross-validation over them is pure leakage.
+
+    The family harvest brings the positive set to something with real cluster diversity.
+    The trade is label quality: these carry ESTHER family annotation, not measured PET
+    activity, so they are marked source_ref='ESTHER-family' and must be reported
+    separately from the characterised subset (spec section 8's last bullet).
+    """
+    from ..negatives import esther
+
+    report: Dict[str, object] = {"added": 0, "skipped": 0}
+    with stage_manifest("positives_family", label=label,
+                        params={"length_min": length_min, "length_max": length_max}) as m:
+        hits = [
+            h for h in esther.stream(
+                f"database:esther AND length:[{length_min} TO {length_max}]",
+                max_results=max_scan)
+            if h.family in esther.POSITIVE_FAMILIES and h.is_clean
+        ]
+        with connect() as conn:
+            known = {r[0] for r in conn.execute(
+                "SELECT uniprot FROM characterised_enzymes WHERE uniprot IS NOT NULL")}
+            for h in hits:
+                if h.accession in known:
+                    report["skipped"] += 1      # already present as a curated positive
+                    continue
+                _upsert(
+                    conn,
+                    enzyme_id=f"PLC:{h.accession}", uniprot=h.accession,
+                    organism=h.organism, family="petase_like",
+                    sequence=h.sequence, seq_length=h.length,
+                    is_positive=1, is_negative=0, is_near_miss=0,
+                    esther_family=h.family,
+                    activity_substrate_notes=(
+                        "ANNOTATION ONLY: ESTHER family Polyesterase-lipase-cutinase. "
+                        "No measured PET activity. Report separately from the "
+                        "characterised subset."),
+                    source_ref="ESTHER-family", added_at=now(),
+                )
+                report["added"] += 1
+        m.counts(n_input=len(hits), n_output=int(report["added"]),
+                 n_discarded=int(report["skipped"]))
+    return report
+
+
 def load_reference_set(label: str = "v1") -> Dict[str, object]:
     """Fetch every wild type from UniProt, derive the confirmed variants, write both.
 
