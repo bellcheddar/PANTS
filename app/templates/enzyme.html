@@ -87,6 +87,10 @@
         {% elif e.struct_source == 'alphafold' %}AlphaFold model, <span class="mono">{{ e.struct_source_id }}</span>
         {% else %}ESMFold prediction{% endif %}</td></tr>
       {% if e.resolution_A %}<tr><td>Resolution</td><td>{{ e.resolution_A }} Å</td></tr>{% endif %}
+      {% if e.catalytic_knockout_json %}
+      <tr><td>Deposit</td><td><span class="ev inferred"
+        title="A construct with a catalytic residue mutated, so the enzyme could be crystallised holding substrate. The fold and every engineered substitution are correct; the sequence stored here is the ACTIVE enzyme.">catalytically inactivated</span></td></tr>
+      {% endif %}
       {% if e.plddt_mean %}<tr><td>Mean pLDDT</td><td>{{ '%.1f'|format(e.plddt_mean) }}</td></tr>{% endif %}
       <tr><td>Residues</td><td>{{ e.n_residues }}</td></tr>
       {% if e.rmsd_ca_to_ispetase_A %}<tr><td>Cα RMSD to IsPETase</td><td>{{ '%.2f'|format(e.rmsd_ca_to_ispetase_A) }} Å</td></tr>{% endif %}

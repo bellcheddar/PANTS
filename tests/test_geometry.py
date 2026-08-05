@@ -196,3 +196,48 @@ def test_reference_plddt_is_normalised_to_the_same_scale():
     assert reference._mean_plddt(pdb([0.80, 0.90, 1.00])) == 90.0   # 0-1 input, rescaled
     assert reference._mean_plddt(pdb([80.0, 90.0, 100.0])) == 90.0  # already 0-100, left alone
     assert reference._mean_plddt("no atoms here") is None
+
+
+# --------------------------------------------------------------------------------------
+# Catalytic knockout detection
+# --------------------------------------------------------------------------------------
+
+def _kn(pdb_seq, ref_seq, triad):
+    from pipeline.structure import reference
+    return reference.catalytic_knockout(pdb_seq, ref_seq, triad)
+
+
+def test_knockout_detects_a_mutated_nucleophile():
+    """The pattern this project adopted three times: a deposit carrying the right name and
+    the right length with the catalytic serine mutated to alanine so the enzyme could be
+    crystallised holding substrate."""
+    ref = "MKTAYSGGHLDPQSER"
+    ko = ref.replace("S", "A", 1)          # first serine knocked out
+    hits = _kn(ko, ref, {"ser": 6})        # position 6 is the S in ...AYSGG...
+    assert hits and hits[0]["role"] == "ser" and hits[0]["found"] == "A"
+
+
+def test_knockout_passes_an_intact_construct():
+    ref = "MKTAYSGGHLDPQSER"
+    assert _kn(ref, ref, {"ser": 6, "his": 9, "asp": 11}) == []
+
+
+def test_knockout_accepts_glutamate_for_the_acid():
+    """Asp or Glu both complete a charge relay; flagging Glu would be a false positive."""
+    ref = "MKTAYSGGHLDPQSER"
+    swapped = ref[:10] + "E" + ref[11:]
+    assert _kn(swapped, ref, {"asp": 11}) == []
+
+
+def test_knockout_tolerates_a_different_construct_numbering():
+    """The reference is the lineage wild type, and a deposit may be a shorter mature
+    construct. Comparing by position rather than by alignment reported HotPETase as a
+    triple knockout purely because its stored form starts 26 residues later."""
+    ref = "MMMMMMMMMMKTAYSGGHLDPQSER"      # precursor, triad at 15/18/20
+    mature = ref[10:]                       # same protein, numbering shifted by 10
+    assert _kn(mature, ref, {"ser": 15, "his": 18, "asp": 20}) == []
+
+
+def test_knockout_reports_an_unmodelled_catalytic_residue():
+    ref = "MKTAYSGGHLDPQSER"
+    assert _kn("MKTAY", ref, {"his": 9})[0]["note"] == "not modelled"

@@ -138,6 +138,29 @@ def build(only: Optional[List[str]] = None, label: str = "v1") -> Dict[str, obje
                 "ORDER BY enzyme_id").fetchall()
 
         targets = [r for r in rows if not only or r[0] in only]
+
+        # Catalytic positions in each enzyme's OWN sequence numbering. Taken from its
+        # lineage wild type, whose triad is measured, because a variant that has lost its
+        # nucleophile cannot report where the nucleophile should have been.
+        with connect() as c:
+            wt_triad = {r[0]: {"ser": r[1] - (r[4] or 0), "his": r[2] - (r[4] or 0),
+                               "asp": r[3] - (r[4] or 0)}
+                        for r in c.execute(
+                            "SELECT rg.enzyme_id, rg.triad_ser_resnum, rg.triad_his_resnum, "
+                            "       rg.triad_asp_resnum, rs.seq_offset "
+                            "FROM reference_geometry rg "
+                            "JOIN reference_structures rs ON rs.enzyme_id=rg.enzyme_id "
+                            "WHERE rg.triad_ser_resnum IS NOT NULL")
+                        if r[1]}
+            lineage = {r[0]: (r[1] or r[0]) for r in c.execute(
+                "SELECT enzyme_id, lineage_wt_id FROM characterised_enzymes")}
+        with connect() as c:
+            wt_seq = {r[0]: r[1] for r in c.execute(
+                "SELECT enzyme_id, sequence FROM characterised_enzymes "
+                "WHERE sequence IS NOT NULL")}
+        triad_for = {eid: (wt_seq.get(lineage.get(eid, eid)),
+                           wt_triad.get(lineage.get(eid, eid), {}))
+                     for eid, *_ in targets}
         ref_cif = config.STATIC_DIR / "reference" / f"{config.ISPETASE_REFERENCE_PDB}.cif"
 
         for enzyme_id, uniprot, pdb_json, sequence, seq_len in targets:
@@ -174,6 +197,20 @@ def build(only: Optional[List[str]] = None, label: str = "v1") -> Dict[str, obje
                 report["failed"].append(f"{enzyme_id}: could not write viewer coordinates")
                 continue
 
+            # Is this deposit the working enzyme, or an inactivated construct wearing its
+            # name? Checked for EVERY structure, not only when something looks wrong: all
+            # three found so far were caught downstream, by which point one had been in the
+            # database for days.
+            ref_seq, ref_triad = triad_for.get(enzyme_id, (None, {}))
+            knockout = catalytic_knockout(sequence_from_structure(dest), ref_seq, ref_triad)
+            if knockout:
+                lost = ", ".join(f"{k['role']} {k['pos']} is {k['found'] or 'unmodelled'}, "
+                                 f"expected {k['expected']}" for k in knockout)
+                report["skipped"].append(
+                    f"{enzyme_id}: {source} {sid} is a CATALYTIC KNOCKOUT ({lost}). Kept, "
+                    f"because the fold and the engineered substitutions are still right, but "
+                    f"no triad can be measured from it and it must be labelled as inactivated.")
+
             site = geometry.measure(dest)
             n_res = len({l[22:27] for l in dest.read_text().splitlines()
                          if l.startswith("ATOM")})
@@ -183,7 +220,7 @@ def build(only: Optional[List[str]] = None, label: str = "v1") -> Dict[str, obje
                     f"{enzyme_id}: no single offset maps {source} {sid}'s numbering onto "
                     f"the stored sequence; the sequence panel cannot mark its triad")
             _persist(enzyme_id, source, sid, dest.name, pdb_text, rmsd, site, n_res,
-                     offset)
+                     offset, knockout)
             report["built"].append((enzyme_id, source, sid, n_res,
                                     site.cleft_width_A, site.triad_is_connected))
 
@@ -222,6 +259,90 @@ def _esmfold(sequence: str) -> Optional[str]:
         return None
 
 
+# Residues that can occupy each role in a Ser-His-Asp charge relay. Anything else at one
+# of these positions means the deposit is not the enzyme it is named after.
+_CATALYTIC_OK = {"ser": {"S"}, "his": {"H"}, "asp": {"D", "E"}}
+
+
+def sequence_from_structure(path) -> str:
+    """One-letter sequence of the first polymer chain in a coordinate file.
+
+    The knockout check compares what was DEPOSITED against the active sequence, so it needs
+    the structure's own residues. Reading them from the coordinates rather than from SEQRES
+    is deliberate: SEQRES lists what was in the construct, the coordinates list what was
+    actually modelled, and a catalytic residue that is present in the construct but
+    disordered is a different problem from one that was mutated away -- both matter, and
+    only the coordinates distinguish them.
+    """
+    import gemmi
+    st = gemmi.read_structure(str(path))
+    st.setup_entities()
+    st.remove_ligands_and_waters()
+    if not len(st) or not len(st[0]):
+        return ""
+    return gemmi.one_letter_code([r.name for r in st[0][0]]).upper()
+
+
+def catalytic_knockout(pdb_seq: str, reference_seq: str,
+                       triad: Dict[str, int]) -> List[Dict[str, object]]:
+    """Positions where a deposited construct has lost a catalytic residue.
+
+    Crystallographers routinely deposit an INACTIVATED mutant so the enzyme can be
+    captured with substrate bound, and those deposits are dangerous to adopt blind: they
+    carry the right name, the right length and every engineered substitution, and differ
+    from the real enzyme at the one residue that makes it an enzyme. This project has
+    adopted three of them by accident --
+
+      7CEH  Cut190 S176A          caught by hand
+      A0AA82WPD4  PHL7 S131A      the ONLY UniProt entry for that enzyme
+      6THT  LCC-ICCG S165A        titled "quintuple variant", the fifth being the knockout
+
+    -- and each was found only because something downstream looked wrong. Two were
+    noticed; the third sat in the database for days.
+
+    Detected by alignment against a REFERENCE sequence rather than by reading titles, which
+    variously say "S165A variant", "quintuple variant" and "catalysis-deficient" and cannot
+    be relied on.
+
+    The reference is the LINEAGE WILD TYPE, and `triad` gives the catalytic positions in
+    THAT sequence's numbering. Aligning the deposit straight to the wild type is what makes
+    this safe across constructs: a first version compared against each enzyme's own stored
+    sequence using the wild type's position numbers, and flagged HotPETase as a triple
+    knockout. It is not -- its stored sequence is the 272-residue mature construct, so
+    precursor position 160 lands 26 residues away. One alignment to a sequence whose triad
+    is actually known removes the assumption that any two of these share a numbering.
+
+    Returns one entry per lost residue, empty when the construct is intact.
+    """
+    import biotite.sequence as bseq
+    import biotite.sequence.align as balign
+
+    if not pdb_seq or not reference_seq or not triad:
+        return []
+    matrix = balign.SubstitutionMatrix.std_protein_matrix()
+    aln = balign.align_optimal(bseq.ProteinSequence(reference_seq),
+                               bseq.ProteinSequence(pdb_seq), matrix,
+                               gap_penalty=(-10, -1))[0]
+    a, b = balign.get_symbols(aln)
+    pos = 0
+    at = {}
+    for x, y in zip(a, b):
+        if x:
+            pos += 1
+            at[pos] = y
+    out: List[Dict[str, object]] = []
+    for role, p in triad.items():
+        want = _CATALYTIC_OK.get(role, set())
+        got = at.get(p)
+        if got is None:
+            out.append({"role": role, "pos": p, "expected": "/".join(sorted(want)),
+                        "found": None, "note": "not modelled"})
+        elif got not in want:
+            out.append({"role": role, "pos": p, "expected": "/".join(sorted(want)),
+                        "found": got})
+    return out
+
+
 def sequence_offset(sequence: Optional[str], site: geometry.ActiveSite) -> Optional[int]:
     """How the structure's residue numbering relates to the stored sequence.
 
@@ -250,25 +371,29 @@ def sequence_offset(sequence: Optional[str], site: geometry.ActiveSite) -> Optio
 
 def _persist(enzyme_id: str, source: str, source_id: str, coord_name: str,
              raw_text: str, rmsd: Optional[float], site: geometry.ActiveSite,
-             n_res: int, seq_offset: Optional[int] = None) -> None:
+             n_res: int, seq_offset: Optional[int] = None,
+             knockout: Optional[List[Dict[str, object]]] = None) -> None:
     def _do() -> None:
         with connect() as c:
             c.execute(
                 "INSERT INTO reference_structures (enzyme_id, source, source_id, "
                 " coord_path, plddt_mean, resolution_A, rmsd_ca_to_ispetase_A, "
                 " superposition_reference, n_residues, built_at, model_version, "
-                " seq_offset) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
+                " seq_offset, catalytic_knockout_json) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) "
                 "ON CONFLICT(enzyme_id) DO UPDATE SET source=excluded.source, "
                 " source_id=excluded.source_id, coord_path=excluded.coord_path, "
                 " plddt_mean=excluded.plddt_mean, resolution_A=excluded.resolution_A, "
                 " rmsd_ca_to_ispetase_A=excluded.rmsd_ca_to_ispetase_A, "
                 " n_residues=excluded.n_residues, built_at=excluded.built_at, "
-                " seq_offset=excluded.seq_offset",
+                " seq_offset=excluded.seq_offset, "
+                " catalytic_knockout_json=excluded.catalytic_knockout_json",
                 (enzyme_id, source, source_id, coord_name,
                  _mean_plddt(raw_text) if source != "pdb" else None,
                  _resolution(raw_text) if source == "pdb" else None,
                  rmsd, config.ISPETASE_REFERENCE_PDB, n_res, now(),
-                 config.ESMFOLD_MODEL if source == "esmfold" else source, seq_offset))
+                 config.ESMFOLD_MODEL if source == "esmfold" else source, seq_offset,
+                 json.dumps(knockout) if knockout else None))
             c.execute(
                 "INSERT INTO reference_geometry (enzyme_id, triad_ser_resnum, "
                 " triad_his_resnum, triad_asp_resnum, ser_og_his_ne2_dist_A, "

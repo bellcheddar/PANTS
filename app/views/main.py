@@ -335,6 +335,7 @@ def overlay():
         rows = [dict(r) for r in conn.execute(
             "SELECT rs.enzyme_id, rs.coord_path, rs.source, rs.source_id, rs.plddt_mean, "
             "       rs.resolution_A, rs.seq_offset, rs.mutation_geometry_json, "
+            "       rs.catalytic_knockout_json, "
             "       ce.lineage_wt_id, ce.identity_to_lineage_wt, ce.seq_length, "
             "       rg.triad_ser_resnum, rg.triad_his_resnum, rg.triad_asp_resnum, "
             "       rg.cleft_width_A "
@@ -354,6 +355,7 @@ def overlay():
             int("".join(c for c in x if c.isdigit())) + off
             for x in (m or {}).get("mutations", []) if any(c.isdigit() for c in x))
         r["mut_geom"] = json.loads(r.get("mutation_geometry_json") or "{}")
+        r["knockout"] = json.loads(r.get("catalytic_knockout_json") or "null")
         r["is_root"] = r["enzyme_id"] == r["lineage_wt_id"]
 
     # Only lineages with more than one member: a grid of one panel compares nothing.
@@ -467,6 +469,7 @@ def _named_enzyme_rows() -> List[Dict[str, Any]]:
                    rs.source AS struct_source, rs.source_id AS struct_source_id,
                    rs.coord_path, rs.plddt_mean, rs.resolution_A,
                    rs.rmsd_ca_to_ispetase_A, rs.n_residues, rs.seq_offset,
+                   rs.catalytic_knockout_json,
                    rg.cleft_width_A, rg.cleft_depth_A, rg.n_cleft_residues,
                    rg.triad_ser_resnum, rg.triad_asp_resnum, rg.triad_his_resnum,
                    rg.ser_og_his_ne2_dist_A, rg.his_nd1_asp_od_dist_A,

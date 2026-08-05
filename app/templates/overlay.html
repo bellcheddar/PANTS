@@ -55,7 +55,13 @@
         {%- else %}ESMFold prediction{% if e.plddt_mean %}, pLDDT {{ '%.0f'|format(e.plddt_mean) }}{% endif %}{% endif %}
         {%- if e.n_mutations %} · {{ e.n_mutations }} substitution{{ '' if e.n_mutations == 1 else 's' }}{% endif %}
         {%- if e.cleft_width_A %} · cleft {{ '%.1f'|format(e.cleft_width_A) }} Å{% endif %}</p>
-      {% if not e.triad_ser_resnum %}
+      {% if e.knockout %}
+      <p class="ov-dist close">catalytically inactivated deposit
+        <span class="muted">— {{ e.knockout|map(attribute='role')|join(', ') }} replaced
+        ({{ e.knockout|map(attribute='found')|join(', ') }}) so it could be crystallised with
+        substrate bound. Fold and engineered substitutions correct; the sequence stored here
+        is the active enzyme.</span></p>
+      {% elif not e.triad_ser_resnum %}
       <p class="ov-dist close">no triad measurable
         <span class="muted">— this deposit is a catalytically inactivated form, with the
         nucleophilic serine replaced by alanine so the enzyme could be crystallised with
