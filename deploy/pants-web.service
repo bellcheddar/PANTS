@@ -1,0 +1,32 @@
+# systemd unit for the PANTS web app (gunicorn behind nginx).
+# Installed to /etc/systemd/system/pants-web.service by deploy/provision.sh.
+[Unit]
+Description=PANTS web app (gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=pants
+Group=pants
+WorkingDirectory=/opt/pants
+EnvironmentFile=-/opt/pants/.env
+ExecStart=/opt/pants/.venv/bin/gunicorn --config /opt/pants/deploy/gunicorn.conf.py wsgi:app
+Restart=on-failure
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/pants
+
+# The web layer reads a precomputed SQLite file and serves static structures; it never
+# imports torch (see requirements-web.txt). 400M is therefore generous rather than tight,
+# and it is here as a backstop: PANTS must not be able to take the box down and leave
+# AlphaFraud, ChemSage, chatPDB, BoltzMaker and FlexAppeal in the wreckage.
+MemoryMax=400M
+CPUQuota=100%
+
+[Install]
+WantedBy=multi-user.target

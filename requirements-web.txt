@@ -1,16 +1,8 @@
-# PANTS WEB venv: what runs always-on under gunicorn on the droplet.
+# The THIN venv. Nothing here may pull in torch, transformers, biotite or numpy's
+# scientific stack: the droplet has 3.9 GB shared with five other apps, and the web layer
+# only reads a precomputed SQLite file and serves static files.
 #
-# NOTHING HEAVY GOES IN HERE. No torch, no transformers, no scikit-learn. The droplet has
-# 3.8 GB of RAM shared with five other apps (AlphaFraud 8000, chem_sage-web 8001,
-# chatPDB-web 8002, BoltzMaker-web 8003, FlexAppeal 8004) and PANTS v1 serves nothing but
-# precomputed SQLite. Keeping this venv thin is the whole reason it is separate from
-# requirements-pipeline.txt. See PLAN_v1.md section 5.
-#
-# When v2 adds live ESM-2 inference for /submit and /engineer, torch gets added here but
-# imported LAZILY inside the view functions, with workers=1 and a MemoryMax cap.
-
-flask>=3.0              # web app
-gunicorn>=21.2          # prod WSGI server (Linux droplet)
-jinja2>=3.1             # templates (pulled in by flask, pinned for clarity)
-python-dotenv>=1.0      # .env: droplet SSH target, docroot, server name
-gemmi>=0.6              # mmCIF parsing for the Candidate tab (small, compiled, no numpy stack)
+# If an import error on the droplet tempts you to add torch here, the correct fix is to
+# precompute the value into the database instead.
+Flask==3.1.3
+gunicorn==26.0.0
