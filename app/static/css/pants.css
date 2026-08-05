@@ -394,6 +394,13 @@ table.data.enzymes td { vertical-align: top; }
 /* Variants sit indented under the wild type that heads their group, which is what makes
    the Parent column unnecessary. */
 table.data.enzymes td.variant { padding-left: 26px; }
+/* A third level: built on a variant rather than on the wild type. Indented again, and the
+   name drops the ancestor prefix it would otherwise repeat, so the column reads
+   IsPETase / FAST-PETase / N212A-K233C-S282C variant rather than restating the lineage in
+   every cell. */
+table.data.enzymes td.variant.depth2 { padding-left: 48px; font-size: 13px; }
+table.data.enzymes td.variant.depth2 a { color: var(--pv-dim); }
+table.data.enzymes td.variant.depth2 a:hover { color: var(--pv-accent); }
 table.data.enzymes td.variant a { font-weight: 400; }
 table.data.enzymes td.root a { font-weight: 700; }
 table.data.enzymes .tag {

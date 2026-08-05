@@ -60,6 +60,15 @@ class Variant:
     reference: str
     notes: str = ""
     pdb_ids: List[str] = field(default_factory=list)
+    # The IMMEDIATE ancestor, for display, when that differs from `parent`.
+    #
+    # The two are genuinely different questions. `parent` is the sequence the mutation list
+    # is applied to and checked against, and for this lineage that is always IsPETase, its
+    # root, so every member is quoted in one comparable numbering. `derived_from` is who it
+    # was actually built on. FAST-PETase-N212A/K233C/S282C is stated against IsPETase and
+    # was made from FAST-PETase, and a table that shows it beside FAST-PETase rather than
+    # under it loses the only interesting thing about it.
+    derived_from: Optional[str] = None
 
 
 # --------------------------------------------------------------------------------------
@@ -155,6 +164,7 @@ VARIANTS: List[Variant] = [
     ),
     Variant(
         enzyme_id="FAST-PETase-N212A/K233C/S282C", parent="IsPETase",
+        derived_from="FAST-PETase",
         mutations=["S121E", "D186H", "N212A", "R224Q", "N233C", "R280A", "S282C"],
         mutations_confirmed=True,
         reference="Lu et al. 2022, Nature (MutCompute)",

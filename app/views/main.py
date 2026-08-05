@@ -134,6 +134,7 @@ def home():
         row["n_mutations"] = (len(m["mutations"]) if m and m.get("mutations")
                               else (m or {}).get("n_substitutions"))
         row["parent"] = (m or {}).get("parent") or row.get("matched_positive_id")
+        row["derived_from"] = (m or {}).get("derived_from") or row["parent"]
         row["pdb_ids"] = json.loads(row.get("pdb_ids_json") or "[]")
         # A published performance figure where there is one, the curated description
         # otherwise, so no row is blank.
@@ -158,10 +159,14 @@ def home():
     }
     def _key(r):
         root = r.get("lineage_wt_id") or r["enzyme_id"]
+        anc = r.get("derived_from") or root
+        # Sort by the chain of ancestry so a sub-variant lands directly under the variant
+        # it was built on, rather than wherever its own identity happens to place it.
+        chain = (root,) if root == r["enzyme_id"] else (
+            (anc, r["enzyme_id"]) if anc != root else (r["enzyme_id"],))
         return (lineage_first.get(root, 9), root,
-                0 if root == r["enzyme_id"] else 1,      # wild type heads its group
-                -(r.get("identity_to_lineage_wt") or 0),  # then most-similar first
-                r["enzyme_id"])
+                0 if root == r["enzyme_id"] else 1,
+                chain, r["enzyme_id"])
     known.sort(key=_key)
 
     # Grouped for the template: one block per lineage, the wild type first. The Parent
@@ -174,6 +179,19 @@ def home():
         if not groups or groups[-1]["root"] != root:
             groups.append({"root": root, "rows": []})
         row["is_root"] = (root == row["enzyme_id"])
+        # Depth in the lineage: 0 wild type, 1 built on it, 2 built on one of those. Only
+        # the display nests; the mutation list stays stated against the root.
+        anc = row.get("derived_from")
+        row["depth"] = 0 if row["is_root"] else (1 if (not anc or anc == root) else 2)
+        # Strip a repeated ancestor prefix, but only on a SUB-variant. LCC-ICCG and LCC-A2
+        # are published names that happen to start with their parent's, and shortening
+        # them to "ICCG" and "A2" would trade a recognised name for a tidier column. A
+        # depth-2 row named after the variant above it is the case where the prefix really
+        # is redundant, because that variant is on the line directly above.
+        label = row["enzyme_id"]
+        if row["depth"] == 2 and anc and label.startswith(anc + "-"):
+            label = label[len(anc) + 1:] + " variant"
+        row["display_label"] = label
         # HGMPs are five separate gut-metagenome enzymes, each its own lineage; one shared
         # colour keeps them legible as a set without inventing five more hues.
         row["family_colour"] = family_colour.get(
@@ -478,7 +496,7 @@ def _mutations_for(enzyme_id: str) -> Optional[Dict[str, Any]]:
         if v.enzyme_id == enzyme_id:
             out = {"parent": v.parent, "mutations": v.mutations,
                    "confirmed": v.mutations_confirmed, "reference": v.reference,
-                   "notes": v.notes}
+                   "notes": v.notes, "derived_from": v.derived_from or v.parent}
             if pdb_derived and not v.mutations:
                 pdb_id, parent, expected, ref = pdb_derived
                 out.update({"n_substitutions": expected, "confirmed": True,
