@@ -310,17 +310,37 @@ def _persist(cid: str, path: Path, plddt: float, frac: Optional[float],
                  config.ISPETASE_REFERENCE_PDB, now(), config.ESMFOLD_MODEL),
             )
             conn.execute(
+                # Every measured column is refreshed on conflict, not just two of them.
+                # It used to update only cleft_width_A and the aromatic clamp, so
+                # re-running after a fix to any other measurement silently kept the old
+                # value -- which is exactly what happened when the oxyanion detection was
+                # corrected: the code was right and the stored numbers stayed wrong.
                 "INSERT INTO geometry (candidate_id, triad_ser_resnum, triad_asp_resnum, "
                 " triad_his_resnum, ser_og_his_ne2_dist_A, his_nd1_asp_od_dist_A, "
                 " ser_his_asp_angle_deg, oxyanion_n1_dist_A, oxyanion_n2_dist_A, "
+                " oxyanion_n1_resnum, oxyanion_n2_resnum, oxyanion_n2_angle_deg, "
                 " cleft_width_A, cleft_depth_A, aromatic_clamp_residues_json) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
                 "ON CONFLICT(candidate_id) DO UPDATE SET "
+                " triad_ser_resnum=excluded.triad_ser_resnum, "
+                " triad_asp_resnum=excluded.triad_asp_resnum, "
+                " triad_his_resnum=excluded.triad_his_resnum, "
+                " ser_og_his_ne2_dist_A=excluded.ser_og_his_ne2_dist_A, "
+                " his_nd1_asp_od_dist_A=excluded.his_nd1_asp_od_dist_A, "
+                " ser_his_asp_angle_deg=excluded.ser_his_asp_angle_deg, "
+                " oxyanion_n1_dist_A=excluded.oxyanion_n1_dist_A, "
+                " oxyanion_n2_dist_A=excluded.oxyanion_n2_dist_A, "
+                " oxyanion_n1_resnum=excluded.oxyanion_n1_resnum, "
+                " oxyanion_n2_resnum=excluded.oxyanion_n2_resnum, "
+                " oxyanion_n2_angle_deg=excluded.oxyanion_n2_angle_deg, "
                 " cleft_width_A=excluded.cleft_width_A, "
+                " cleft_depth_A=excluded.cleft_depth_A, "
                 " aromatic_clamp_residues_json=excluded.aromatic_clamp_residues_json",
                 (cid, site.ser_resnum, site.asp_resnum, site.his_resnum,
                  site.ser_og_his_ne2_A, site.his_nd1_asp_od_A, site.ser_his_asp_angle_deg,
-                 site.oxyanion_n1_A, site.oxyanion_n2_A, site.cleft_width_A,
+                 site.oxyanion_n1_A, site.oxyanion_n2_A,
+                 site.oxyanion_n1_resnum, site.oxyanion_n2_resnum,
+                 site.oxyanion_n2_angle_deg, site.cleft_width_A,
                  site.cleft_depth_A, json.dumps(site.aromatic_clamp)),
             )
     retry_write(_do)

@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Iterator, Optional
 
 from .. import config
-from .schema import SCHEMA, SCHEMA_VERSION
+from .schema import COLUMN_MIGRATIONS, SCHEMA, SCHEMA_VERSION
 
 __all__ = [
     "connect", "init_schema", "retry_write", "now",
@@ -54,11 +54,26 @@ def init_schema() -> None:
     with connect() as conn:
         conn.execute("PRAGMA journal_mode=WAL")   # persisted in the DB header; set once
         conn.executescript(SCHEMA)
+        _apply_column_migrations(conn)
         conn.execute(
             "INSERT INTO app_state(key, value) VALUES ('schema_version', ?) "
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (str(SCHEMA_VERSION),),
         )
+
+
+def _apply_column_migrations(conn) -> None:
+    """Add columns that the CREATE TABLE IF NOT EXISTS statements cannot reach.
+
+    See COLUMN_MIGRATIONS in schema.py: on an existing database the CREATE is skipped
+    entirely, so a newly declared column is simply absent until it is ALTERed in.
+    """
+    for table, column, decl in COLUMN_MIGRATIONS:
+        cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if not cols:
+            continue                      # table itself does not exist yet
+        if column not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
 
 def retry_write(action: Callable[[], Any], attempts: int = 6, base_delay: float = 0.4) -> Any:

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 SCHEMA = """
 -- ============================================================
@@ -144,6 +144,9 @@ CREATE TABLE IF NOT EXISTS geometry (
     his_nd1_asp_od_dist_A         REAL,
     ser_his_asp_angle_deg         REAL,
     oxyanion_n1_dist_A            REAL,
+    oxyanion_n1_resnum            INTEGER,
+    oxyanion_n2_resnum            INTEGER,
+    oxyanion_n2_angle_deg         REAL,
     oxyanion_n2_dist_A            REAL,
     cleft_width_A                 REAL,
     cleft_depth_A                 REAL,
@@ -279,3 +282,23 @@ CREATE TABLE IF NOT EXISTS visits (
     hits        INTEGER DEFAULT 0
 );
 """
+
+
+# Additive column migrations, applied by init_schema().
+#
+# The schema is CREATE TABLE IF NOT EXISTS throughout, which means a new column in the
+# definition above NEVER reaches a database that already exists: the CREATE is skipped and
+# the column silently stays missing. Every deployment of this project so far has been one
+# such database, so a column added without an entry here is a column that exists only on a
+# fresh machine.
+#
+# Each entry is (table, column, declaration) and is applied only when the column is
+# absent, so this is safe to run on every startup.
+COLUMN_MIGRATIONS = [
+    # v6: oxyanion hole detection now records WHICH residues it identified, not just
+    # distances, because the previous version reported a distance to the wrong residue and
+    # nothing in the stored output could reveal that.
+    ("geometry", "oxyanion_n1_resnum", "INTEGER"),
+    ("geometry", "oxyanion_n2_resnum", "INTEGER"),
+    ("geometry", "oxyanion_n2_angle_deg", "REAL"),
+]

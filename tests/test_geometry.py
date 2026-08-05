@@ -8,6 +8,8 @@ only a structure with a published answer can show it is right.
 
 from __future__ import annotations
 
+import pathlib
+
 import numpy as np
 import pytest
 
@@ -130,3 +132,46 @@ def test_hmmscan_returns_nothing_for_an_empty_candidate_set():
     lib = library.Library(entries={}, db_path=None)
     assert library.hmmscan_best(lib, []) == {}
     assert library.call_triads(lib, []) == ({}, {})
+
+
+# --------------------------------------------------------------------------------------
+# Oxyanion hole: validated against a structure whose answer is published
+# --------------------------------------------------------------------------------------
+
+REFERENCE = pathlib.Path(__file__).resolve().parent.parent / "app/static/reference/6EQE.cif"
+
+
+@pytest.mark.skipif(not REFERENCE.exists(), reason="6EQE reference not present")
+def test_oxyanion_hole_recovers_the_published_ispetase_donors():
+    """IsPETase's oxyanion hole is formed by the backbone amides of Tyr87 and Met161.
+
+    This is the check the module docstring demands: if the code cannot recover a known
+    answer from a crystal structure, no amount of plausible output on a metagenomic
+    prediction would reveal that it is wrong. The previous rule -- "the two backbone N
+    atoms closest to OG" -- failed it, returning Met161 and Trp185, because Tyr87 is only
+    the third closest.
+    """
+    site = geometry.measure(REFERENCE)
+    assert {site.oxyanion_n1_resnum, site.oxyanion_n2_resnum} == {87, 161}
+
+
+@pytest.mark.skipif(not REFERENCE.exists(), reason="6EQE reference not present")
+def test_oxyanion_rejects_the_nearer_non_donor():
+    """Trp185 is closer to the nucleophile than Tyr87 and is NOT a donor.
+
+    It is excluded on direction, not distance: its backbone N-H points away from the
+    pocket (76 degrees, against the 60 degree cutoff). Pinning this stops anyone
+    "simplifying" the angle test back out.
+    """
+    site = geometry.measure(REFERENCE)
+    assert site.oxyanion_n2_resnum != 185
+    assert site.oxyanion_n2_angle_deg is not None
+    assert site.oxyanion_n2_angle_deg <= geometry.OXYANION_MAX_ANGLE_DEG
+
+
+@pytest.mark.skipif(not REFERENCE.exists(), reason="6EQE reference not present")
+def test_oxyanion_donor_one_is_the_nucleophile_elbow():
+    """Donor 1 is taken by position, not searched for: it is always the residue after the
+    nucleophile in an alpha/beta-hydrolase."""
+    site = geometry.measure(REFERENCE)
+    assert site.oxyanion_n1_resnum == site.ser_resnum + 1

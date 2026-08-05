@@ -53,6 +53,15 @@ CLEFT_RADIUS_A = 16.0
 # apart the clamp residues sit) without one outlier deciding it.
 CLEFT_WIDTH_PERCENTILE = 90
 
+# Oxyanion hole detection. Tuned on 6EQE, where the donors are published (Tyr87, Met161),
+# and deliberately loose: these reject the false positive (Trp185, 76 degrees) with room to
+# spare rather than being fitted tightly to one structure.
+OXYANION_MAX_DIST_A = 8.0
+OXYANION_MAX_ANGLE_DEG = 60.0
+# Donor 2 comes from the oxyanion loop, which is far in sequence. Anything within this many
+# residues of the nucleophile is elbow neighbourhood and is excluded.
+OXYANION_MIN_SEQ_SEPARATION = 10
+
 
 @dataclass
 class ActiveSite:
@@ -64,6 +73,9 @@ class ActiveSite:
     ser_his_asp_angle_deg: Optional[float] = None
     oxyanion_n1_A: Optional[float] = None
     oxyanion_n2_A: Optional[float] = None
+    oxyanion_n1_resnum: Optional[int] = None
+    oxyanion_n2_resnum: Optional[int] = None
+    oxyanion_n2_angle_deg: Optional[float] = None
     cleft_width_A: Optional[float] = None
     cleft_depth_A: Optional[float] = None
     aromatic_clamp: List[str] = field(default_factory=list)
@@ -192,22 +204,86 @@ def measure(path: str | Path, chain_id: Optional[str] = None) -> ActiveSite:
         return site
     residues = list(chain)
 
-    # --- oxyanion hole: backbone amide nitrogens nearest the nucleophile ---
-    # Structural, not sequence-derived. The two closest backbone N atoms (excluding the
-    # serine's own) are the donors that stabilise the transition state.
-    n_dists: List[Tuple[float, int]] = []
+    # --- oxyanion hole: the two backbone amides that stabilise the transition state ---
+    #
+    # This was "the two backbone N atoms closest to OG", and on 6EQE, where the answer is
+    # published, that rule was WRONG. IsPETase's donors are Tyr87 and Met161. Ranked by
+    # distance the top two are Met161 (3.29 A) and **Trp185** (4.84 A); Tyr87 is only
+    # third at 5.65 A. So the recorded second distance described a residue that is not
+    # part of the oxyanion hole, on the one structure whose answer we can check.
+    #
+    # Distance cannot fix this, because proximity is not the property that matters: a
+    # donor is a backbone N-H POINTING INTO the pocket. Adding direction is necessary but
+    # still not sufficient on its own -- ranked by angle alone, Gly163 and Gly164 both beat
+    # Tyr87, because the residues immediately following the nucleophile elbow trivially
+    # point the right way.
+    #
+    # What resolves it is the fold. In an alpha/beta-hydrolase the two donors are:
+    #
+    #   donor 1  the backbone N of the residue immediately AFTER the nucleophile. This is
+    #            structurally invariant, so it is taken by position, not searched for.
+    #   donor 2  a backbone N from the sequence-DISTANT oxyanion loop.
+    #
+    # Requiring donor 2 to be sequence-distant removes the elbow neighbours that dominate
+    # both naive rankings, and the N-H direction test then separates the real donor from
+    # the merely nearby: among distant candidates on 6EQE, Tyr87 scores 20 degrees and the
+    # false positive Trp185 scores 76. Both donors are recovered, which is the check
+    # this module's docstring demands before any of it is trusted on a prediction.
+    by_num = {r.seqid.num: r for r in residues}
+
+    def _amide_h_direction(res, prev):
+        """Unit vector along the backbone N-H bond.
+
+        There are no hydrogens in a predicted structure, so the direction is inferred:
+        the amide H lies opposite the bisector of the C(prev)-N-CA angle.
+        """
+        n, ca = _pos(_atom(res, "N")), _pos(_atom(res, "CA"))
+        c = _pos(_atom(prev, "C")) if prev is not None else None
+        if n is None or ca is None or c is None:
+            return None, None
+        u1, u2 = ca - n, c - n
+        n1, n2 = np.linalg.norm(u1), np.linalg.norm(u2)
+        if n1 < 1e-6 or n2 < 1e-6:
+            return None, None
+        b = -(u1 / n1 + u2 / n2)
+        nb = np.linalg.norm(b)
+        return (b / nb, n) if nb > 1e-6 else (None, None)
+
+    def _points_at_og(res, prev):
+        """Angle between the N-H direction and the vector from N to the nucleophile."""
+        h, n = _amide_h_direction(res, prev)
+        if h is None:
+            return None
+        v = og - n
+        lv = np.linalg.norm(v)
+        if lv < 1e-6:
+            return None
+        return float(np.degrees(np.arccos(np.clip(float(h @ (v / lv)), -1.0, 1.0))))
+
+    elbow = by_num.get(ser.seqid.num + 1)
+    if elbow is not None:
+        _d = _dist(og, _pos(_atom(elbow, "N")))
+        site.oxyanion_n1_A = None if _d is None else round(_d, 2)
+        site.oxyanion_n1_resnum = elbow.seqid.num
+
+    best = None
     for res in residues:
-        if res.seqid.num == ser.seqid.num:
+        # Sequence-distant only: everything near the elbow points the right way for
+        # reasons that have nothing to do with the oxyanion hole.
+        if abs(res.seqid.num - ser.seqid.num) <= OXYANION_MIN_SEQ_SEPARATION:
             continue
-        n = _pos(_atom(res, "N"))
-        d = _dist(og, n)
-        if d is not None and d < 8.0:
-            n_dists.append((d, res.seqid.num))
-    n_dists.sort()
-    if n_dists:
-        site.oxyanion_n1_A = round(n_dists[0][0], 2)
-    if len(n_dists) > 1:
-        site.oxyanion_n2_A = round(n_dists[1][0], 2)
+        d = _dist(og, _pos(_atom(res, "N")))
+        if d is None or d > OXYANION_MAX_DIST_A:
+            continue
+        ang = _points_at_og(res, by_num.get(res.seqid.num - 1))
+        if ang is None or ang > OXYANION_MAX_ANGLE_DEG:
+            continue
+        if best is None or ang < best[0]:
+            best = (ang, d, res.seqid.num)
+    if best is not None:
+        site.oxyanion_n2_A = round(best[1], 2)
+        site.oxyanion_n2_resnum = best[2]
+        site.oxyanion_n2_angle_deg = round(best[0], 1)
 
     # --- cleft: residues lining the pocket around the nucleophile ---
     lining: List[Tuple[float, object]] = []
