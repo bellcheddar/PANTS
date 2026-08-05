@@ -33,6 +33,14 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from pipeline.db import connect, retry_write
 
 # The PRIMARY paper for each enzyme, not the review these values were collated from.
+#
+# Six of these were corrected after an independent literature check. Three headline claims
+# were WRONG rather than merely under-sourced, and each was wrong in a way that resolves
+# cleanly and reads plausibly: LCC-ICCG carried a figure ("1.3 g PET waste in 3 days from
+# 1.25 mg enzyme") that belongs to a different enzyme in a different paper entirely;
+# FAST-PETase's 38-fold is against ThermoPETase, its own scaffold, not against wild-type
+# IsPETase; and Z1-PETase's expression gain is 20-fold, not 40. A DOI that resolves is not
+# a DOI that supports the sentence next to it.
 # A reader following a citation should land on the work that made the measurement; a
 # secondary write-up is a route to the primary source, not a substitute for it. Every DOI
 # here was verified through Crossref: resolved, and the type, title, journal and year
@@ -41,16 +49,16 @@ LEGACY_SOURCE = "https://marcdeller.com/engineering-evolution-how-fast-petase-an
 
 # enzyme_id, midpoint °C, verbatim wording, headline performance claim, primary DOI
 ROWS = [
-    ("Z1-PETase",    30.0, "30 °C",              "13 mutations, two engineered disulfides; 40x expression yield", "10.1016/j.jhazmat.2023.132297"),
+    ("Z1-PETase",    30.0, "30 °C",              "13 mutations, two engineered disulfides; 20x soluble expression yield", "10.1016/j.jhazmat.2023.132297"),
     ("IsPETase",     32.5, "30 to 35 °C",        "Wild type; weak on crystalline PET",                             "10.1126/science.aad6359"),
     ("DuraPETase",   37.0, "37 °C",              "10 mutations; +31 °C thermostability, ~300x activity",           "10.1021/acscatal.0c05126"),
-    ("FAST-PETase",  50.0, "50 °C",              "38x activity; 33.8 mM monomers in 96 h",                         "10.1038/s41586-022-04599-z"),
-    ("DepoPETase",   50.0, "~50 °C (applied)",   "7 mutations; melting temperature +23.3 °C, ~1407x product",      "10.1016/j.xcrp.2024.102295"),
+    ("FAST-PETase",  50.0, "50 °C",              "38x activity over ThermoPETase, its scaffold; 33.8 mM monomers in 96 h", "10.1038/s41586-022-04599-z"),
+    ("DepoPETase",   50.0, "~50 °C (applied)",   "7 mutations; melting temperature +23.3 °C, ~1407x product",      "10.1002/anie.202218390"),
     ("HotPETase",    62.5, "60 to 65 °C",        "21 mutations; melting temperature 82.5 °C",                      "10.1038/s41929-022-00821-3"),
-    ("Cut190**SS",   65.0, "65 °C",              "Calcium-dependent conformational switching",                     "10.1021/acs.biochem.8b00624"),
+    ("Cut190**SS",   65.0, "65 °C",              "Disulfide-stabilised; calcium-dependent conformational switching", "10.1007/s00253-018-9374-x"),
     ("TurboPETase",  66.5, "65 to 68 °C",        "98.2% depolymerisation at 200 g/kg in 8 h",                      "10.1038/s41467-024-45662-9"),
-    ("LCC-ICCG",     68.5, "65 to 72 °C",        "1.3 g PET waste in 3 days from 1.25 mg enzyme",                  "10.1038/s41586-020-2149-4"),
-    ("LCC-A2",       78.0, "78 °C",              "LCC-ICCG plus H218Y/N248D",                                      "10.1002/pro.70282"),
+    ("LCC-ICCG",     68.5, "65 to 72 °C",        "~90% depolymerisation of pretreated PET in under 10 h at 200 g/kg, 72 °C", "10.1038/s41586-020-2149-4"),
+    ("LCC-A2",       78.0, "78 °C",              "LCC-ICCG plus H218Y/N248D; >90% depolymerisation at 200 g/kg in 3.3 h", "10.1002/biot.202400021"),
     ("ThermoPETase", 50.0, "50 °C",              "3 mutations; the thermostabilised scaffold FAST-PETase was built on", "10.1021/acscatal.9b00568"),
 ]
 
@@ -78,6 +86,11 @@ def main() -> None:
 
         def _do(enzyme_id=enzyme_id, midpoint=midpoint, verbatim=verbatim, claim=claim, doi=doi):
             with connect() as c:
+                if (enzyme_id, "topt") in existing:
+                    c.execute(
+                        "UPDATE activity_measurements SET source_doi=? "
+                        "WHERE enzyme_id=? AND parameter_type='topt' "
+                        "AND extraction_confidence='review'", (doi, enzyme_id))
                 if (enzyme_id, "topt") not in existing:
                     c.execute(
                         "INSERT INTO activity_measurements (enzyme_id, parameter_type, "
@@ -89,7 +102,16 @@ def main() -> None:
                          + (" Midpoint stored in the numeric column; the published "
                             "interval is this text." if " to " in verbatim else ""),
                          "ECO:0000305", doi, "review"))
-                if (enzyme_id, "performance_claim") not in existing:
+                if (enzyme_id, "performance_claim") in existing:
+                    # UPDATE, not skip. Three of these claims turned out to be wrong on a
+                    # literature check, and an insert-only script silently kept the wrong
+                    # wording because a row already existed: the corrections landed in the
+                    # source file and nowhere else.
+                    c.execute(
+                        "UPDATE activity_measurements SET raw_text=?, source_doi=? "
+                        "WHERE enzyme_id=? AND parameter_type='performance_claim'",
+                        (claim, doi, enzyme_id))
+                else:
                     c.execute(
                         "INSERT INTO activity_measurements (enzyme_id, parameter_type, "
                         " substrate_form, raw_text, evidence_code, source_doi, "

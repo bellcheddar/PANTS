@@ -167,7 +167,7 @@ VARIANTS: List[Variant] = [
         derived_from="FAST-PETase",
         mutations=["S121E", "D186H", "N212A", "R224Q", "N233C", "R280A", "S282C"],
         mutations_confirmed=True,
-        reference="Lu et al. 2022, Nature (MutCompute)",
+        reference="Li et al. 2025, Int. J. Biol. Macromol.",
         notes="A disulfide-stabilised FAST-PETase, from PDB 9LMS at 1.71 A. Expressed "
               "against IsPETase rather than against FAST-PETase, because IsPETase is the "
               "root of this lineage and every other member is quoted the same way: it is "
@@ -211,7 +211,7 @@ VARIANTS: List[Variant] = [
         mutations=["H218S", "F222I", "A209R", "D238K",
                    "A251C", "A281C", "W104L", "F243T"],
         mutations_confirmed=True,
-        reference="Zhang et al. 2024, Nat. Commun. 15:1417",
+        reference="Cui et al. 2024, Nat. Commun. 15:1417",
         notes="Eight mutations on BhrPETase, NOT on IsPETase: the parent recorded here "
               "before curation was wrong. Grouped by what they do: substrate-binding "
               "cleft flexibility (H218S/F222I, W104L, F243T), surface charge-charge "
@@ -237,7 +237,7 @@ VARIANTS: List[Variant] = [
         enzyme_id="DepoPETase", parent="IsPETase",
         mutations=["T88I", "D186H", "D220N", "N233K", "N246D", "R260Y", "S290P"],
         mutations_confirmed=True,
-        reference="Cell Rep. Phys. Sci. 2024",
+        reference="Shi et al. 2023, Angew. Chem. Int. Ed.",
         notes="Seven-mutation IsPETase from flexible-loop directed evolution: Tm +23.3 C "
               "and ~1407-fold more product than wild type. All seven match at offset 0.",
     ),
@@ -245,7 +245,7 @@ VARIANTS: List[Variant] = [
         enzyme_id="LCC-A2", parent="LCC", derived_from="LCC-ICCG",
         mutations=["F243I", "D238C", "S283C", "Y127G", "H218Y", "N248D"],
         mutations_confirmed=True,
-        reference="Reported relative to LCC-ICCG; 2025 PET-hydrolase review",
+        reference="Orr et al. 2024, Biotechnol. J.",
         notes="LCC-ICCG plus H218Y/N248D, Topt 78 C. Built ON LCC-ICCG, not on wild-type "
               "LCC: its six substitutions are ICCG's four plus H218Y and N248D, verified as "
               "a strict superset. The display nests it under ICCG accordingly. "
@@ -262,10 +262,19 @@ VARIANTS: List[Variant] = [
               "confirmed here.",
     ),
     Variant(
-        enzyme_id="Cut190**SS", parent="Cut190", mutations=[], mutations_confirmed=False,
-        reference="Oda/Kawai et al.",
-        notes="Disulfide-stabilised Cut190 variant. Full set not confirmed here, and the "
-              "parent strain assignment is itself unresolved (see Cut190 notes).",
+        enzyme_id="Cut190**SS", parent="Cut190",
+        mutations=["Q123H", "Q138A", "N202H", "S226P", "R228S", "D250C", "E296C"],
+        mutations_confirmed=True,
+        reference="Oda et al. 2018, Appl. Microbiol. Biotechnol.",
+        notes="Disulfide-stabilised Cut190. CORRECTED after a literature check: this entry "
+              "previously took its sequence from PDB 7CEF, which is Cut190* "
+              "(S226P/R228S with a C-terminal truncation) and carries only the two native "
+              "cysteines. The 'SS' in the name IS an engineered disulfide, so an entry "
+              "without one was the wrong molecule under the right name. 7CTR is the real "
+              "variant: 4 cysteines, and D250C/E296C form the added bridge. All seven "
+              "published substitutions match Cut190 at offset 0 and take the cysteine "
+              "count from 2 to 4, which is the check that settles it.",
+        pdb_ids=["7CTR"],
     ),
 ]
 
@@ -337,11 +346,11 @@ VARIANTS: List[Variant] = [
 # against the published one, rather than trusting the name on the PDB entry:
 #
 #   HotPETase   7QVH  272 aa, 21 substitutions vs IsPETase   (paper reports ~21)
-#   Cut190**SS  7CEF  262 aa,  4 substitutions vs Cut190     (S226P/R228S plus two
-#                                                             construct-boundary changes)
+#   (Cut190**SS was here and has been removed: 7CEF is Cut190*, not the disulfide
+#    variant the name promises, so it is now derived from its published mutation list
+#    against Cut190 with 7CTR as its structure.)
 PDB_DERIVED = {
     "HotPETase": ("7QVH", "IsPETase", 21, "Bell et al. 2022, Nat. Catal."),
-    "Cut190**SS": ("7CEF", "Cut190", 4, "Oda/Kawai et al."),
 }
 
 
@@ -363,11 +372,19 @@ REFERENCE_DOI = {
     "Lu et al. 2022, Nature (MutCompute)":         "10.1038/s41586-022-04599-z",
     "Tournier et al. 2020, Nature":                "10.1038/s41586-020-2149-4",
     "Austin et al. 2018, PNAS":                    "10.1073/pnas.1718804115",
-    "Zhang et al. 2024, Nat. Commun. 15:1417":     "10.1038/s41467-024-45662-9",
-    "Cell Rep. Phys. Sci. 2024":                   "10.1016/j.xcrp.2024.102295",
+    "Cui et al. 2024, Nat. Commun. 15:1417":       "10.1038/s41467-024-45662-9",
+    # DepoPETase's paper of record. The previous DOI resolved to a real Cell Reports
+    # Physical Science article about a DIFFERENT variant (M4-Q), which is the sort of
+    # citation that survives a "does it resolve?" check and still sends the reader wrong.
+    "Shi et al. 2023, Angew. Chem. Int. Ed.":      "10.1002/anie.202218390",
     "J. Hazard. Mater. 2023":                      "10.1016/j.jhazmat.2023.132297",
-    "Oda/Kawai et al.":                            "10.1021/acs.biochem.8b00624",
-    "Reported relative to LCC-ICCG; 2025 PET-hydrolase review": "10.1002/pro.70282",
+    # The disulfide-engineering paper, not Numoto 2018, which is about wild-type Cut190's
+    # calcium-driven catalytic cycle and does not create this variant.
+    "Oda et al. 2018, Appl. Microbiol. Biotechnol.": "10.1007/s00253-018-9374-x",
+    # The primary paper for LCC-A2, replacing the 2025 review it was collated from.
+    "Orr et al. 2024, Biotechnol. J.":             "10.1002/biot.202400021",
+    # The paper that engineered and solved 9LMS.
+    "Li et al. 2025, Int. J. Biol. Macromol.":     "10.1016/j.ijbiomac.2025.145862",
     # The wild types' own describing papers, for the pages that have no variant reference.
     "IsPETase":                                    "10.1126/science.aad6359",
 }
