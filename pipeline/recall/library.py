@@ -112,6 +112,12 @@ def hmmscan_best(lib: Library, records: Sequence[Tuple[str, str]],
     """
     if lib.db_path is None:
         return {}
+    # An assembly where the prefilter found nothing is a normal outcome, not an error:
+    # several gut assemblies contain no polyesterase-like protein at all. hmmscan treats
+    # an empty input file as malformed and exits non-zero, which crashed a 50-file scan
+    # on file 46. Nothing to scan means no hits, so say so and return.
+    if not records:
+        return {}
     if shutil.which(HMMSCAN_BIN) is None:
         raise profiles.ProfileError(f"{HMMSCAN_BIN} not on PATH")
 
@@ -151,6 +157,8 @@ def call_triads(lib: Library, records: Sequence[Tuple[str, str]],
     judged, which is different from being judged and failing, and the caller must report
     the two separately.
     """
+    if not records:
+        return {}, {}
     best = hmmscan_best(lib, records, work_dir=work_dir)
     seqs = dict(records)
 

@@ -115,3 +115,18 @@ def test_ispetase_aromatic_clamp_contains_the_mobile_tryptophan():
     site = geometry.measure(_cif("6EQE"))
     assert "TRP185" in site.aromatic_clamp
     assert "TYR87" in site.aromatic_clamp
+
+
+# --- recall robustness -----------------------------------------------------------------
+
+def test_hmmscan_returns_nothing_for_an_empty_candidate_set():
+    """An assembly whose prefilter finds nothing is a normal outcome, not an error.
+
+    hmmscan exits non-zero on an empty input file ("empty or misformatted"), which crashed
+    a 50-file gut scan on file 46. Several gut assemblies genuinely contain no
+    polyesterase-like protein, so this path is common rather than exotic.
+    """
+    from pipeline.recall import library
+    lib = library.Library(entries={}, db_path=None)
+    assert library.hmmscan_best(lib, []) == {}
+    assert library.call_triads(lib, []) == ({}, {})
