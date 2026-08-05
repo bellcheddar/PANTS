@@ -249,7 +249,7 @@ What is in the database today:
 | Positives | 854 | Of which **341 experimentally measured**, the rest predicted (see below) |
 | Hard negatives | 131 | Matched on five axes |
 | Measured-set head | AUC **0.976** | 45 independent clusters, against a 0.829 composition baseline |
-| Near misses | 125 | ESTHER `Cutinase` family: the decision boundary |
+| Near misses | 150 | 124 ESTHER `Cutinase` family, plus **26 within-family negatives**: PAZy enzymes measured on another plastic that share a 30% cluster with a PET-active one |
 | Activity measurements | 48 | Km, Topt, pH optimum, each citing its PubMed IDs |
 | Embeddings | 848 | ESM-2 t12-35M, 480-dim, frozen |
 | Excluded from training | 70 | Fragments and length outliers, marked not deleted |
@@ -340,6 +340,50 @@ works.** PAZy lists enzymes because activity was found; nobody systematically pu
 "we assayed this polyesterase on PET and it did nothing". The negative class for the
 question that matters is largely unwritten, which is publication bias rather than a
 curation gap, and no further database mining will fix it.
+
+### 🎯 The within-family test, run
+
+There is one partial way round that, and it has now been run rather than argued about.
+PAZy curates enzymes measured on **other** plastics too (PA, PUR, PLA, PBAT, PHA). Most are
+different folds doing different jobs, and including a nylon amidase would be another easy
+negative. But 26 of them **share a 30% cluster with a PET-active enzyme**, which puts them
+inside the polyesterase family boundary. That is the closest thing to the missing negative
+class that exists.
+
+Running the same head against negatives of increasing closeness, everything else fixed:
+
+| Negative regime | Positives | Negatives | Head AUC | Composition only |
+|---|---|---|---|---|
+| Near-miss (one ESTHER `Cutinase` family) | 305 | 110 | 0.997 ± 0.006 | 0.890 |
+| Out-of-family (distant α/β-hydrolases) | 305 | 109 | 0.975 ± 0.022 | 0.906 |
+| **Within-family** (measured on another plastic) | 305 | 26 | **0.850 ± 0.055** | 0.651 |
+| **Within-family, mixed clusters only** | 152 | 26 | **0.493 ± 0.297** | 0.398 |
+
+**Discrimination decays monotonically as the negatives get closer, and collapses to chance
+at the boundary that matters.** The head beats composition in every regime except the last.
+In the strictest one, where every negative has a PET-active enzyme inside its own cluster,
+so family membership carries no information at all, it scores 0.493: a coin flip.
+
+**That last row is underpowered, and saying so is part of the result.** One cluster holds
+85% of the positives, so the cluster-grouped folds come out badly lopsided, and the
+per-fold AUCs are 0.193, 0.714, 0.208 and 0.857. A mean of 0.493 across that spread cannot
+distinguish "no signal" from "not enough data to detect one". What it does rule out is a
+large, easily-learned signal, which the 0.976 headline might otherwise be read as implying.
+
+Two caveats travel with these numbers permanently:
+
+- **The negatives are weak.** PAZy records only positive substrate associations, so "PET
+  not listed" conflates *inactive* with *never assayed*. Some fraction are false negatives,
+  which pushes measured discrimination **down**: the within-family figures are a lower
+  bound, not a point estimate.
+- **The composition baseline is doing more work than it appears.** It reaches 0.906 against
+  out-of-family negatives. Most of the headline 0.976 is therefore available from amino
+  acid composition alone, and the head's real contribution is the margin above that, not
+  the absolute number.
+
+The practical conclusion is not that the approach fails, but that **the evaluation is
+label-limited rather than method-limited**, and the binding constraint is now a few dozen
+measured within-family negatives rather than any modelling choice.
 
 Three routes that would, in [`PHASE1_FINDINGS.md`](PHASE1_FINDINGS.md): ordinal
 within-paper rankings, regression on measured rates instead of a binary label, and
@@ -524,7 +568,7 @@ Corrections this caught during curation: `Q6A0I4` was initially curated as Cut19
 5. Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo. Those decide whether any of this is a therapy.
 6. Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.
 7. The composition baseline sits at AUC 0.829 on the measured set. The head clears it (0.976), but a model must keep clearing it, and the retrieval baseline, to claim learned discrimination.
-8. AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity within the polyesterase family is a harder question and is not yet demonstrated.
+8. AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity **within** the polyesterase family has now been tested against the 26 PAZy enzymes measured on other plastics that share a 30% cluster with a PET-active one: discrimination decays to **0.850** and, restricted to mixed clusters where family membership carries no information, to **0.493** (chance). That strictest test is underpowered, and the negatives are weak because "PET not listed" conflates inactive with never assayed, so it is a lower bound rather than a verdict. The evaluation is label-limited, not method-limited.
 9. Old note, kept: the composition baseline was 0.778 on the earlier annotation-heavy positive set. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
 10. Of 854 positives, 341 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
 9. Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.
@@ -559,6 +603,7 @@ Roadmap for PANTS, roughly in dependency order. Suggestions welcome.
 - [x] **Add the gut microbiome as a fourth source environment.** The three current environments (compost, marine plastisphere, landfill) are all external. A human gut metagenome is the one that matters most for the therapeutic framing: an enzyme already resident at 37 °C, pH 7.4 and in a proteolytic environment has been selected under something close to the target conditions, rather than being asked to work far from its optimum. **HGMP01** is the concrete starting point: it is named in spec section 1, it is metagenome-derived rather than a variant of a characterised parent, and it is currently the one named enzyme the recall stage is expected to recover from sequence space instead of being seeded with. Done: **12,584,458 gut proteins from five MGnify studies**, registered as `human_gut` and now 71% of the catalogue. **HGMP01 itself could not be seeded**: it returns zero hits in UniProt and in NCBI protein/nuccore, and its paper (PMID 39551294) has no linked sequence records, so the sequence sits in supplementary material. That is not a blocker but an advantage, because the same paper reports HGMP01-like genes as widely distributed across the gut microbiome, so recall finding them **unaided** is a blind test rather than a circular one
 - [x] **Obtained all five HGMP sequences.** No public database holds them (zero hits across UniProt, NCBI protein and nuccore), but the authors deposited them on SciDB. **The paper and the deposit use different numbering**: the paper's HGMP01 to HGMP05 are the deposit's HGMP03, 04, 06, 07 and 08, so matching on name would have mislabelled all five. The mapping is pinned by two independent facts, sequence length (all five distinct, so 1:1) and homologue count (the paper's "697 putative HGMP01-like enzymes" matches the deposit's HGMP03 exactly). **HGMP01 = `GUT_GENOME238302_00589`, 275 aa, optimum 40 °C at near-neutral pH**: the only measured PET hydrolase in this project whose optimum is close to physiological
 - [x] **Built the ordinal-within-paper fallback, and established why it is the route rather than a fallback.** Before this the database held exactly **one** quantitative value measured on PET; all 21 Km values were on soluble pNP-ester proxies. Attempting the real thing showed why: **PET rates live in figure panels**, not in extractable text or structured deposits, so they cannot be harvested at scale. The brief anticipated this and proposed within-paper ordinal ranking, which now exists as a `parameter_type` with `ordinal_rank_in_paper`, seeded from PMID 39551294 (HGMP01 first of five on PET nanoparticles, the other four recorded as equal-second because the paper does not order them). Assay conditions are attached so the comparison is interpretable
+- [ ] **Get more measured within-family negatives.** This is now the binding constraint on the whole evaluation, ahead of any modelling work. The within-family test runs on 26 PAZy enzymes measured on other plastics, of which only 7 clusters overlap the PET-active set, and one cluster holds 85% of the positives, so the strictest contrast cannot separate "no signal" from "too little data". A few dozen polyesterases assayed on PET with a reported negative result would settle it. Candidate routes: the ordinal-ranking pass below (papers that assay several enzymes under one protocol often report the inactive ones), and PAZy entries whose primary papers include unreported negative controls
 - [ ] **Populate ordinal rankings across the PAZy literature.** 312 PAZy entries carry DOIs; papers that assay several enzymes under one protocol rank them, and that ranking is extractable by reading where an absolute rate is not. This is the only route to a training signal that does not need a negative class, which the near-miss finding showed is otherwise unavailable
 - [x] **Resolved the Cut190 strain ambiguity.** `W0TJ64`, not `C7MVE8`. Length could never separate them (both 304 aa), but the crystal structures can: **4WFI, 4WFJ, 4WFK, 5ZNO, 5ZRQ and 5ZRR all cross-reference W0TJ64**, and C7MVE8 has no PDB entry at all. Structural evidence beats a name match, and the seed was right by luck rather than by evidence until now
 - [x] **Confirm the outstanding mutation sets.** All five are resolved, and two further variants (DepoPETase, LCC-A2) were found in the same pass. HotPETase and Cut190\*\*SS came from crystal structures; DuraPETase, TurboPETase and Z1-PETase from verified mutation sets, all matching at offset 0. Every engineered variant now carries a sequence, and the whole seed set rebuilds from one command

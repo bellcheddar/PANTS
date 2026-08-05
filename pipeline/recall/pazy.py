@@ -70,6 +70,103 @@ def _first_doi(p: dict) -> Optional[str]:
     return None
 
 
+def load_within_family_negatives(label: str = "v1", identity: float = 0.3
+                                 ) -> Dict[str, object]:
+    """PAZy enzymes measured on a plastic that is NOT PET, restricted to those sharing a
+    sequence cluster with a PET-active enzyme.
+
+    This exists to answer the one question the current evaluation cannot. The head scores
+    AUC 0.976 against hard negatives drawn from other alpha/beta-hydrolase families, and
+    1.000 against the near misses, but every near miss is a single ESTHER `Cutinase`
+    family. Neither result speaks to the question that decides whether PANTS beats a
+    homology search: **among enzymes that are already polyesterases, which ones act on
+    PET?**
+
+    PAZy can supply that set, because it curates enzymes measured on PA, PUR, PLA, PBAT,
+    PHA and others as well as on PET. The restriction to shared clusters is the whole
+    point: a nylon amidase or a PLA protease is a different fold doing a different job, and
+    including it would be another easy negative inflating the score. Only an enzyme that
+    clusters WITH the PET-active set at `identity` is inside the family boundary.
+
+    **The caveat, which must travel with the number.** PAZy records substrates an enzyme
+    was SHOWN to degrade. It has no field for a tested-and-inactive result. So "PET not
+    listed" means "not reported active on PET", which conflates *inactive* with *never
+    assayed*. These are therefore WEAK negatives, and some fraction are false. They are
+    stored under their own source_ref so they can always be included or excluded
+    deliberately, and any metric computed against them is a lower bound on how well the
+    head separates true PET activity, not a clean estimate of it.
+    """
+    from .. import seqtools
+
+    report: Dict[str, object] = {"added": 0, "candidates": 0, "mixed_clusters": 0,
+                                 "skipped": []}
+
+    with stage_manifest(STAGE, label=f"{label}-within-family-negatives",
+                        params={"identity": identity}) as m:
+        prots = fetch_all()
+        clean = [p for p in prots
+                 if p.get("amino_acid_sequence")
+                 and set(p["amino_acid_sequence"]) <= STANDARD_AA]
+
+        pet = {f"PAZy:{p['id']}" for p in clean if "PET" in substrates_of(p)}
+        by_id = {f"PAZy:{p['id']}": p for p in clean}
+
+        import tempfile, pathlib
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        fasta = seqtools.write_fasta(
+            ((k, v["amino_acid_sequence"]) for k, v in by_id.items()), tmp / "pazy.fasta")
+        clusters = seqtools.cluster(fasta, min_seq_id=identity)
+
+        grouped: Dict[str, list] = {}
+        for member, rep in clusters.items():
+            grouped.setdefault(rep, []).append(member)
+
+        keep = []
+        for rep, members in grouped.items():
+            has_pet = any(mm in pet for mm in members)
+            others = [mm for mm in members if mm not in pet]
+            if has_pet and others:
+                report["mixed_clusters"] = int(report["mixed_clusters"]) + 1
+                keep.extend((mm, rep) for mm in others)
+        report["candidates"] = len(keep)
+
+        with connect() as conn:
+            for eid, rep in keep:
+                p = by_id[eid]
+                subs = ", ".join(s for s in substrates_of(p) if s)
+                doi = _first_doi(p)
+                conn.execute(
+                    "INSERT INTO characterised_enzymes "
+                    "(enzyme_id, uniprot, organism, family, sequence, seq_length, "
+                    " is_positive, is_negative, is_near_miss, taxonomy_lineage, "
+                    " activity_substrate_notes, source_ref, added_at) "
+                    "VALUES (?,?,?,?,?,?,0,0,1,?,?,?,?) "
+                    "ON CONFLICT(enzyme_id) DO UPDATE SET "
+                    " activity_substrate_notes=excluded.activity_substrate_notes, "
+                    " source_ref=excluded.source_ref, is_near_miss=excluded.is_near_miss",
+                    (f"{eid}-nonPET", p.get("uniprot_accession") or None,
+                     (p.get("organism") or {}).get("scientific_name"), "petase_like",
+                     p["amino_acid_sequence"], len(p["amino_acid_sequence"]),
+                     (p.get("organism") or {}).get("phylum"),
+                     (f"PAZy {p.get('name')}: WITHIN-FAMILY WEAK NEGATIVE. Measured active "
+                      f"on {subs}, with PET absent from its measured substrates. Shares a "
+                      f"{int(identity*100)}% cluster with PET-active enzymes (cluster "
+                      f"representative {rep}), so it is inside the polyesterase family "
+                      f"boundary rather than an easy out-of-family negative. "
+                      f"CAVEAT: PAZy records only positive substrate associations, so this "
+                      f"means 'not reported active on PET', which does not distinguish "
+                      f"inactive from never assayed. "
+                      + (f"Primary reference doi:{doi}. " if doi else "")
+                      + f"Curated set: {CITATION}."),
+                     "PAZy-nonPET", now()),
+                )
+                report["added"] = int(report["added"]) + 1
+
+        m.counts(n_input=len(clean), n_output=int(report["added"]),
+                 n_discarded=len(clean) - int(report["added"]))
+    return report
+
+
 def load(substrate: str = "PET", label: str = "v1") -> Dict[str, object]:
     """Write PAZy's enzymes for one substrate into characterised_enzymes.
 

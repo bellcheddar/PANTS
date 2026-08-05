@@ -31,12 +31,19 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
+from .. import config
+
 # Tiers whose label rests on an experiment rather than on similarity.
-EVIDENCED_TIERS = {
-    "EC-experimental", "UniProt",
-    "Tournier et al. 2020, Nature", "Son et al. 2019, ACS Catal.",
-    "Lu et al. 2022, Nature (MutCompute)", "Austin et al. 2018, PNAS",
-}
+#
+# THE THIRD COPY. This set was written before PAZy was integrated and never updated, so it
+# omitted `PAZy-measured` — the tier carrying 320 of the 341 measured positives. The effect
+# was not a wrong number but a silently useless one: run_train.py's evidence-only and PU
+# schemes saw 13 evidenced positives in a single 30% cluster and recorded "NOT EVALUABLE",
+# while the measured-only head scored 0.976 from a separate script with its own correct
+# list. Two definitions of "evidenced", two different answers, no error anywhere.
+#
+# Now imported from pipeline.config, which derives it from VARIANTS. See the note there.
+EVIDENCED_TIERS = set(config.MEASURED_TIERS)
 
 
 @dataclass

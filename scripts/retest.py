@@ -8,9 +8,8 @@ from pipeline.embed import esm
 from pipeline.negatives import sanity
 from pipeline.train import head, dataset
 
-MEASURED = ('EC-experimental','UniProt','HGMP-measured','PAZy-measured',
-            'Tournier et al. 2020, Nature','Son et al. 2019, ACS Catal.',
-            'Lu et al. 2022, Nature (MutCompute)','Austin et al. 2018, PNAS')
+# Fourth copy of this list, now removed. See pipeline/config.py for why.
+MEASURED = config.MEASURED_TIERS
 
 dataset.apply_filters()
 marks = ','.join('?'*len(MEASURED))
