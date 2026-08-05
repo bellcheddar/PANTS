@@ -60,8 +60,21 @@
           <img src="https://img.shields.io/badge/GitHub-000000?logo=github&logoColor=ffffff"
                alt="GitHub" width="65" height="20" referrerpolicy="no-referrer">
         </a>
-        <a class="md-badge" href="https://doi.org/10.5281/zenodo.21807353"
-           target="_blank" rel="noopener noreferrer">
+        {# Links to the Zenodo record, NOT to https://doi.org/10.5281/zenodo.21807353.
+           The DOI is still the citable identifier and is what the README and the
+           datasheet quote; it is just a bad thing to put behind a click. Resolving it
+           costs three hops -- doi.org 302s to zenodo.org/doi/..., which 302s to the
+           record -- and the middle hop is intermittently broken: measured here, one
+           attempt hung for 30 s and returned 504 while three retries came back in 0.5 to
+           4.8 s. The record URL is a single hop at ~0.5 s.
+
+           This is the CONCEPT record (…353), not the current version record (…354).
+           The concept record always redirects to the latest version, so publishing a new
+           version does not silently leave this link pointing at an old one. That costs one
+           fast internal redirect and is worth it. #}
+        <a class="md-badge" href="https://zenodo.org/records/21807353"
+           target="_blank" rel="noopener noreferrer"
+           title="Zenodo record — DOI 10.5281/zenodo.21807353">
           <img src="https://img.shields.io/badge/DOI-000000?logo=doi&logoColor=ffffff"
                alt="DOI 10.5281/zenodo.21807353" width="49" height="20" referrerpolicy="no-referrer">
         </a>
