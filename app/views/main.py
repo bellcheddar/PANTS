@@ -255,6 +255,11 @@ def compare():
             "JOIN characterised_enzymes ce ON ce.enzyme_id = rs.enzyme_id "
             "LEFT JOIN reference_geometry rg ON rg.enzyme_id = rs.enzyme_id "
             "WHERE rs.coord_path IS NOT NULL ORDER BY rs.enzyme_id")]
+        # The two shown by default head the list: a picker whose checked entries are
+        # scrolled out of sight looks like nothing is selected.
+        refs.sort(key=lambda r: (DEFAULT_COMPARE.index(r["sid"])
+                                 if r["sid"] in DEFAULT_COMPARE else len(DEFAULT_COMPARE),
+                                 r["sid"]))
         for r in refs:
             r["kind"] = "reference"
             r["url"] = f"/static/reference_structures/{r['coord_path']}"

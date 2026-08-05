@@ -476,3 +476,19 @@ table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: now
 .seq-block + .seq-block { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--pv-border); }
 .seq-label { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
 .seq-label .swatch { margin-right: 6px; }
+
+/* ---------- scrollbars ---------- */
+/* The default scrollbar on a dark background is nearly invisible, so a scrolling picker
+   or table looks like it simply ends. Styled light enough to read as a control. */
+* {
+  scrollbar-width: thin;                                   /* Firefox */
+  scrollbar-color: #5b688f var(--pv-panel);
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--pv-panel); border-radius: 6px; }
+*::-webkit-scrollbar-thumb {
+  background: #5b688f; border-radius: 6px;
+  border: 2px solid var(--pv-panel);                       /* inset, so it reads as a pill */
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--pv-accent); }
+*::-webkit-scrollbar-corner { background: var(--pv-panel); }

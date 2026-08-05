@@ -19,9 +19,11 @@
       <label><input type="checkbox" id="mut-toggle" checked>
         <span class="swatch" style="background:#ff2ec4"></span> substitutions</label>
 
-      <h3 style="margin-top:12px">Reference enzymes</h3>
+      <h3 style="margin-top:12px">Reference enzymes
+        <span class="muted" style="font-weight:400;font-size:10px">· coordinate source</span></h3>
       <div id="pick-refs" class="picker"></div>
-      <h3 style="margin-top:10px">Candidates</h3>
+      <h3 style="margin-top:10px">Candidates
+        <span class="muted" style="font-weight:400;font-size:10px">· mean pLDDT</span></h3>
       <div id="pick-cands" class="picker" style="max-height:200px"></div>
 
       <div class="viewer-buttons">
@@ -123,7 +125,7 @@ function buildPicker(el, rows, offset) {
     r.colour = colour;
     const extra = r.kind === 'reference'
       ? `<span class="muted" style="font-size:10px">${r.source}</span>`
-      : `<span class="muted" style="font-size:10px">${r.plddt_mean ? r.plddt_mean.toFixed(0) : '-'}</span>`;
+      : `<span class="muted" style="font-size:10px" title="Mean pLDDT: ESMFold's own confidence in this prediction, 0 to 100. Above about 90 the fold is reliable; the active site may still be wrong.">${r.plddt_mean ? r.plddt_mean.toFixed(0) : '-'}</span>`;
     const lab = document.createElement('label');
     lab.innerHTML = `<input type="checkbox" data-id="${r.sid}">` +
       `<span class="swatch" style="background:${colour}"></span>` +
