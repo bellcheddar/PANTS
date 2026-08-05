@@ -229,7 +229,7 @@ the wrong protein as HGMP05 with nothing downstream to reveal it.
 
 ## 🚧 Current status
 
-**Pre-deployment.** The offline pipeline runs end to end from metagenome FASTA to embedded candidates. Nothing is live at `pants.mdeller.com` yet.
+**Live at [`pants.mdeller.com`](https://pants.mdeller.com).** The offline pipeline runs end to end from metagenome FASTA to folded, geometry-measured candidates, and the catalogue is served behind gunicorn and nginx.
 
 | Phase | State |
 |---|---|
@@ -237,9 +237,9 @@ the wrong protein as HGMP05 with nothing downstream to reveal it.
 | 1: Curation, hard negatives, activity data | ✅ Complete, gate still MARGINAL |
 | 2: Recall (profile HMMs, MMseqs2, HMMER) | ✅ Complete |
 | 4: ESM-2 embedding | ✅ Complete |
-| 5: Activity head, calibration, evaluation | ⬜ Next |
-| 6: Structures and active-site geometry | ⬜ Not started |
-| 7 to 8: Web app and deployment | ⬜ Not started |
+| 5: Activity head, calibration, evaluation | ◐ Head trained and evaluated; the within-family question is label-limited, see below |
+| 6: Structures and active-site geometry | ✅ Complete: 416 of 439 candidates folded, 24 deferred over length, all geometry measured |
+| 7 to 8: Web app and deployment | ✅ Complete: live on port 8005, listed on the mdeller.com launcher |
 
 What is in the database today:
 
