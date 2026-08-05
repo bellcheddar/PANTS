@@ -23,20 +23,24 @@
         <a href="https://eloratherapeutics.com" target="_blank" rel="noopener noreferrer">eloratherapeutics.com</a>
         <a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a>
 
-        {# Source and data badges. Inline SVG rather than shields.io images: an external
-           image host would be a third-party request on every page load, would render as a
-           foreign visual style against this palette, and would leave a broken box in the
-           header the day it is slow or blocked. #}
+        {# Source and data badges: shields.io, in the same format as the README rows across
+           these repos (logo, flat pill, label-message), so the page and the README agree.
+           The colours are this page's palette rather than the READMEs' navy #1C244B:
+           labelColor and color are both --pv-panel and the logo is --pv-text, which makes
+           the shield read as one flat pill matching the contact links beside it.
+
+           alt carries the full text, so a blocked or slow shields.io degrades to a
+           readable label rather than a broken image; width/height are set to reserve the
+           space and stop the header reflowing when they arrive. #}
         <a class="md-badge" href="https://github.com/bellcheddar/PANTS"
-           target="_blank" rel="noopener noreferrer" aria-label="Source code on GitHub">
-          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-          <span>GitHub</span>
+           target="_blank" rel="noopener noreferrer">
+          <img src="https://img.shields.io/badge/GitHub-bellcheddar%2FPANTS-141929?logo=github&logoColor=c3c9e4&labelColor=141929"
+               alt="GitHub: bellcheddar/PANTS" width="179" height="20" referrerpolicy="no-referrer">
         </a>
         <a class="md-badge" href="https://doi.org/10.5281/zenodo.21807353"
-           target="_blank" rel="noopener noreferrer"
-           aria-label="Dataset on Zenodo, DOI 10.5281/zenodo.21807353">
-          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 1.2 1.4 4.4v1.5L8 2.75l6.6 3.15V4.4L8 1.2Z"/><path fill="currentColor" d="M2.6 7v4.4c0 1.55 2.42 2.8 5.4 2.8s5.4-1.25 5.4-2.8V7L8 9.6 2.6 7Z" opacity=".55"/></svg>
-          <span>Zenodo</span>
+           target="_blank" rel="noopener noreferrer">
+          <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21807353-141929?logo=doi&logoColor=c3c9e4&labelColor=141929"
+               alt="DOI: 10.5281/zenodo.21807353" width="209" height="20" referrerpolicy="no-referrer">
         </a>
       </div>
     </div>

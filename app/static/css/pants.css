@@ -222,17 +222,24 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
   background: rgba(143,180,255,.08);
 }
 
-/* Source and data badges. Same pill as the contact links so the bar stays one object,
-   with the icon and a slightly stronger border marking them as project resources rather
-   than personal links. The icon inherits currentColor, so it picks up the hover state
-   without a second rule. */
+/* Source and data badges: shields.io images, coloured to this palette rather than the
+   READMEs' navy. The shield is already a pill, so the anchor drops the border and padding
+   the contact links carry, otherwise the two pills nest and read as a box in a box. */
 .md-credit-links a.md-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  border-color: var(--pv-border);
-  color: var(--pv-text);
+  display: inline-flex; align-items: center;
+  border: 0; padding: 0; border-radius: 4px; overflow: hidden;
+  line-height: 0;                      /* kill the inline-image descender gap */
 }
-.md-credit-links a.md-badge svg {
-  width: 12px; height: 12px; display: block; flex-shrink: 0;
+.md-credit-links a.md-badge img {
+  display: block; height: 20px; width: auto;
+  /* The shield is a flat #141929 pill on a #0d0f1a bar, which is a deliberate but very
+     low-contrast edge. The ring supplies the same boundary the contact pills get from
+     their border, so the row reads as one set of controls. */
+  box-shadow: inset 0 0 0 1px var(--pv-border);
+  border-radius: 4px;
+}
+.md-credit-links a.md-badge:hover img {
+  box-shadow: inset 0 0 0 1px var(--pv-accent);
 }
 
 /* --- banner + strapline, sharing a baseline --- */
@@ -299,10 +306,10 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
   .md-tagline { font-size: 11px; }
   .md-nav { gap: 16px; }
   .md-credit-links a { padding: 1px 8px; }
-  /* Below this width the badges keep their icon and drop the word: the bar already
-     carries three contact links and would otherwise wrap to a third row. */
-  .md-credit-links a.md-badge span { display: none; }
-  .md-credit-links a.md-badge { padding: 2px 7px; }
+  /* The shields are fixed-width images and cannot shed text, so they wrap to their own
+     row rather than shrinking. Scaled down slightly so two fit side by side on a phone
+     instead of stacking into two more rows. */
+  .md-credit-links a.md-badge img { height: 18px; }
 }
 
 /* Strapline and tagline move as one block beside the banner, so they wrap
