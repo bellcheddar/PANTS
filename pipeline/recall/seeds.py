@@ -190,7 +190,16 @@ VARIANTS: List[Variant] = [
         enzyme_id="LCC-ICCG", parent="LCC",
         mutations=["F243I", "D238C", "S283C", "Y127G"], mutations_confirmed=True,
         reference="Tournier et al. 2020, Nature",
-        notes="The industrial benchmark: D238C/S283C disulfide plus F243I/Y127G. Numbering "
+        notes="STRUCTURE CAVEAT: 6THT is the CATALYTICALLY INACTIVATED form. Its title, "
+              "'quintuple variant', is ICCG's four substitutions plus S165A -- the catalytic "
+              "serine replaced by alanine so the enzyme could be crystallised with substrate "
+              "bound. Residue 165 in that model is ALA, which is why no triad can be measured "
+              "from it: the nucleophile is not there. The other deposit from the same paper, "
+              "6THS, is the same knockout on wild-type LCC, and 7VVE carries S165A too, so no "
+              "active LCC-ICCG structure appears to exist. The sequence stored here is derived "
+              "from the mutation list and is the ACTIVE enzyme; only the coordinates are the "
+              "inactivated form. Same trap as 7CEH and the PHL7 entry. "
+              "The industrial benchmark: D238C/S283C disulfide plus F243I/Y127G. Numbering "
               "is checked against the parent by apply_mutations; if the literature counts "
               "from the mature protein the offset is reported rather than guessed at.",
         pdb_ids=["6THT"],

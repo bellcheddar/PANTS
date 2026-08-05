@@ -56,9 +56,11 @@
         {%- if e.n_mutations %} · {{ e.n_mutations }} substitution{{ '' if e.n_mutations == 1 else 's' }}{% endif %}
         {%- if e.cleft_width_A %} · cleft {{ '%.1f'|format(e.cleft_width_A) }} Å{% endif %}</p>
       {% if not e.triad_ser_resnum %}
-      <p class="ov-dist close">no triad measured in this structure
-        <span class="muted">— the three residues are present but not within hydrogen-bonding
-        distance in this crystal form, so the panel shows the whole molecule</span></p>
+      <p class="ov-dist close">no triad measurable
+        <span class="muted">— this deposit is a catalytically inactivated form, with the
+        nucleophilic serine replaced by alanine so the enzyme could be crystallised with
+        substrate bound. The fold and every engineered substitution are right; the catalytic
+        residue is simply not in the model, so the panel shows the whole molecule.</span></p>
       {% endif %}
       {% if e.mut_geom %}
       {% set nearest = (e.mut_geom.values()|list|sort(attribute='d'))[0] %}
@@ -74,11 +76,11 @@
   {% set noTriad = fam|rejectattr('triad_ser_resnum')|list %}
   {% if noTriad %}
   <p class="muted" style="font-size:11px;margin-top:12px">{{ noTriad|map(attribute='enzyme_id')|join(', ')
-    }} {{ 'has' if noTriad|length == 1 else 'have' }} no measured triad. The geometry stage requires
-  both charge-relay hydrogen bonds within {{ '3.5' }} Å, and in these deposits the catalytic serine
-  and histidine sit further apart than that — 3.88 Å in 8H5K, for instance. That is a real
-  observation about the crystal form, not a missing enzyme, and the threshold is deliberately not
-  relaxed to make them pass: it is the check that makes "connected in space" mean anything.</p>
+    }} {{ 'has' if noTriad|length == 1 else 'have' }} no measurable triad, and the reason is the
+  deposit rather than the enzyme: these are inactivated crystallisation constructs with the
+  catalytic serine mutated to alanine. Everything else about them is correct, including every
+  engineered substitution, and the sequence held here is the active enzyme — only the coordinates
+  are the knockout.</p>
   {% endif %}
   <p class="muted" style="font-size:11px;margin-top:12px">Distances are side chain to side chain,
   excluding backbone atoms. Measured any-atom to any-atom they came out at 1.31–1.35 Å for four

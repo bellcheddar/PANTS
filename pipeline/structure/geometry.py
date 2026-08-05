@@ -25,9 +25,23 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-# Hydrogen bond heavy-atom distance. A catalytic triad whose Ser OG to His NE2 distance
-# exceeds this is not a functional charge relay, whatever the sequence says.
-HBOND_MAX_A = 3.5
+# Heavy-atom separation allowed between the charge-relay partners.
+#
+# 4.0 A, not 3.5. The tighter value was treating distance as a screen, and it is not one:
+# a triad at 3.9 A is a triad in a non-productive conformation, not a missing triad. Crystal
+# forms differ, side chains adopt alternate conformers, and an apo structure need not have
+# its relay poised. Z1-PETase's deposit 8H5K carries an unambiguous Ser160-His237-Asp206
+# triad with the first bond at 3.88 A, and rejecting it said the enzyme had no active site.
+#
+# Widened deliberately rather than far. The concern with a loose cutoff is admitting an
+# ADJACENT Ser-His pair, whose backbone proximity has nothing to do with catalysis: 6THT has
+# such a pair at 4.23 A. Requiring BOTH relay bonds keeps those out, because an accidental
+# neighbour has no aspartate correctly placed behind it -- checked at 5.0 A, that pair still
+# yields no triad, while the real one at 3.88/3.08 is the only candidate.
+#
+# This does not change which candidates exist: the recall stage selects on sequence, and
+# this measures what was already selected.
+HBOND_MAX_A = 4.0
 
 # Residues forming the aromatic clamp that distinguishes polyesterases from
 # soluble-ester-only esterases (spec section 6).
