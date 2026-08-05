@@ -10,6 +10,26 @@
   {% block head %}{% endblock %}
 </head>
 <body>
+{# Tints the shields.io badges to --pv-dim #6e78a6, the colour of the contact pills.
+   shields.io hardcodes its text to #fff and has no parameter for it, and CSS opacity can
+   only ever produce a NEUTRAL grey -- measured on the rendered page it gave #77787e
+   against the pills' #6b75a2, matching the lightness but not the blue. A colour matrix
+   scales each channel independently, so white lands exactly on the target: the row values
+   are 110/255, 120/255, 166/255.
+
+   Black maps to black under this matrix (it has no translation column), which is what
+   keeps `mix-blend-mode: screen` able to hide the badge's own background against the
+   slab's gradient. color-interpolation-filters="sRGB" is required: the default is
+   linearRGB and the result comes out visibly wrong. #}
+<svg width="0" height="0" aria-hidden="true" focusable="false"
+     style="position:absolute;pointer-events:none">
+  <filter id="pv-dim-tint" color-interpolation-filters="sRGB">
+    <feColorMatrix type="matrix" values="0.431 0 0 0 0
+                                         0 0.471 0 0 0
+                                         0 0 0.651 0 0
+                                         0 0 0 1 0"/>
+  </filter>
+</svg>
 <header class="md-slab">
   <div class="md-slab-inner">
 
@@ -23,24 +43,27 @@
         <a href="https://eloratherapeutics.com" target="_blank" rel="noopener noreferrer">eloratherapeutics.com</a>
         <a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a>
 
-        {# Source and data badges: shields.io, in the same format as the README rows across
-           these repos (logo, flat pill, label-message), so the page and the README agree.
-           The colours are this page's palette rather than the READMEs' navy #1C244B:
-           labelColor and color are both --pv-panel and the logo is --pv-text, which makes
-           the shield read as one flat pill matching the contact links beside it.
+        {# Source and data badges: shields.io, same format as the README rows across these
+           repos, reduced to the label alone.
 
-           alt carries the full text, so a blocked or slow shields.io degrades to a
-           readable label rather than a broken image; width/height are set to reserve the
-           space and stop the header reflowing when they arrive. #}
+           Made to sit on the bar with NO pill of its own, which is harder than it sounds:
+           shields.io has no transparent background (`transparent`, `none` and 8-digit hex
+           all fall back to its default green), and the slab behind these is a GRADIENT
+           (#070912 -> #12172b), so any solid fill would show as a rectangle that only
+           matches at one height. The fix is a pure black badge plus `mix-blend-mode:
+           screen`, which composites black to exactly the backdrop whatever the backdrop
+           is, leaving only the glyphs. Opacity then brings those glyphs down to the same
+           muted tone as the contact pills -- shields.io hardcodes its text to #fff and
+           offers no parameter for it, so this has to happen in CSS. #}
         <a class="md-badge" href="https://github.com/bellcheddar/PANTS"
            target="_blank" rel="noopener noreferrer">
-          <img src="https://img.shields.io/badge/GitHub-bellcheddar%2FPANTS-141929?logo=github&logoColor=c3c9e4&labelColor=141929"
-               alt="GitHub: bellcheddar/PANTS" width="179" height="20" referrerpolicy="no-referrer">
+          <img src="https://img.shields.io/badge/GitHub-000000?logo=github&logoColor=ffffff"
+               alt="GitHub" width="65" height="20" referrerpolicy="no-referrer">
         </a>
         <a class="md-badge" href="https://doi.org/10.5281/zenodo.21807353"
            target="_blank" rel="noopener noreferrer">
-          <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21807353-141929?logo=doi&logoColor=c3c9e4&labelColor=141929"
-               alt="DOI: 10.5281/zenodo.21807353" width="209" height="20" referrerpolicy="no-referrer">
+          <img src="https://img.shields.io/badge/DOI-000000?logo=doi&logoColor=ffffff"
+               alt="DOI 10.5281/zenodo.21807353" width="49" height="20" referrerpolicy="no-referrer">
         </a>
       </div>
     </div>
