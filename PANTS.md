@@ -134,9 +134,17 @@ recorded here for context only.
 
 ### The engineered lineage, from the literature
 
-Every variant named in the project brief. These are **not** in the database as
-measurements: their sequences are stored (or flagged as unresolved), but their optima are
-recorded here as context. Values collated in
+Every variant named in the project brief. They are in the database at **weaker
+provenance** than the block above: `extraction_confidence='review'` and `ECO:0000305`
+(inferred by curator) rather than `ECO:0000269` (experimental, from a publication), because
+the values were collated from a secondary review rather than read from each primary paper.
+
+**Five of them carry no sequence at all**, so no measurement can be attached: DuraPETase,
+HotPETase, Z1-PETase, TurboPETase and Cut190\*\*SS were recorded without one because their
+complete mutation sets could not be confirmed, and a partial set yields a wrong sequence.
+Only FAST-PETase, LCC-ICCG and ThermoPETase are sequence-resolved and therefore usable.
+
+Values collated in
 [Engineering Evolution: How FAST-PETase and Other Variants Are Transforming Plastic Biodegradation](https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/).
 
 | Variant | Topt | Parent | Notes |
