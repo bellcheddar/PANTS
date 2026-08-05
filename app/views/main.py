@@ -206,7 +206,7 @@ def home():
         row["family_label"] = root
         groups[-1]["rows"].append(row)
     return render_template("home.html", active="home", counts=counts, known=known,
-                           groups=groups,
+                           groups=groups, figures=figure_payload(known),
                            by_env=by_env, top=top, n_visible=10, env_label=ENV_LABEL)
 
 
@@ -521,6 +521,71 @@ def _mutations_for(enzyme_id: str) -> Optional[Dict[str, Any]]:
                     "notes": f"Sequence taken from the deposited construct {pdb_id}: "
                              f"{expected} substitutions against {parent}."}
     return None
+
+
+def figure_payload(known: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Everything the Home figures need, in one JSON blob.
+
+    Built from the same rows that render the table, so a figure can never disagree with
+    the row above it. Kept to what the database actually holds: no figure here invents a
+    value, and fields that are missing stay null so the views can show them as unknown
+    rather than dropping the enzyme silently.
+    """
+    import re
+
+    try:
+        from pipeline.recall import seeds
+    except Exception:
+        seeds = None
+
+    def year_of(ref: Optional[str]) -> Optional[int]:
+        m = re.search(r"(19|20)\d{2}", ref or "")
+        return int(m.group(0)) if m else None
+
+    muts: Dict[str, List[int]] = {}
+    if seeds:
+        for v in seeds.VARIANTS:
+            if v.mutations:
+                muts[v.enzyme_id] = sorted(
+                    int("".join(c for c in m if c.isdigit())) for m in v.mutations
+                    if any(c.isdigit() for c in m))
+
+    nodes = []
+    for k in known:
+        nodes.append({
+            "id": k["enzyme_id"], "label": k["display_label"],
+            "root": k.get("lineage_wt_id") or k["enzyme_id"],
+            "parent": k.get("derived_from"), "depth": k.get("depth", 0),
+            "topt": k.get("topt_c"), "toptText": k.get("topt_text"),
+            "cleft": k.get("cleft_width_A"), "nArom": k.get("n_aromatic"),
+            "pid": k.get("identity_to_lineage_wt"), "nMut": k.get("n_mutations"),
+            "len": k.get("seq_length"), "src": k.get("struct_source"),
+            "nPdb": len(k.get("pdb_ids") or []), "colour": k.get("family_colour"),
+            "year": year_of(k.get("reference")), "note": k.get("headline_text"),
+            "muts": muts.get(k["enzyme_id"], []),
+        })
+
+    # Residues mutated by more than one variant in the same lineage. Counted per lineage,
+    # because the five wild types have different lengths and numbering and a shared
+    # position number across them means nothing without a structural check.
+    hotspots: Dict[str, Dict[str, int]] = {}
+    for n in nodes:
+        if not n["muts"]:
+            continue
+        d = hotspots.setdefault(n["root"], {})
+        for p in n["muts"]:
+            d[str(p)] = d.get(str(p), 0) + 1
+    for root in hotspots:
+        hotspots[root] = {k: v for k, v in hotspots[root].items() if v >= 2}
+
+    triad = {}
+    for k in known:
+        off = k.get("seq_offset") or 0
+        if k.get("triad_ser_resnum"):
+            triad[k["enzyme_id"]] = [k["triad_ser_resnum"] - off,
+                                     k["triad_his_resnum"] - off,
+                                     k["triad_asp_resnum"] - off]
+    return {"nodes": nodes, "hotspots": hotspots, "triad": triad}
 
 
 def _links_for(row: Dict[str, Any], mut: Optional[Dict[str, Any]]) -> Dict[str, List[Dict[str, str]]]:

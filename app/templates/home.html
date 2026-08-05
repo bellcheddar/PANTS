@@ -43,6 +43,8 @@
   <div class="md-card"><div class="kpi">{{ counts.measurements }}</div><div class="kpi-label">activity measurements, all cited</div></div>
 </div>
 
+{% include "_figures.html" %}
+
 <div class="md-card" style="margin-top:16px">
   <h2>Known and characterised enzymes</h2>
   <p class="muted">Every named PETase and polyesterase in the reference set, grouped by lineage with
@@ -191,4 +193,9 @@
   });
 })();
 </script>
+{% endblock %}
+
+{% block scripts %}
+<script>window.PANTS_FIGS = {{ figures|tojson }};</script>
+<script src="{{ url_for('static', filename='js/figures.js') }}?v={{ asset('js/figures.js') }}"></script>
 {% endblock %}

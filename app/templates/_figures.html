@@ -1,0 +1,24 @@
+{# The lineage figure panel. Seven views over the SAME rows that render the table below,
+   so a figure can never disagree with the row it sits above. All plain SVG: the droplet
+   shares 3.9 GB with five other apps and this page already ships 3Dmol for the viewers. #}
+<div class="md-card" style="margin-top:16px">
+  <h2>Lineage and findings</h2>
+  <p class="muted">Seven views of the same {{ figures.nodes|length }} enzymes. Every value is
+  read from the table below, so nothing here is a separate transcription that could drift
+  from it.</p>
+
+  <div class="fig-tabs" id="fig-tabs" role="tablist">
+    <button role="tab" data-v="hotspot" aria-selected="true">Mutation hotspots</button>
+    <button role="tab" data-v="tree" aria-selected="false">Pedigree</button>
+    <button role="tab" data-v="swarm" aria-selected="false">Distance from 37 °C</button>
+    <button role="tab" data-v="scatter" aria-selected="false">Cleft vs temperature</button>
+    <button role="tab" data-v="para" aria-selected="false">All properties</button>
+    <button role="tab" data-v="sun" aria-selected="false">Evidence gap</button>
+    <button role="tab" data-v="time" aria-selected="false">Timeline</button>
+  </div>
+
+  <figure class="fig-stage">
+    <div id="fig-host"></div>
+    <figcaption id="fig-cap" class="muted"></figcaption>
+  </figure>
+</div>

@@ -505,3 +505,20 @@ table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: now
    statistic does not support. */
 table.data.enzymes .qualified { color: var(--pv-dim); }
 table.data.enzymes .qualified sup { color: var(--md-accent-amber); font-size: 9px; }
+
+/* ---------- lineage figure panel ---------- */
+.fig-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0}
+.fig-tabs button{font-family:var(--mono);font-size:11px;letter-spacing:.03em;padding:5px 11px;
+  border:1px solid var(--pv-border);border-radius:20px;background:transparent;color:var(--pv-dim);
+  cursor:pointer}
+.fig-tabs button[aria-selected="true"]{color:var(--pv-accent);border-color:var(--pv-accent);
+  background:rgba(143,180,255,.10)}
+.fig-stage{margin:14px 0 0;padding:16px 8px 8px;background:#0d1120;border:1px solid var(--pv-border);
+  border-radius:6px;overflow-x:auto}
+.fig-stage figcaption{font-size:11px;line-height:1.55;margin-top:10px;padding:0 8px;max-width:96ch}
+.fig-stage svg{display:block;min-width:640px;width:100%;height:auto;overflow:visible}
+.fx-lab{font-family:var(--mono);font-size:9px;fill:var(--pv-dim)}
+.fx-lab.hi{fill:#eaff00}
+.fx-ttl{font-family:var(--mono);font-size:10px;fill:var(--pv-text)}
+.fx-hit{cursor:pointer}
+.fx-hit:hover{opacity:.75}
