@@ -7,17 +7,22 @@
   over-read". This project has more to disclose than most.</p>
 
   <div class="caveat">
-    <strong>The headline caveat.</strong> A classifier trained on this catalogue's own labels
-    scores AUC 1.000 against hard negatives. That is a failure, not a success:
+    <strong>Two label sets, and only one of them means anything.</strong>
     {{ counts.positives - counts.evidenced }} of {{ counts.positives }} positives were labelled by
-    sequence similarity (ECO:0000256), so a sequence-embedding model reproducing them is close to
-    tautological. Only <strong>{{ counts.evidenced }}</strong> positives carry experimental evidence,
-    and they all fall in a single cluster at 30% identity, so a head trained on measured activity
-    alone cannot currently be evaluated by cluster-split cross-validation at all.
+    sequence <em>similarity</em> (EC 3.1.1.101 via ECO:0000256). A sequence-embedding model
+    reproducing those is close to tautological, and one does: AUC 1.000. That is a circular result,
+    not a good one. The other <strong>{{ counts.evidenced }}</strong> carry experimental evidence,
+    mostly from PAZy, whose criterion for inclusion is that activity was measured on a plastic and
+    published.
   </div>
-  <p>What this catalogue therefore <em>is</em>: a retrieval ranking over triad-complete metagenomic
-  candidates, with annotation-independent geometry measured on predicted structures. What it is
-  <em>not</em>: a demonstrated model of PET-hydrolysing activity.</p>
+  <p>Trained on the measured set alone, the activity head reaches <strong>AUC 0.976</strong>
+  (&plusmn; 0.021) across <strong>45 independent sequence clusters</strong>, with average precision
+  0.987 and a Brier score of 0.052, against <strong>0.829</strong> for a classifier using
+  amino-acid composition and length only. That is the first defensible activity signal in this
+  project: experimental labels, a split by cluster rather than by sequence, and a real margin over
+  the composition baseline instead of a tie.</p>
+  <p class="muted">Until PAZy was loaded the measured positives numbered 17 across 5 clusters, too
+  few for the protocol below to run. The head was not scoring badly; it could not be scored.</p>
 </div>
 
 <div class="md-card" style="margin-top:16px">
@@ -74,6 +79,10 @@
     <li>Published activity data is not harmonised across assay formats. Absolute rate predictions should not be trusted.</li>
     <li>Crystalline PET degradation at 37 °C by any known enzyme is slow. PANTS ranks relative promise, not therapeutic viability.</li>
     <li>Predicted structures are predictions. Cleft geometry on a metagenomic sequence with no close homologue carries real uncertainty, and a brittle version of that measurement scored IsPETase's own prediction at half its crystal value before being fixed.</li>
+      <li>AUC 0.976 is measured against hard negatives drawn from other &alpha;/&beta;-hydrolase
+      families. It shows the head separates measured polyesterases from those; it does not show
+      that it ranks PET activity <em>within</em> the polyesterase family, which is the harder and
+      more useful question.</li>
     <li>Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo.</li>
     <li>Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.</li>
     <li>Cleft width currently separates a fungal cutinase from the polyesterase family, but does not order that family by PET activity. Family-level separation is a much easier task than the one that matters.</li>

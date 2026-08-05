@@ -379,13 +379,18 @@
 </tr>
 <tr>
 <td data-label="Set">Positives</td>
-<td data-label="Count">534</td>
-<td data-label="Notes">Of which <strong>17 experimentally evidenced</strong>, the rest predicted (see below)</td>
+<td data-label="Count">846</td>
+<td data-label="Notes">Of which <strong>333 experimentally measured</strong>, the rest predicted (see below)</td>
 </tr>
 <tr>
 <td data-label="Set">Hard negatives</td>
 <td data-label="Count">131</td>
 <td data-label="Notes">Matched on five axes</td>
+</tr>
+<tr>
+<td data-label="Set">Measured-set head</td>
+<td data-label="Count">AUC <strong>0.976</strong></td>
+<td data-label="Notes">45 independent clusters, against a 0.829 composition baseline</td>
 </tr>
 <tr>
 <td data-label="Set">Near misses</td>
@@ -410,7 +415,7 @@
 </tbody>
 </table></div>
 <h3>Positives by evidence tier</h3>
-<p>The count that matters is not 534 but <strong>17</strong>: the number with experimental evidence behind the label.</p>
+<p>The count that matters is not 846 but <strong>333</strong>: the number with a measurement behind the label.</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
 <tr>
@@ -444,6 +449,11 @@
 <td data-label="Tier">Curated wild types and variants</td>
 <td data-label="n">6</td>
 <td data-label="What it means">Hand-curated, sequence-verified, mutations validated</td>
+</tr>
+<tr>
+<td data-label="Tier"><strong><code>PAZy-measured</code></strong></td>
+<td data-label="n"><strong>312</strong></td>
+<td data-label="What it means">In PAZy because activity was <strong>measured</strong> on a plastic and published, each with a DOI</td>
 </tr>
 <tr>
 <td data-label="Tier"><code>HGMP-measured</code></td>
@@ -490,6 +500,62 @@
 </table></div>
 <p>Still short of the 0.75 pass mark, but the trend confirms the diagnosis: much of the apparent shortcut was a small-sample artefact that shrinks as real diversity arrives.</p>
 <p>Consequently the composition baseline is a <strong>permanently reported metric</strong> alongside the retrieval baseline, not merely a pre-training gate. Any claim the model makes has to clear both.</p>
+<h3>The labels were the blocker, and PAZy resolved it</h3>
+<p>For most of this project a head trained on the catalogue's own labels scored <strong>AUC 1.000</strong>, which was a failure rather than a success: 449 positives carried <code>EC 3.1.1.101</code> from <code>ECO:0000256</code>, meaning the label was assigned <strong>by sequence similarity</strong>. A sequence model reproducing that is close to tautological. Meanwhile the positives with real experimental evidence numbered 17 and spanned 5 clusters: too few for the cluster-split protocol to run at all, so the honest head could not be scored rather than scoring badly.</p>
+<p><a href="https://api.pazy.eu/api">PAZy</a> inverts the inclusion criterion. An enzyme is listed because activity was <strong>measured</strong> on a plastic and published, with the DOI attached.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th></th>
+<th>Measured positives</th>
+<th>Clusters at 30%</th>
+<th>Clusters at 50%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="">Before</td>
+<td data-label="Measured positives">17</td>
+<td data-label="Clusters at 30%">5</td>
+<td data-label="Clusters at 50%">7</td>
+</tr>
+<tr>
+<td data-label="">With PAZy</td>
+<td data-label="Measured positives"><strong>333</strong></td>
+<td data-label="Clusters at 30%"><strong>51</strong></td>
+<td data-label="Clusters at 50%"><strong>73</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Trained on the measured set alone (300 after length filtering, 45 clusters, 220 negatives and near misses):</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Metric">AUC, cluster-grouped</td>
+<td data-label="Value"><strong>0.976 ± 0.021</strong> over 4 valid folds</td>
+</tr>
+<tr>
+<td data-label="Metric">Average precision</td>
+<td data-label="Value">0.987</td>
+</tr>
+<tr>
+<td data-label="Metric">Brier score</td>
+<td data-label="Value">0.052</td>
+</tr>
+<tr>
+<td data-label="Metric">Composition-only baseline</td>
+<td data-label="Value">0.829</td>
+</tr>
+</tbody>
+</table></div>
+<p>That is a different kind of number from the 1.000. The labels are experimental rather than similarity-derived, the split is across 45 independent units rather than impossible, and the head clears the composition baseline by a real margin instead of tying with it.</p>
+<p><strong>What it still does not show.</strong> Those negatives are drawn from other α/β-hydrolase families, so the result says the head separates measured polyesterases from <em>those</em>. It does not show that it ranks PET activity <strong>within</strong> the polyesterase family, which is the harder and more useful question, and the one the near misses exist to pose.</p>
 <p><strong>A caution about the evidence tiers.</strong> Of the 449 entries carrying EC 3.1.1.101 by automatic annotation, none is a measurement: they hold <code>ECO:0000256</code> (by similarity), not <code>ECO:0000269</code> (experimental). They were briefly labelled "unreviewed", which reads as a curation backlog rather than the substantive difference it is. Sixteen positives have experimental evidence. That is the number the Methods tab will report.</p>
 <h2>🔭 The profile library and the recall run</h2>
 <p>Recall is a two-stage funnel: MMseqs2 casts the net across millions of sequences fast, HMMER makes the sensitive call on the survivors. Every candidate keeps its retrieval numbers (E-value, bitscore, profile identity), because those are the baseline the learned model has to beat.</p>
@@ -824,8 +890,10 @@ cp .env.example .env
 <li>Predicted structures are predictions. Cleft geometry from ESMFold on a metagenomic sequence with no close homologue carries real uncertainty.</li>
 <li>Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo. Those decide whether any of this is a therapy.</li>
 <li>Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.</li>
-<li>The composition baseline sits at AUC 0.778. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.</li>
-<li>Of 529 positives, only 16 carry experimental evidence. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.</li>
+<li>The composition baseline sits at AUC 0.829 on the measured set. The head clears it (0.976), but a model must keep clearing it, and the retrieval baseline, to claim learned discrimination.</li>
+<li>AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity within the polyesterase family is a harder question and is not yet demonstrated.</li>
+<li>Old note, kept: the composition baseline was 0.778 on the earlier annotation-heavy positive set. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.</li>
+<li>Of 846 positives, 333 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.</li>
 <li>Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.</li>
 </ol>
 <h2>📚 Data sources</h2>

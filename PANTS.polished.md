@@ -224,8 +224,9 @@ What is in the database today:
 | Set | Count | Notes |
 |---|---|---|
 | **Candidates** | **439** | Mined from 14.8M metagenomic proteins across four environments, all triad-complete |
-| Positives | 534 | Of which **17 experimentally evidenced**, the rest predicted (see below) |
+| Positives | 846 | Of which **333 experimentally measured**, the rest predicted (see below) |
 | Hard negatives | 131 | Matched on five axes |
+| Measured-set head | AUC **0.976** | 45 independent clusters, against a 0.829 composition baseline |
 | Near misses | 125 | ESTHER `Cutinase` family: the decision boundary |
 | Activity measurements | 48 | Km, Topt, pH optimum, each citing its PubMed IDs |
 | Embeddings | 848 | ESM-2 t12-35M, 480-dim, frozen |
@@ -233,7 +234,7 @@ What is in the database today:
 
 ### Positives by evidence tier
 
-The count that matters is not 534 but **17**: the number with experimental evidence behind the label.
+The count that matters is not 846 but **333**: the number with a measurement behind the label.
 
 | Tier | n | What it means |
 |---|---|---|
@@ -242,6 +243,7 @@ The count that matters is not 534 but **17**: the number with experimental evide
 | `ESTHER-family-protein-evidence` | 14 | Family, protein observed |
 | `EC-experimental` | 10 | EC 3.1.1.101 with ECO:0000269 and PubMed citations |
 | Curated wild types and variants | 6 | Hand-curated, sequence-verified, mutations validated |
+| **`PAZy-measured`** | **312** | In PAZy because activity was **measured** on a plastic and published, each with a DOI |
 | `HGMP-measured` | 5 | Human gut PET hydrolases with measured activity (PMID 39551294) |
 
 ## 🧪 What Phase 1 found
@@ -265,6 +267,42 @@ Negatives are now matched on five axes: length distribution, identity to nearest
 Still short of the 0.75 pass mark, but the trend confirms the diagnosis: much of the apparent shortcut was a small-sample artefact that shrinks as real diversity arrives.
 
 Consequently the composition baseline is a **permanently reported metric** alongside the retrieval baseline, not merely a pre-training gate. Any claim the model makes has to clear both.
+
+### The labels were the blocker, and PAZy resolved it
+
+For most of this project a head trained on the catalogue's own labels scored **AUC 1.000**,
+which was a failure rather than a success: 449 positives carried `EC 3.1.1.101` from
+`ECO:0000256`, meaning the label was assigned **by sequence similarity**. A sequence model
+reproducing that is close to tautological. Meanwhile the positives with real experimental
+evidence numbered 17 and spanned 5 clusters: too few for the cluster-split protocol to run
+at all, so the honest head could not be scored rather than scoring badly.
+
+[PAZy](https://api.pazy.eu/api) inverts the inclusion criterion. An enzyme is listed
+because activity was **measured** on a plastic and published, with the DOI attached.
+
+| | Measured positives | Clusters at 30% | Clusters at 50% |
+|---|---|---|---|
+| Before | 17 | 5 | 7 |
+| With PAZy | **333** | **51** | **73** |
+
+Trained on the measured set alone (300 after length filtering, 45 clusters, 220 negatives
+and near misses):
+
+| Metric | Value |
+|---|---|
+| AUC, cluster-grouped | **0.976 ± 0.021** over 4 valid folds |
+| Average precision | 0.987 |
+| Brier score | 0.052 |
+| Composition-only baseline | 0.829 |
+
+That is a different kind of number from the 1.000. The labels are experimental rather than
+similarity-derived, the split is across 45 independent units rather than impossible, and
+the head clears the composition baseline by a real margin instead of tying with it.
+
+**What it still does not show.** Those negatives are drawn from other α/β-hydrolase
+families, so the result says the head separates measured polyesterases from *those*. It
+does not show that it ranks PET activity **within** the polyesterase family, which is the
+harder and more useful question, and the one the near misses exist to pose.
 
 **A caution about the evidence tiers.** Of the 449 entries carrying EC 3.1.1.101 by automatic annotation, none is a measurement: they hold `ECO:0000256` (by similarity), not `ECO:0000269` (experimental). They were briefly labelled "unreviewed", which reads as a curation backlog rather than the substantive difference it is. Sixteen positives have experimental evidence. That is the number the Methods tab will report.
 
@@ -444,8 +482,10 @@ Corrections this caught during curation: `Q6A0I4` was initially curated as Cut19
 4. Predicted structures are predictions. Cleft geometry from ESMFold on a metagenomic sequence with no close homologue carries real uncertainty.
 5. Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo. Those decide whether any of this is a therapy.
 6. Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.
-7. The composition baseline sits at AUC 0.778. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
-8. Of 529 positives, only 16 carry experimental evidence. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
+7. The composition baseline sits at AUC 0.829 on the measured set. The head clears it (0.976), but a model must keep clearing it, and the retrieval baseline, to claim learned discrimination.
+8. AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity within the polyesterase family is a harder question and is not yet demonstrated.
+9. Old note, kept: the composition baseline was 0.778 on the earlier annotation-heavy positive set. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
+10. Of 846 positives, 333 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
 9. Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.
 
 ## 📚 Data sources

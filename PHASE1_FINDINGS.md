@@ -629,3 +629,40 @@ clamp comes back with TRP185 and TYR87.
 Note for anyone reading the code: ESMFold's pLDDT is on a **0 to 1** scale here, not
 0 to 100. The smoke test first printed "mean pLDDT 1.0", which looked like a broken tensor
 read and was actually a rounded CA-atom mean on the unfamiliar scale.
+
+
+---
+
+# Resolution: PAZy, 2026-08-05
+
+The labelling problem recorded above ran through Phases 1 and 5 and was resolved by a
+source the project brief named on day one and that the first search failed to reach.
+
+PAZy has a working public API at `https://api.pazy.eu/api`, undocumented in the places
+searched earlier: 501 curated proteins, 320 of them PET-active, 312 with sequences and
+literature DOIs. Its inclusion criterion is the inverse of the EC-annotated bulk: an
+enzyme is present because activity was **measured** on a plastic and published.
+
+| | Measured positives | Clusters at 30% | Clusters at 50% |
+|---|---|---|---|
+| Before | 17 | 5 | 7 |
+| With PAZy | 333 | 51 | 73 |
+
+The head, trained on the measured set alone, is evaluable for the first time:
+**AUC 0.976 ± 0.021** across 45 positive clusters, average precision 0.987, Brier 0.052,
+against a composition-only baseline of 0.829.
+
+Two cautions carried forward:
+
+- Every PAZy record has `verified: true`, so that field does **not** discriminate within
+  the database. It means "curated into PAZy".
+- The 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET
+  activity *within* the polyesterase family remains undemonstrated, and the 125 near
+  misses exist precisely to pose that question.
+
+Sources checked and rejected while looking, recorded so nobody repeats them: **SABIO-RK**
+(its EC filter does not work, returning identical results for a deliberately fake EC and
+serving an HTML error page), **OpenBind** (small-molecule structure-affinity for drug
+targets; first release is 699 compounds against one antiviral protein), and **BindingDB**
+(protein-small-molecule affinity, and PET is a polymer). **BRENDA** remains promising for
+kinetics but needs a registered account, so it is a manual step.

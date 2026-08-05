@@ -28,23 +28,31 @@ ENV_LABEL = {
 }
 
 
+# Tiers whose label rests on a measurement. PAZy is here because its inclusion criterion
+# is that activity was measured on a plastic and published; the EC-auto-annotated bulk is
+# NOT here because those labels were assigned by sequence similarity.
+MEASURED_TIERS = ("EC-experimental", "UniProt", "HGMP-measured", "PAZy-measured",
+                  "Tournier et al. 2020, Nature", "Son et al. 2019, ACS Catal.",
+                  "Lu et al. 2022, Nature (MutCompute)", "Austin et al. 2018, PNAS")
+MEASURED_MARKS = ",".join("?" * len(MEASURED_TIERS))
+
+
 def _counts() -> Dict[str, int]:
     with connect() as conn:
-        def n(sql: str) -> int:
+        def n(sql: str, params=()) -> int:
             try:
-                return int(conn.execute(sql).fetchone()[0])
+                return int(conn.execute(sql, params).fetchone()[0])
             except Exception:
                 return 0
         return {
             "candidates": n("SELECT COUNT(*) FROM candidates"),
             "structures": n("SELECT COUNT(*) FROM structures"),
             "positives": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_positive=1"),
-            # Every tier whose label rests on an experiment rather than on similarity.
-            # HGMP-measured was missing here, so the app reported 12 where the README
-            # said 17: the same number derived two ways in two places, which is exactly
-            # how they drift.
+            # Every tier whose label rests on an EXPERIMENT rather than on similarity.
+            # Defined once here and imported by anything that needs it, because deriving
+            # this list twice is how the app came to report 12 where the README said 17.
             "evidenced": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_positive=1 "
-                           "AND source_ref IN ('EC-experimental','UniProt','HGMP-measured')"),
+                           f"AND source_ref IN ({MEASURED_MARKS})", MEASURED_TIERS),
             "negatives": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_negative=1"),
             "near_misses": n("SELECT COUNT(*) FROM characterised_enzymes WHERE is_near_miss=1"),
             "measurements": n("SELECT COUNT(*) FROM activity_measurements"),
