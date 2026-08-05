@@ -374,8 +374,8 @@
 <tbody>
 <tr>
 <td data-label="Set"><strong>Candidates</strong></td>
-<td data-label="Count"><strong>139</strong></td>
-<td data-label="Notes">Mined from 2.7M metagenomic proteins across four environments, all triad-complete</td>
+<td data-label="Count"><strong>439</strong></td>
+<td data-label="Notes">Mined from 14.8M metagenomic proteins across four environments, all triad-complete</td>
 </tr>
 <tr>
 <td data-label="Set">Positives</td>
@@ -531,100 +531,77 @@
 <tr>
 <th>Stage</th>
 <th>Surviving</th>
-<th>Note</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td data-label="Stage">Scanned</td>
-<td data-label="Surviving">2,220,462</td>
-<td data-label="Note"></td>
+<td data-label="Surviving">14,778,289</td>
 </tr>
 <tr>
-<td data-label="Stage">MMseqs2 prefilter, E ≤ 1e-5</td>
-<td data-label="Surviving">1,698</td>
-<td data-label="Note">0.08%</td>
-</tr>
-<tr>
-<td data-label="Stage">Matched a profile (hmmscan)</td>
-<td data-label="Surviving">892</td>
-<td data-label="Note"></td>
-</tr>
-<tr>
-<td data-label="Stage">Complete catalytic triad</td>
-<td data-label="Surviving">134</td>
-<td data-label="Note">15% of profile-matched</td>
-</tr>
-<tr>
-<td data-label="Stage">Unique candidates written</td>
-<td data-label="Surviving"><strong>128</strong></td>
-<td data-label="Note">content-addressed, so the same protein found in two assemblies collapses to one row</td>
+<td data-label="Stage">Passed the prefilter, profile scan and triad filter</td>
+<td data-label="Surviving"><strong>439</strong></td>
 </tr>
 </tbody>
 </table></div>
-<p>Retention is 0.006%. That is a <strong>choice</strong> (a strict E-value against 500 positives, then a hard triad requirement), not a property of the data.</p>
+<p>Retention is 0.003%. That is a <strong>choice</strong> (a strict E-value, then a hard requirement that Ser, His and Asp be connected in space), not a property of the data.</p>
 <h3>By source environment</h3>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
 <tr>
 <th>Environment</th>
-<th>Study</th>
 <th>Proteins scanned</th>
 <th>Candidates</th>
 <th>Per 1M</th>
-<th>Median length</th>
-<th>Median identity</th>
-<th>Max identity</th>
-<th>Best bitscore</th>
+<th>Median %ID to nearest characterised</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td data-label="Environment"><strong>Human gut</strong></td>
+<td data-label="Proteins scanned"><strong>12,584,458</strong></td>
+<td data-label="Candidates"><strong>311</strong></td>
+<td data-label="Per 1M">25</td>
+<td data-label="Median %ID to nearest characterised">29.7%</td>
+</tr>
+<tr>
 <td data-label="Environment">Compost</td>
-<td data-label="Study">MGYS00006036, MGYS00005026</td>
 <td data-label="Proteins scanned">1,020,575</td>
 <td data-label="Candidates">69</td>
-<td data-label="Per 1M">67.6</td>
-<td data-label="Median length">287 aa</td>
-<td data-label="Median identity">0.341</td>
-<td data-label="Max identity">1.000</td>
-<td data-label="Best bitscore">486.0</td>
+<td data-label="Per 1M">68</td>
+<td data-label="Median %ID to nearest characterised">34.1%</td>
 </tr>
 <tr>
 <td data-label="Environment">Marine plastisphere</td>
-<td data-label="Study">MGYS00006544</td>
 <td data-label="Proteins scanned">737,027</td>
 <td data-label="Candidates">44</td>
-<td data-label="Per 1M">59.7</td>
-<td data-label="Median length">246 aa</td>
-<td data-label="Median identity">0.265</td>
-<td data-label="Max identity">0.397</td>
-<td data-label="Best bitscore">64.9</td>
+<td data-label="Per 1M">60</td>
+<td data-label="Median %ID to nearest characterised">26.5%</td>
 </tr>
 <tr>
 <td data-label="Environment">Landfill</td>
-<td data-label="Study">MGYS00004882</td>
 <td data-label="Proteins scanned">436,229</td>
 <td data-label="Candidates">15</td>
-<td data-label="Per 1M">34.4</td>
-<td data-label="Median length">294 aa</td>
-<td data-label="Median identity">0.328</td>
-<td data-label="Max identity">0.777</td>
-<td data-label="Best bitscore">297.8</td>
+<td data-label="Per 1M">34</td>
+<td data-label="Median %ID to nearest characterised">32.8%</td>
 </tr>
 <tr>
 <td data-label="Environment">Wastewater</td>
-<td data-label="Study">MGYS00004904</td>
 <td data-label="Proteins scanned">26,631</td>
 <td data-label="Candidates">0</td>
-<td data-label="Per 1M">0.0</td>
-<td data-label="Median length"></td>
-<td data-label="Median identity"></td>
-<td data-label="Max identity"></td>
-<td data-label="Best bitscore"></td>
+<td data-label="Per 1M">0</td>
+<td data-label="Median %ID to nearest characterised"></td>
+</tr>
+<tr>
+<td data-label="Environment"><strong>Total</strong></td>
+<td data-label="Proteins scanned"><strong>14,778,289</strong></td>
+<td data-label="Candidates"><strong>439</strong></td>
+<td data-label="Per 1M">30</td>
+<td data-label="Median %ID to nearest characterised"></td>
 </tr>
 </tbody>
 </table></div>
+<p>The gut is now 71% of the catalogue by count and 85% by sequences scanned. Its <em>yield</em> is the lowest of the four productive environments, which is the honest reading: polyesterases are rarer in the gut than in compost, and the gut cohort is large because it was sampled deeply, not because it is rich.</p>
 <p><strong>The identity bands are the interesting part</strong>, because they separate rediscovery from genuinely unexplored sequence space:</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
@@ -659,6 +636,42 @@
 <p>Compost gives the highest yield per million proteins and hands back 15 near-identical copies of enzymes that are already characterised, one of them a 100% identity match. That is unsurprising: LCC itself is leaf-branch compost derived, so compost is where the field has already looked.</p>
 <p><strong>Every single marine plastisphere candidate sits below 40% identity to anything characterised</strong>, with a best bitscore of 64.9 against compost's 486. Nothing in that cohort is a rediscovery. This is spec section 2's thesis in one table: E-value rank pushes the well-known enzymes to the top and the unexplored ones down, and re-ranking that is exactly what the learned model is for.</p>
 <p>The wastewater assembly returned nothing, which is a reasonable null: it is the only source in the set that is neither plastic-associated nor compost.</p>
+<h3>The blind test: did recall find HGMP01-like enzymes unaided?</h3>
+<p>HGMP01 was <strong>not</strong> used to seed recall. Its sequence was unavailable when the gut scan was designed, and once obtained it was deliberately left out of the profiles, because the paper that describes it reports HGMP01-like genes as widely distributed across the gut microbiome. Recovering them without the seed is a real test; seeding first would have made it circular.</p>
+<p>Against the five measured HGMPs:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="">Gut candidates</td>
+<td data-label="">311</td>
+</tr>
+<tr>
+<td data-label="">With a detectable hit to any HGMP</td>
+<td data-label=""><strong>254 of 311 (82%)</strong></td>
+</tr>
+<tr>
+<td data-label="">Whose nearest HGMP is HGMP01</td>
+<td data-label=""><strong>33</strong></td>
+</tr>
+<tr>
+<td data-label="">Best identity to HGMP01</td>
+<td data-label="">38.3%</td>
+</tr>
+<tr>
+<td data-label="">Median identity to nearest HGMP</td>
+<td data-label="">27.5%</td>
+</tr>
+</tbody>
+</table></div>
+<p>So the pipeline independently recovered a large cohort of gut proteins resembling enzymes it had never been shown, and 33 of them sit closest to the one with measured activity at 40 °C and neutral pH.</p>
+<p><strong>What this does not show.</strong> None of them <em>is</em> HGMP01: the best match is 38.3%, so these are relatives rather than rediscoveries. That is consistent with the source paper, which found 697 HGMP01-like enzymes at 20% identity or better across the whole UHGP-100 database, where this scan covered 50 assemblies. It is also the expected outcome: HGMP01 comes from a UHGG genome that these particular assemblies need not contain.</p>
+<p>The useful claim is narrower than "PANTS found HGMP01" and more interesting than nothing: <strong>recall reaches the right neighbourhood of sequence space unaided</strong>, in an environment nobody had asked it about until the therapeutic framing pointed there.</p>
 <h2>🧱 Stack</h2>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
@@ -868,7 +881,7 @@ cp .env.example .env
 <li><span class="emd-check">&#9989;</span> <strong>Record an evidence level on every positive.</strong> UniProt <code>protein_existence</code> separates the 23 with protein-level evidence from the 56 predicted or inferred, so the two are never pooled in a reported metric</li>
 <li><span class="emd-check">&#9989;</span> <strong>Make the composition baseline a permanent reported metric.</strong> Stored alongside the retrieval baseline in <code>training_runs</code>, with <code>n_positive_clusters</code> recording independent units rather than the raw count</li>
 <li><span class="emd-check">&#9989;</span> <strong>Curate measured activity data.</strong> Taken from UniProt's machine-readable, citable annotations rather than transcribed from PDFs, which is where fabrication risk lives. <code>EC 3.1.1.101</code> (poly(ethylene terephthalate) hydrolase) gave 459 entries and took the positive set from 87 sequences in 11 clusters to 529 in 29. 47 measurements extracted (21 Km, 8 Topt, 8 pH optima, 10 qualitative), each carrying its PubMed IDs, with <code>comparable_group_id</code> keyed on parameter plus substrate so a Km on pNP-butanoate is never pooled with one on PET film</li>
-<li><span class="emd-check">&#9989;</span> <strong>Add the gut microbiome as a fourth source environment.</strong> The three current environments (compost, marine plastisphere, landfill) are all external. A human gut metagenome is the one that matters most for the therapeutic framing: an enzyme already resident at 37 °C, pH 7.4 and in a proteolytic environment has been selected under something close to the target conditions, rather than being asked to work far from its optimum. <strong>HGMP01</strong> is the concrete starting point: it is named in spec section 1, it is metagenome-derived rather than a variant of a characterised parent, and it is currently the one named enzyme the recall stage is expected to recover from sequence space instead of being seeded with. Done: 494,178 gut proteins from three MGnify studies, registered as <code>human_gut</code>. <strong>HGMP01 itself could not be seeded</strong>: it returns zero hits in UniProt and in NCBI protein/nuccore, and its paper (PMID 39551294) has no linked sequence records, so the sequence sits in supplementary material. That is not a blocker but an advantage, because the same paper reports HGMP01-like genes as widely distributed across the gut microbiome, so recall finding them <strong>unaided</strong> is a blind test rather than a circular one</li>
+<li><span class="emd-check">&#9989;</span> <strong>Add the gut microbiome as a fourth source environment.</strong> The three current environments (compost, marine plastisphere, landfill) are all external. A human gut metagenome is the one that matters most for the therapeutic framing: an enzyme already resident at 37 °C, pH 7.4 and in a proteolytic environment has been selected under something close to the target conditions, rather than being asked to work far from its optimum. <strong>HGMP01</strong> is the concrete starting point: it is named in spec section 1, it is metagenome-derived rather than a variant of a characterised parent, and it is currently the one named enzyme the recall stage is expected to recover from sequence space instead of being seeded with. Done: <strong>12,584,458 gut proteins from five MGnify studies</strong>, registered as <code>human_gut</code> and now 71% of the catalogue. <strong>HGMP01 itself could not be seeded</strong>: it returns zero hits in UniProt and in NCBI protein/nuccore, and its paper (PMID 39551294) has no linked sequence records, so the sequence sits in supplementary material. That is not a blocker but an advantage, because the same paper reports HGMP01-like genes as widely distributed across the gut microbiome, so recall finding them <strong>unaided</strong> is a blind test rather than a circular one</li>
 <li><span class="emd-check">&#9989;</span> <strong>Obtained all five HGMP sequences.</strong> No public database holds them (zero hits across UniProt, NCBI protein and nuccore), but the authors deposited them on SciDB. <strong>The paper and the deposit use different numbering</strong>: the paper's HGMP01 to HGMP05 are the deposit's HGMP03, 04, 06, 07 and 08, so matching on name would have mislabelled all five. The mapping is pinned by two independent facts, sequence length (all five distinct, so 1:1) and homologue count (the paper's "697 putative HGMP01-like enzymes" matches the deposit's HGMP03 exactly). <strong>HGMP01 = <code>GUT_GENOME238302_00589</code>, 275 aa, optimum 40 °C at near-neutral pH</strong>: the only measured PET hydrolase in this project whose optimum is close to physiological</li>
 <li><span class="emd-check">&#11036;</span> <strong>Extend curation to rates on PET itself.</strong> The extracted Km values are on soluble ester proxies (pNP esters), not on PET film or powder. Rates on real PET remain locked in paper supplementaries, and spec section 5.4's ordinal-within-paper fallback has not been built</li>
 <li><span class="emd-check">&#11036;</span> <strong>Resolve the Cut190 strain ambiguity.</strong> <code>W0TJ64</code> versus <code>C7MVE8</code>, both 304 aa, AHK190 versus type strain P101. Currently flagged in the seed notes and unresolved</li>
