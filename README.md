@@ -42,15 +42,15 @@ The architecture that follows: **retrieval is the recall stage, the learned mode
 
 ```
   SOURCE ENVIRONMENTS                      SEED SET
-  ┌──────────────────────┐                 ┌───────────────────────────────┐
-  │ compost      1.0M    │                 │ 5 wild types  (UniProt)       │
-  │ marine       0.7M    │                 │ 4 variants    (derived from   │
-  │ landfill     0.4M    │                 │                parent + muts) │
-  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit) │
-  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation) │
-  └──────────┬───────────┘                 └───────────────┬───────────────┘
-             │  predicted proteins                         │
-             │                                             ▼
+  ┌──────────────────────┐                 ┌───────────────────────────────────┐
+  │ compost      1.0M    │                 │ 6 wild types  (UniProt + UniParc)  │
+  │ marine       0.7M    │                 │ 9 variants    (parent + mutations) │
+  │ landfill     0.4M    │                 │ 2 variants    (PDB constructs)     │
+  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit)      │
+  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation)      │
+  └──────────┬───────────┘                 └─────────────────┬─────────────────┘
+             │  predicted proteins                           │
+             │                                               ▼
              │                              ┌──────────────────────────────┐
              │                              │ cluster at 30% identity      │
              │                              │ → 1 profile HMM per cluster  │
@@ -139,11 +139,11 @@ provenance** than the block above: `extraction_confidence='review'` and `ECO:000
 (inferred by curator) rather than `ECO:0000269` (experimental, from a publication), because
 the values were collated from a secondary review rather than read from each primary paper.
 
-**Two of the five missing sequences were recovered from crystal structures**, which is a
-stronger route than deriving them: a PDB SEQRES is the construct that was actually
-expressed, crystallised and assayed, so nothing is applied or assumed. Each was verified by
-aligning against its parent and checking the substitution count against the published one,
-rather than trusting the name on the entry.
+**Every engineered variant now carries a sequence.** Two came from crystal structures,
+which is the stronger route: a PDB SEQRES is the construct that was actually expressed,
+crystallised and assayed, so nothing is applied or assumed. Each was verified by aligning
+against its parent and checking the substitution count against the published one, rather
+than trusting the name on the entry.
 
 | Variant | Source | Length | Substitutions vs parent | Published |
 |---|---|---|---|---|
@@ -152,11 +152,45 @@ rather than trusting the name on the entry.
 
 Both are stored as the **mature construct**, so they are shorter than their precursor parents.
 
-**Three still carry no sequence: DuraPETase, TurboPETase and Z1-PETase.** None has a
-name-matched PDB entry, none is in PAZy, and their mutation sets are in primary
-supplementaries. The PDB does hold generic "IsPETase variant V20/V22" structures that
-*might* be among them, but assigning one on a guess is exactly the error that would
-silently poison the profiles, so they stay empty.
+**The remaining three were resolved from their mutation sets, and two more variants were
+found in the same pass.** Every set below was applied with `apply_mutations`, which refuses
+any substitution whose stated parent residue does not match, so a wrong position or a
+mature-vs-precursor numbering shift fails loudly instead of producing a plausible but wrong
+sequence. All five matched at **offset 0** with the substitution count the papers report.
+
+| Variant | Parent | Mutations | Confirmed by |
+|---|---|---|---|
+| DuraPETase | IsPETase | `S214H/I168R/W159H/S188Q/R280A/A180I/G165A/Q119Y/L117F/T140D` | 10/10 parent residues match; 10 independent positions agreeing by chance is ~20⁻¹⁰ |
+| TurboPETase | **BhrPETase** | `H218S/F222I/A209R/D238K/A251C/A281C/W104L/F243T` | 8/8 match; the parent recorded before curation (IsPETase) was **wrong** |
+| Z1-PETase | IsPETase | `N37D/S121E/R132E/A171C/A180V/P181V/D186H/S193C/R224E/N233C/S242T/N246D/S282C` | 13/13 match **and** all 13 sites read the mutant residue in PDB `8H5K` |
+| DepoPETase | IsPETase | `T88I/D186H/D220N/N233K/N246D/R260Y/S290P` | 7/7 match |
+| LCC-A2 | LCC | `F243I/D238C/S283C/Y127G/H218Y/N248D` | 6/6 match (LCC-ICCG plus H218Y/N248D) |
+
+Z1-PETase is confirmed twice over and independently: the mutation list applies cleanly to
+IsPETase, and the deposited `8H5K` sequence differs from the derived one only by an `SHM`
+expression-tag scar and the signal peptide, with **zero mismatches in the mature region**.
+
+Three findings from that search are worth recording, because each is a trap rather than a
+detail:
+
+- **TurboPETase's parent is BhrPETase, not IsPETase.** The placeholder entry named the
+  wrong parent. The mutation set does not apply to IsPETase at any offset, so the
+  residue-match check caught it rather than a reviewer.
+- **BhrPETase has no live UniProtKB entry at all.** The accession PAZy records,
+  `A0A2H5Z9R5`, is inactive (DEMERGED to `A0ACD6B9U1`), and `A0ACD6B9U1` is itself DELETED
+  as "not part of a reference proteome". The parent of a headline industrial enzyme is
+  reachable only through **UniParc `UPI000CB4D10C`**, which never deletes. Its sequence is
+  byte-identical to PAZy's copy and carries an active EMBL WGS cross-reference.
+- **Do not seed PHL7 from UniProt.** Its only UniProt entry is the **catalysis-deficient
+  S131A mutant** deposited for crystallography: right length, right name, catalytic serine
+  knocked out. The same trap as PDB `7CEH` (S176A), rejected earlier for Cut190\*\*SS.
+  PHL7's active sequence is already present as a PAZy-measured positive.
+
+The PES-H1 `L92F/Q94Y` variant is deliberately not derived, for want of a loadable parent
+rather than a confirmed set. Confirming it did settle a documented literature discrepancy:
+the same double mutant is written `L92F/Q94Y` in PES-H1 numbering and `L93F/Q95Y` in PHL7
+numbering, and `find_offset` returns +1 and 0 respectively against the same sequence,
+producing an **identical** result either way.
 
 Values collated in
 [Engineering Evolution: How FAST-PETase and Other Variants Are Transforming Plastic Biodegradation](https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/).
@@ -169,8 +203,10 @@ Values collated in
 | FAST-PETase | 50 °C | ThermoPETase | 38x activity; 33.8 mM monomers in 96 h |
 | HotPETase | 60 to 65 °C | IsPETase | 21 mutations; melting temperature 82.5 °C |
 | Cut190\*\*SS | 65 °C | actinomycete cutinase | Calcium-dependent conformational switching |
-| TurboPETase | 65 to 68 °C | BhrPETase M6 | 98.2% depolymerisation at 200 g/kg in 8 h |
+| TurboPETase | 65 to 68 °C | BhrPETase | 98.2% depolymerisation at 200 g/kg in 8 h |
 | LCC-ICCG | 65 to 72 °C | LCC | 1.3 g PET waste in 3 days from 1.25 mg enzyme |
+| DepoPETase | ~50 °C (applied) | IsPETase | 7 mutations; melting temperature +23.3 °C, ~1407x product |
+| LCC-A2 | 78 °C | LCC-ICCG | LCC-ICCG plus H218Y/N248D |
 
 **A discrepancy worth stating rather than smoothing over:** UniProt's curated value for
 IsPETase is 40 °C, while the literature review gives 30 to 35 °C. Both are defensible and
@@ -181,8 +217,8 @@ rather than picking a winner.
 
 **Read the two tables together and the shape of the field is obvious.** The entire
 engineered lineage runs *away* from body temperature: FAST-PETase to 50 °C, HotPETase to
-60 to 65, TurboPETase and LCC-ICCG to 65 to 72. That is rational, because they were
-optimised for a reactor above PET's glass transition.
+60 to 65, TurboPETase and LCC-ICCG to 65 to 72, LCC-A2 to 78. That is rational, because
+they were optimised for a reactor above PET's glass transition.
 
 Only three enzymes sit anywhere near 37 °C, and two of them (Z1-PETase, DuraPETase) are
 engineered variants of IsPETase that reach it by trading away the activity the others
@@ -246,7 +282,7 @@ What is in the database today:
 | Set | Count | Notes |
 |---|---|---|
 | **Candidates** | **439** | Mined from 14.8M metagenomic proteins across four environments, all triad-complete |
-| Positives | 846 | Of which **333 experimentally measured**, the rest predicted (see below) |
+| Positives | 854 | Of which **341 experimentally measured**, the rest predicted (see below) |
 | Hard negatives | 131 | Matched on five axes |
 | Measured-set head | AUC **0.976** | 45 independent clusters, against a 0.829 composition baseline |
 | Near misses | 125 | ESTHER `Cutinase` family: the decision boundary |
@@ -256,7 +292,7 @@ What is in the database today:
 
 ### Positives by evidence tier
 
-The count that matters is not 846 but **333**: the number with a measurement behind the label.
+The count that matters is not 854 but **341**: the number with a measurement behind the label.
 
 | Tier | n | What it means |
 |---|---|---|
@@ -305,7 +341,8 @@ because activity was **measured** on a plastic and published, with the DOI attac
 | | Measured positives | Clusters at 30% | Clusters at 50% |
 |---|---|---|---|
 | Before | 17 | 5 | 7 |
-| With PAZy | **333** | **51** | **73** |
+| With PAZy | 333 | 51 | 73 |
+| Plus the confirmed engineered variants | **341** | **50** | **72** |
 
 Trained on the measured set alone (300 after length filtering, 45 clusters, 220 negatives
 and near misses):
@@ -525,7 +562,7 @@ Corrections this caught during curation: `Q6A0I4` was initially curated as Cut19
 7. The composition baseline sits at AUC 0.829 on the measured set. The head clears it (0.976), but a model must keep clearing it, and the retrieval baseline, to claim learned discrimination.
 8. AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity within the polyesterase family is a harder question and is not yet demonstrated.
 9. Old note, kept: the composition baseline was 0.778 on the earlier annotation-heavy positive set. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
-10. Of 846 positives, 333 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
+10. Of 854 positives, 341 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
 9. Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.
 
 ## 📚 Data sources
@@ -560,7 +597,7 @@ Roadmap for PANTS, roughly in dependency order. Suggestions welcome.
 - [x] **Built the ordinal-within-paper fallback, and established why it is the route rather than a fallback.** Before this the database held exactly **one** quantitative value measured on PET; all 21 Km values were on soluble pNP-ester proxies. Attempting the real thing showed why: **PET rates live in figure panels**, not in extractable text or structured deposits, so they cannot be harvested at scale. The brief anticipated this and proposed within-paper ordinal ranking, which now exists as a `parameter_type` with `ordinal_rank_in_paper`, seeded from PMID 39551294 (HGMP01 first of five on PET nanoparticles, the other four recorded as equal-second because the paper does not order them). Assay conditions are attached so the comparison is interpretable
 - [ ] **Populate ordinal rankings across the PAZy literature.** 312 PAZy entries carry DOIs; papers that assay several enzymes under one protocol rank them, and that ranking is extractable by reading where an absolute rate is not. This is the only route to a training signal that does not need a negative class, which the near-miss finding showed is otherwise unavailable
 - [x] **Resolved the Cut190 strain ambiguity.** `W0TJ64`, not `C7MVE8`. Length could never separate them (both 304 aa), but the crystal structures can: **4WFI, 4WFJ, 4WFK, 5ZNO, 5ZRQ and 5ZRR all cross-reference W0TJ64**, and C7MVE8 has no PDB entry at all. Structural evidence beats a name match, and the seed was right by luck rather than by evidence until now
-- [ ] **Confirm the outstanding mutation sets.** DuraPETase, HotPETase, TurboPETase, Z1-PETase and Cut190\*\*SS are recorded without sequences because their complete mutation sets were not confirmed. A partial set yields a wrong sequence, which is worse than an honest gap
+- [x] **Confirm the outstanding mutation sets.** All five are resolved, and two further variants (DepoPETase, LCC-A2) were found in the same pass. HotPETase and Cut190\*\*SS came from crystal structures; DuraPETase, TurboPETase and Z1-PETase from verified mutation sets, all matching at offset 0. Every engineered variant now carries a sequence, and the whole seed set rebuilds from one command
 - [x] **Choose and acquire the metagenome collections, size-checked first.** 2,220,462 predicted proteins (858 MB) from landfill, marine plastisphere and compost assemblies. Only assemblies carry proteins: MGnify's largest plastisphere study has 357 samples and no protein sequences at all, being 16S amplicon
 - [x] **Build the recall stage.** One profile HMM per 30% cluster, each anchored on UniProt's own Active site annotation, MMseqs2 prefilter then hmmscan and a triad completeness filter. 128 candidates from 2.2M proteins in 24 minutes, with discard counts reported at every step
 - [ ] **Detect the oxyanion hole properly.** Currently a weak sequence proxy: the hole is formed by backbone amides, which is a structural property, so the real determination has to wait for the structure stage

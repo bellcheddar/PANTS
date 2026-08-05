@@ -42,15 +42,15 @@ The architecture that follows: **retrieval is the recall stage, the learned mode
 
 ```
   SOURCE ENVIRONMENTS                      SEED SET
-  ┌──────────────────────┐                 ┌───────────────────────────────┐
-  │ compost      1.0M    │                 │ 5 wild types  (UniProt)       │
-  │ marine       0.7M    │                 │ 4 variants    (derived from   │
-  │ landfill     0.4M    │                 │                parent + muts) │
-  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit) │
-  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation) │
-  └──────────┬───────────┘                 └───────────────┬───────────────┘
-             │  predicted proteins                         │
-             │                                             ▼
+  ┌──────────────────────┐                 ┌───────────────────────────────────┐
+  │ compost      1.0M    │                 │ 6 wild types  (UniProt + UniParc)  │
+  │ marine       0.7M    │                 │ 9 variants    (parent + mutations) │
+  │ landfill     0.4M    │                 │ 2 variants    (PDB constructs)     │
+  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit)      │
+  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation)      │
+  └──────────┬───────────┘                 └─────────────────┬─────────────────┘
+             │  predicted proteins                           │
+             │                                               ▼
              │                              ┌──────────────────────────────┐
              │                              │ cluster at 30% identity      │
              │                              │ → 1 profile HMM per cluster  │
@@ -246,7 +246,7 @@ What is in the database today:
 | Set | Count | Notes |
 |---|---|---|
 | **Candidates** | **439** | Mined from 14.8M metagenomic proteins across four environments, all triad-complete |
-| Positives | 846 | Of which **333 experimentally measured**, the rest predicted (see below) |
+| Positives | 854 | Of which **341 experimentally measured**, the rest predicted (see below) |
 | Hard negatives | 131 | Matched on five axes |
 | Measured-set head | AUC **0.976** | 45 independent clusters, against a 0.829 composition baseline |
 | Near misses | 125 | ESTHER `Cutinase` family: the decision boundary |
@@ -256,7 +256,7 @@ What is in the database today:
 
 ### Positives by evidence tier
 
-The count that matters is not 846 but **333**: the number with a measurement behind the label.
+The count that matters is not 854 but **341**: the number with a measurement behind the label.
 
 | Tier | n | What it means |
 |---|---|---|
@@ -305,7 +305,8 @@ because activity was **measured** on a plastic and published, with the DOI attac
 | | Measured positives | Clusters at 30% | Clusters at 50% |
 |---|---|---|---|
 | Before | 17 | 5 | 7 |
-| With PAZy | **333** | **51** | **73** |
+| With PAZy | 333 | 51 | 73 |
+| Plus the confirmed engineered variants | **341** | **50** | **72** |
 
 Trained on the measured set alone (300 after length filtering, 45 clusters, 220 negatives
 and near misses):
@@ -525,7 +526,7 @@ Corrections this caught during curation: `Q6A0I4` was initially curated as Cut19
 7. The composition baseline sits at AUC 0.829 on the measured set. The head clears it (0.976), but a model must keep clearing it, and the retrieval baseline, to claim learned discrimination.
 8. AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity within the polyesterase family is a harder question and is not yet demonstrated.
 9. Old note, kept: the composition baseline was 0.778 on the earlier annotation-heavy positive set. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
-10. Of 846 positives, 333 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
+10. Of 854 positives, 341 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
 9. Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.
 
 ## 📚 Data sources

@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterator, List, Optional
 from . import config, http
 
 ENTRY_URL = "https://rest.uniprot.org/uniprotkb/{accession}.json"
+UNIPARC_URL = "https://rest.uniprot.org/uniparc/{upi}.json"
 
 # Fields requested from search endpoints. Keep this tight: the default response carries
 # the full cross-reference block, which is megabytes per entry at scale.
@@ -72,6 +73,33 @@ def fetch(accession: str) -> Optional[Entry]:
     """One entry by accession. Returns None if UniProt does not know it (404)."""
     obj = http.get_json(ENTRY_URL.format(accession=accession))
     return _flatten(obj) if obj else None
+
+
+def fetch_uniparc(upi: str) -> Optional[Entry]:
+    """One sequence from UniParc, the archive UniProtKB entries are retired into.
+
+    Needed because a real, published, industrially important enzyme can have no live
+    UniProtKB entry at all. BhrPETase is the case that forced this: its PAZy accession
+    A0A2H5Z9R5 is inactive (DEMERGED), the accession it demerged to is itself DELETED
+    ("Not part of a reference proteome"), and so the parent of TurboPETase is reachable
+    only as UniParc UPI000CB4D10C. UniParc never deletes, which is exactly why it is the
+    right fallback.
+
+    UniParc archives sequences, not annotation, so organism and lineage come back None.
+    That is a real loss and the caller should know it, which is why this is a separate
+    function rather than a silent retry inside fetch().
+    """
+    obj = http.get_json(UNIPARC_URL.format(upi=upi))
+    if not obj:
+        return None
+    seq = (obj.get("sequence") or {}).get("value", "")
+    name = next((x.get("proteinName") for x in (obj.get("uniParcCrossReferences") or [])
+                 if x.get("active") and x.get("proteinName")), None)
+    return Entry(
+        accession=obj.get("uniParcId", upi), entry_name=None, protein_name=name,
+        organism=None, taxid=None, sequence=seq, length=len(seq),
+        lineage=None, reviewed=False,
+    )
 
 
 def fetch_many(accessions: List[str]) -> Dict[str, Optional[Entry]]:

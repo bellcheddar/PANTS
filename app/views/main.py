@@ -31,9 +31,9 @@ ENV_LABEL = {
 # Tiers whose label rests on a measurement. PAZy is here because its inclusion criterion
 # is that activity was measured on a plastic and published; the EC-auto-annotated bulk is
 # NOT here because those labels were assigned by sequence similarity.
-MEASURED_TIERS = ("EC-experimental", "UniProt", "HGMP-measured", "PAZy-measured",
-                  "Tournier et al. 2020, Nature", "Son et al. 2019, ACS Catal.",
-                  "Lu et al. 2022, Nature (MutCompute)", "Austin et al. 2018, PNAS")
+# Single definition, in pipeline.config: the app and the release bundle reported
+# different measured counts once because each kept its own copy.
+MEASURED_TIERS = config.MEASURED_TIERS
 MEASURED_MARKS = ",".join("?" * len(MEASURED_TIERS))
 
 

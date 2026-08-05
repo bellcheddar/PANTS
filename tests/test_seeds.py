@@ -100,3 +100,42 @@ def test_wild_type_ids_and_accessions_are_unique():
     assert len(ids) == len(set(ids))
     accs = [w.uniprot for w in seeds.WILD_TYPES]
     assert len(accs) == len(set(accs))
+
+
+# --------------------------------------------------------------------------------------
+# count_substitutions: the gapped-alignment requirement
+# --------------------------------------------------------------------------------------
+
+def test_count_substitutions_ignores_terminal_truncation():
+    """A mature construct is shorter at both ends than its precursor parent. Those missing
+    residues are not substitutions, and counting them as such is what made an ungapped
+    comparison report 247 differences for HotPETase, which has 21."""
+    parent = "MKKLLAAWQTPYNARGPDPTAASLEASAG"
+    construct = parent[6:-3]                       # trimmed both ends, no substitutions
+    assert seeds.count_substitutions(parent, construct) == 0
+
+
+def test_count_substitutions_counts_real_substitutions():
+    parent = "MKKLLAAWQTPYNARGPDPTAASLEASAG"
+    construct = parent[:10] + "W" + parent[11:]    # exactly one change
+    assert construct != parent
+    assert seeds.count_substitutions(parent, construct) == 1
+
+
+def test_count_substitutions_survives_an_internal_deletion():
+    """The failure mode being guarded: without gapping, every residue after an indel is
+    compared against the wrong partner and the count explodes."""
+    parent = "MKKLLAAWQTPYNARGPDPTAASLEASAGPFTVRSFTVSRP"
+    construct = parent[:15] + parent[18:]          # three residues deleted internally
+    assert seeds.count_substitutions(parent, construct) == 0
+
+
+def test_pdb_derived_entries_are_well_formed():
+    """Each PDB-derived variant names a parent that exists and a published substitution
+    count to check the deposited construct against."""
+    known = {w.enzyme_id for w in seeds.WILD_TYPES}
+    for eid, (pdb_id, parent, expected, ref) in seeds.PDB_DERIVED.items():
+        assert parent in known, f"{eid} names unknown parent {parent}"
+        assert len(pdb_id) == 4, f"{eid} has a malformed PDB id {pdb_id!r}"
+        assert isinstance(expected, int) and expected > 0
+        assert ref

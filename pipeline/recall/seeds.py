@@ -44,6 +44,11 @@ class WildType:
     # 1-based positions of the catalytic triad in the UNIPROT PRECURSOR numbering,
     # where known and verified. Used to sanity check the recall stage's triad detection.
     triad: Optional[Tuple[int, int, int]] = None
+    # UniParc UPI, used ONLY when the UniProtKB accession is dead. UniParc archives
+    # sequences and never deletes, so it can still serve a retired entry, but it carries
+    # no organism or lineage. Set this and the loader falls back to it, reporting that it
+    # did rather than quietly substituting one source for another.
+    uniparc: Optional[str] = None
 
 
 @dataclass
@@ -100,6 +105,23 @@ WILD_TYPES: List[WildType] = [
               "all. Structural evidence over a name match.",
         pdb_ids=["4WFI", "4WFJ", "4WFK", "5ZNO", "5ZRQ", "5ZRR"],
     ),
+    WildType(
+        enzyme_id="BhrPETase", uniprot="A0A2H5Z9R5", uniparc="UPI000CB4D10C",
+        family="petase_like", is_positive=True,
+        notes="Bacterium HR29 PET hydrolase, 293 aa. Added as a wild type because it is "
+              "TurboPETase's parent, and a variant can only be derived from a parent that "
+              "lives in WILD_TYPES. It is also a PAZy-measured positive in its own right "
+              "(PAZy:17), so it duplicates that row: the same already holds for IsPETase, "
+              "LCC and Cut190, and is harmless because evaluation splits by 30% cluster, "
+              "which keeps identical sequences on the same side. "
+              "NO LIVE UNIPROTKB ENTRY: A0A2H5Z9R5, the accession PAZy still records, is "
+              "inactive (DEMERGED to A0ACD6B9U1), and A0ACD6B9U1 is itself DELETED as "
+              "'not part of a reference proteome'. The sequence therefore comes from "
+              "UniParc, which never deletes, and is confirmed three ways: it is byte-identical "
+              "to PAZy:17, it carries an active EMBL WGS cross-reference (GBD22443, "
+              "'Poly(Ethylene terephthalate) hydrolase'), and all eight TurboPETase "
+              "mutations match it at offset 0.",
+    ),
 ]
 
 # --------------------------------------------------------------------------------------
@@ -140,28 +162,68 @@ VARIANTS: List[Variant] = [
               "from the mature protein the offset is reported rather than guessed at.",
         pdb_ids=["6THT"],
     ),
-    # --- recorded, sequence not derived: mutation sets not confirmed during curation ---
     Variant(
-        enzyme_id="DuraPETase", parent="IsPETase", mutations=[], mutations_confirmed=False,
+        enzyme_id="DuraPETase", parent="IsPETase",
+        mutations=["S214H", "I168R", "W159H", "S188Q", "R280A",
+                   "A180I", "G165A", "Q119Y", "L117F", "T140D"],
+        mutations_confirmed=True,
         reference="Cui et al. 2021, ACS Catal.",
-        notes="Ten-mutation redesign of IsPETase (GRAPE strategy). Full set not confirmed "
-              "here; needs the paper's supplementary table before a sequence is derived.",
+        notes="Ten-mutation redesign of IsPETase by the GRAPE strategy, Topt 37 C. All ten "
+              "stated parent residues match IsPETase at offset 0, and the count agrees "
+              "with the published ten. Ten independent positions agreeing by chance is "
+              "~20^-10, so the set is confirmed without needing the supplementary.",
     ),
+    Variant(
+        enzyme_id="TurboPETase", parent="BhrPETase",
+        mutations=["H218S", "F222I", "A209R", "D238K",
+                   "A251C", "A281C", "W104L", "F243T"],
+        mutations_confirmed=True,
+        reference="Zhang et al. 2024, Nat. Commun. 15:1417",
+        notes="Eight mutations on BhrPETase, NOT on IsPETase: the parent recorded here "
+              "before curation was wrong. Grouped by what they do: substrate-binding "
+              "cleft flexibility (H218S/F222I, W104L, F243T), surface charge-charge "
+              "optimisation (A209R, D238K) and one engineered disulfide (A251C-A281C). "
+              "All eight match BhrPETase at offset 0. doi:10.1038/s41467-024-45662-9",
+    ),
+    Variant(
+        enzyme_id="Z1-PETase", parent="IsPETase",
+        mutations=["N37D", "S121E", "R132E", "A171C", "A180V", "P181V", "D186H",
+                   "S193C", "R224E", "N233C", "S242T", "N246D", "S282C"],
+        mutations_confirmed=True,
+        reference="Three-directional engineering of IsPETase (PDB 8H5K)",
+        notes="Thirteen mutations on IsPETase, including two engineered disulfides "
+              "(A171C-S193C, N233C-S282C) and four shared with FAST-PETase "
+              "(S121E/D186H/S242T/N246D). Topt 30 C. Confirmed TWICE and independently: "
+              "the set applies cleanly to IsPETase at offset 0, and all 13 sites read the "
+              "mutant residue in the deposited 8H5K structure, whose sequence differs from "
+              "the derived one only by an SHM expression-tag scar and the signal peptide "
+              "(zero mismatches in the mature region).",
+        pdb_ids=["8H5K"],
+    ),
+    Variant(
+        enzyme_id="DepoPETase", parent="IsPETase",
+        mutations=["T88I", "D186H", "D220N", "N233K", "N246D", "R260Y", "S290P"],
+        mutations_confirmed=True,
+        reference="Directed evolution of flexible loops, Cell Rep. Phys. Sci. 2023",
+        notes="Seven-mutation IsPETase from flexible-loop directed evolution: Tm +23.3 C "
+              "and ~1407-fold more product than wild type. All seven match at offset 0.",
+    ),
+    Variant(
+        enzyme_id="LCC-A2", parent="LCC",
+        mutations=["F243I", "D238C", "S283C", "Y127G", "H218Y", "N248D"],
+        mutations_confirmed=True,
+        reference="Reported relative to LCC-ICCG in the 2025 PET-hydrolase review",
+        notes="LCC-ICCG plus H218Y/N248D, Topt 78 C. Expressed here against WILD-TYPE LCC "
+              "(all six mutations, offset 0) rather than against LCC-ICCG, because a "
+              "variant can only be derived from a parent in WILD_TYPES and chaining a "
+              "variant onto a variant would hide which residues were actually checked.",
+    ),
+    # --- recorded, sequence not derived: mutation sets not confirmed during curation ---
     Variant(
         enzyme_id="HotPETase", parent="IsPETase", mutations=[], mutations_confirmed=False,
         reference="Bell et al. 2022, Nat. Catal.",
         notes="Directed-evolution thermostabilised IsPETase, ~21 mutations. Full set not "
               "confirmed here.",
-    ),
-    Variant(
-        enzyme_id="TurboPETase", parent="IsPETase", mutations=[], mutations_confirmed=False,
-        reference="Zhang et al. 2024",
-        notes="Full mutation set not confirmed here.",
-    ),
-    Variant(
-        enzyme_id="Z1-PETase", parent="IsPETase", mutations=[], mutations_confirmed=False,
-        reference="Literature, to confirm",
-        notes="Full mutation set not confirmed here.",
     ),
     Variant(
         enzyme_id="Cut190**SS", parent="Cut190", mutations=[], mutations_confirmed=False,
@@ -171,6 +233,28 @@ VARIANTS: List[Variant] = [
     ),
 ]
 
+# PHL7 / PES-H1: DO NOT seed from UniProt. Checked exhaustively 2026-08-05.
+#
+# PHL7 (Polyester Hydrolase Leipzig 7) is a well-characterised metagenomic polyester
+# hydrolase and an obvious candidate parent. It has exactly ONE UniProt entry,
+# A0AA82WPD4, and that entry is the **catalysis-deficient S131A mutant** deposited for
+# crystallography: the catalytic serine is knocked out. It is 267 aa, the right length,
+# named "PHL-7", and differs from the active enzyme at a single position. Seeding from it
+# would put a dead enzyme into the positives looking entirely healthy. This is the same
+# trap as PDB 7CEH (S176A) rejected during the Cut190**SS work, and length agreement is
+# again no defence.
+#
+# The ACTIVE sequence is already present as PAZy:37, a PAZy-measured positive, so PHL7
+# itself is in the training set. It is not promoted to WILD_TYPES because that path
+# resolves parents through UniProt and the only accession is the knockout.
+#
+# Consequence: the PES-H1 L92F/Q94Y variant is not derived here, for want of a loadable
+# parent, not for want of a confirmed mutation set. That set was in fact confirmed, and
+# resolving it settled a documented literature discrepancy: the same double mutant is
+# written L92F/Q94Y in PES-H1 numbering and L93F/Q95Y in PHL7 numbering. find_offset
+# returns +1 and 0 respectively against PAZy:37, and both produce an IDENTICAL sequence,
+# which is the numbering-offset machinery doing exactly the job it was built for.
+#
 # HGMP01 is named in spec section 1 but is metagenome-derived rather than a variant of a
 # characterised parent, so it does not belong in VARIANTS.
 #
@@ -223,6 +307,33 @@ PDB_DERIVED = {
     "HotPETase": ("7QVH", "IsPETase", 21, "Bell et al. 2022, Nat. Catal."),
     "Cut190**SS": ("7CEF", "Cut190", 4, "Oda/Kawai et al."),
 }
+
+
+def count_substitutions(parent: str, construct: str) -> int:
+    """Substitutions between a parent and a construct, by GAPPED alignment.
+
+    Must be gapped. A crystallised construct is the mature protein and often carries an
+    expression-tag scar, so it is both shorter than the precursor parent and offset from
+    it. Counting position-by-position without aligning reported 247 substitutions for
+    HotPETase, which really has 21: every residue after the first indel was compared
+    against the wrong partner, and the number was wrong in a direction that looks like a
+    heavily engineered enzyme rather than like a bug.
+
+    Only columns where BOTH sequences have a residue are counted, so the leading and
+    trailing truncations are not miscounted as substitutions.
+
+    biotite is imported lazily: the web venv is deliberately thin and does not have it.
+    """
+    import biotite.sequence as bseq
+    import biotite.sequence.align as balign
+
+    matrix = balign.SubstitutionMatrix.std_protein_matrix()
+    alignment = balign.align_optimal(
+        bseq.ProteinSequence(parent), bseq.ProteinSequence(construct),
+        matrix, gap_penalty=(-10, -1),
+    )[0]
+    a, b = balign.get_symbols(alignment)
+    return sum(1 for x, y in zip(a, b) if x and y and x != y)
 
 
 def parse_mutation(mut: str) -> Tuple[str, int, str]:

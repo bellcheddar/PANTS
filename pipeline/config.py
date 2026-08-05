@@ -134,3 +134,36 @@ def ensure_dirs() -> None:
 def data_dirs_are_external() -> bool:
     """True when raw/ and interim/ really are symlinks out of the iCloud tree."""
     return RAW_DIR.is_symlink() and INTERIM_DIR.is_symlink()
+
+
+# --------------------------------------------------------------------------------------
+# Evidence tiers
+#
+# Which source_ref values denote a MEASURED positive, as opposed to one carrying automatic
+# EC annotation or bare family membership. This is the axis the headline metric is
+# reported on, so it must mean the same thing in the pipeline, the release bundle and the
+# web app.
+#
+# It lives here because it did not, once: the app and the README disagreed (12 measured
+# against 17) purely because two copies of this tuple had drifted apart. Copying it a
+# third time would be the same bug waiting.
+#
+# The variant references are DERIVED from VARIANTS rather than typed out, so confirming a
+# new mutation set cannot silently drop that variant out of the measured count. Each is a
+# measured positive on the same criterion PAZy uses: someone built the enzyme, assayed it
+# on PET and published the result.
+# --------------------------------------------------------------------------------------
+_BASE_MEASURED_TIERS = (
+    "EC-experimental", "UniProt", "HGMP-measured", "PAZy-measured",
+    # A construct taken from a crystal structure: it was expressed, crystallised and assayed.
+    "PDB-construct",
+)
+
+
+def measured_tiers() -> tuple:
+    """Every source_ref that counts as an experimentally measured positive."""
+    from .recall.seeds import VARIANTS
+    return _BASE_MEASURED_TIERS + tuple(sorted({v.reference for v in VARIANTS}))
+
+
+MEASURED_TIERS = measured_tiers()

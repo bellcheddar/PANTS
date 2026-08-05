@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from typing import Dict
 
-from .. import config, uniprot
+from .. import config, rcsb, uniprot
 from ..db import connect, now, retry_write
 from ..db.manifest import stage_manifest
 from . import seeds
@@ -102,6 +102,14 @@ def load_reference_set(label: str = "v1") -> Dict[str, object]:
             # --- wild types: real UniProt entries ---
             for w in seeds.WILD_TYPES:
                 entry = uniprot.fetch(w.uniprot)
+                # A retired accession comes back as an entry with an EMPTY sequence, not
+                # as a 404, so "not found" is not the only failure to handle.
+                if (entry is None or not entry.sequence) and w.uniparc:
+                    entry = uniprot.fetch_uniparc(w.uniparc)
+                    report["problems"].append(
+                        f"{w.enzyme_id}: UniProtKB {w.uniprot} is dead, fell back to "
+                        f"UniParc {w.uniparc} (no organism or lineage from that source)"
+                    )
                 if entry is None:
                     report["problems"].append(f"{w.enzyme_id}: UniProt {w.uniprot} not found")
                     continue
@@ -169,7 +177,47 @@ def load_reference_set(label: str = "v1") -> Dict[str, object]:
                 report["variants"].append((v.enzyme_id, status, offset,
                                            len(seq) if seq else None))
 
-        n_derived = sum(1 for _, s, _, _ in report["variants"] if s == "derived")
+            # --- variants recovered from a crystal structure rather than a mutation list ---
+            # This runs INSIDE the same load, not as a follow-up script. It was a one-off
+            # script once, and re-running the loader silently reset HotPETase and
+            # Cut190**SS to sequence-less rows, because the VARIANTS entries that write
+            # them first are deliberately unconfirmed. A stage that must be remembered
+            # separately is a stage that will eventually be forgotten.
+            for eid, (pdb_id, parent, expected, ref) in seeds.PDB_DERIVED.items():
+                parent_seq = wt_seqs.get(parent)
+                seq = rcsb.entity_sequence(pdb_id)
+                if not seq or parent_seq is None:
+                    report["problems"].append(f"{eid}: {pdb_id} sequence unavailable")
+                    continue
+                n_sub = seeds.count_substitutions(parent_seq, seq)
+                # The published substitution count is the check. A wrong PDB entry (a
+                # catalytic knockout, say) shows up here as a count that does not agree.
+                if n_sub != expected:
+                    report["problems"].append(
+                        f"{eid}: {pdb_id} gives {n_sub} substitutions vs {parent}, "
+                        f"expected {expected}; NOT stored"
+                    )
+                    continue
+                _upsert(
+                    conn, enzyme_id=eid, uniprot=None, pdb_ids_json=json.dumps([pdb_id]),
+                    organism=None,
+                    family=next((w.family for w in seeds.WILD_TYPES
+                                 if w.enzyme_id == parent), None),
+                    sequence=seq, seq_length=len(seq),
+                    is_positive=1, is_negative=0, is_near_miss=0,
+                    matched_positive_id=parent,
+                    activity_substrate_notes=(
+                        f"Sequence taken from the deposited construct {pdb_id}, not derived "
+                        f"from a mutation list: the PDB SEQRES is what was actually "
+                        f"expressed, crystallised and assayed. {n_sub} substitutions vs "
+                        f"{parent}, matching the published {expected}. Mature construct, "
+                        f"so shorter than the precursor parent."),
+                    source_ref="PDB-construct", added_at=now(),
+                )
+                report["variants"].append((eid, f"pdb:{pdb_id}", None, len(seq)))
+
+        n_derived = sum(1 for _, s, _, _ in report["variants"]
+                        if s == "derived" or s.startswith("pdb:"))
         m.counts(n_input=len(seeds.WILD_TYPES) + len(seeds.VARIANTS),
                  n_output=len(report["wild_types"]) + n_derived,
                  n_discarded=sum(1 for _, s, _, _ in report["variants"] if s != "derived"))

@@ -26,9 +26,7 @@ from pipeline.db import connect
 
 REL = config.ROOT_DIR / "release"
 
-MEASURED_TIERS = ("EC-experimental", "UniProt", "HGMP-measured", "PAZy-measured",
-                  "Tournier et al. 2020, Nature", "Son et al. 2019, ACS Catal.",
-                  "Lu et al. 2022, Nature (MutCompute)", "Austin et al. 2018, PNAS")
+MEASURED_TIERS = config.MEASURED_TIERS   # single definition; see pipeline/config.py
 
 TABLES = {
     "candidates": """
