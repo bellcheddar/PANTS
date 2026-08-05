@@ -91,7 +91,7 @@ def inject_globals() -> Dict[str, Any]:
             n_struct = 0
     return {"data_version": config.DATA_VERSION, "schema_version": SCHEMA_VERSION,
             "n_structures": n_struct, "asset": asset,
-            "citation_links": citation_links, "evidence_link": evidence_link}
+            "citation_links": citation_links}
 
 
 @bp.route("/")
@@ -373,13 +373,6 @@ def citation_links(source: Optional[str]) -> List[Dict[str, str]]:
         else:
             out.append({"label": tok, "url": ""})
     return out
-
-
-def evidence_link(code: Optional[str]) -> str:
-    """Evidence Ontology term page for an ECO code."""
-    if not code or not code.upper().startswith("ECO:"):
-        return ""
-    return f"https://evidenceontology.org/term/{code}/"
 
 
 def _reference_doi(reference: Optional[str]) -> Optional[str]:

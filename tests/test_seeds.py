@@ -139,3 +139,21 @@ def test_pdb_derived_entries_are_well_formed():
         assert len(pdb_id) == 4, f"{eid} has a malformed PDB id {pdb_id!r}"
         assert isinstance(expected, int) and expected > 0
         assert ref
+
+
+def test_every_variant_reference_is_a_measured_tier():
+    """A variant's `reference` string doubles as its `source_ref` in the database, and
+    MEASURED_TIERS is derived from those same strings, so the two must agree.
+
+    They came apart once: three reference strings were rewritten to attach verified DOIs,
+    the loader was not re-run, and those rows kept a `source_ref` that no longer appeared
+    in the derived tier list. Nothing errored -- the measured-positive count simply fell
+    from 341 to 338, on the home page, in the one number the project is most careful about.
+    """
+    from pipeline import config
+
+    tiers = set(config.MEASURED_TIERS)
+    for v in seeds.VARIANTS:
+        assert v.reference in tiers, (
+            f"{v.enzyme_id}'s reference {v.reference!r} is not in MEASURED_TIERS; "
+            f"if it was just renamed, re-run load_reference_set so source_ref follows")

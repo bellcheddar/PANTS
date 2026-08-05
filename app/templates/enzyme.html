@@ -56,12 +56,12 @@
     <span class="seq-key triad"></span> catalytic triad
     {%- if mut_at %} &nbsp; <span class="seq-key mut"></span> substitution against
       <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>{% endif %}
-    &nbsp;· the same colours as the viewer above. Click any residue to select it in both.</p>
+    &nbsp;· the same colours as the viewer above. Triad positions are labelled; hover any residue for its number. Click one to select it in both.</p>
   <div class="seq">{% for ch in seq %}{% set pos = loop.index %}{%
     if pos in triad_at %}<span class="seq-res triad" data-pos="{{ pos }}"
       title="{{ ch }}{{ pos }} — catalytic {{ triad_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
     elif mut_at.get(pos) %}<span class="seq-res mut" data-pos="{{ pos }}"
-      title="{{ ch }}{{ pos }} — substitution {{ mut_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
+      title="{{ ch }}{{ pos }} — substitution {{ mut_at[pos] }}">{{ ch }}</span>{%
     else %}<span class="seq-res" data-pos="{{ pos }}" title="{{ ch }}{{ pos }}">{{ ch }}</span>{% endif %}{% endfor %}</div>
 </div>
 {% endif %}
@@ -159,11 +159,12 @@
         <td>{{ m.parameter_type.replace('_',' ') }}</td>
         <td class="num">{% if m.rate_value is not none %}{{ m.rate_value }} {{ m.rate_units or '' }}{% else %}<span class="muted">—</span>{% endif %}</td>
         <td>{{ m.substrate_form or '—' }}</td>
-        <td>{% if m.evidence_code %}<a class="mono" style="font-size:10px"
-              href="{{ evidence_link(m.evidence_code) }}" target="_blank" rel="noopener noreferrer"
-              title="{{ 'Experimental, from a publication' if m.evidence_code == 'ECO:0000269' else 'Inferred by curator' }}">{{ m.evidence_code }}</a>
-            {%- else %}—{% endif %}
-            {% if m.extraction_confidence == 'review' %}<span class="muted" style="font-size:10px"> review</span>{% endif %}</td>
+        <td style="font-size:11px">
+          {%- if m.evidence_code == 'ECO:0000269' %}<span class="ev measured"
+              title="ECO:0000269 — experimental evidence used in a manual assertion. Someone ran the assay and published the number.">measured</span>
+          {%- elif m.evidence_code %}<span class="ev inferred"
+              title="ECO:0000305 — curator inference. Collated from a review rather than read from the primary paper, so it carries less weight than a measured value.">from review</span>
+          {%- else %}<span class="muted">—</span>{% endif %}</td>
         <td style="font-size:11px">{% for cl in citation_links(m.source_doi) %}{%
             if cl.url %}<a href="{{ cl.url }}" target="_blank" rel="noopener noreferrer">{{ cl.label }}</a>{%
             else %}<span class="muted">{{ cl.label }}</span>{% endif %}{{ ' · ' if not loop.last }}{%

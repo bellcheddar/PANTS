@@ -443,3 +443,18 @@ table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: now
   border-color: var(--pv-accent); color: var(--pv-accent);
   background: rgba(143,180,255,.12);
 }
+
+/* The lay explanation on the home page. Slightly larger and looser than body text, and
+   capped in width: it is meant to be read as prose, and prose set to the full 1400px of
+   the layout is not. */
+.lede { max-width: 74ch; line-height: 1.65; margin-top: 10px; }
+
+/* Evidence strength, in words rather than an ECO accession. The distinction between a
+   published measurement and a value collated from a review is the single most important
+   qualifier on this project's numbers, and "ECO:0000269" communicates it to nobody. The
+   accession is kept in the tooltip for anyone who wants it. */
+.ev { border-radius: 8px; padding: 1px 7px; font-size: 10px; white-space: nowrap;
+      border: 1px solid transparent; }
+.ev.measured { color: var(--md-accent-green); border-color: rgba(0,208,132,.4);
+               background: rgba(0,208,132,.10); }
+.ev.inferred { color: var(--pv-dim); border-color: var(--pv-border); }

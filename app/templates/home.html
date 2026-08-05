@@ -3,15 +3,36 @@
 {% block content %}
 <div class="md-card">
   <h2>Therapeutic PETase Design</h2>
-  <p>PANTS mines metagenomic sequence space for PET-degrading enzymes and ranks them on axes
-  that matter at 37 °C in serum, not at 70 °C in a reactor.</p>
+  <p>PANTS mines metagenomic sequence space for PET-degrading enzymes to enable protein
+  engineering and therapeutic discovery.</p>
+
+  <p class="lede">PET is the plastic in drinks bottles and polyester clothing, and fragments of it
+  now turn up in human blood and tissue. A handful of bacterial enzymes can cut PET apart, but
+  almost every one was found or engineered for an industrial recycling reactor: hot, alkaline, and
+  nothing like a human body. An enzyme that would work as a <em>therapeutic</em> has to do its job
+  at 37 °C in blood, and the published lineage has been moving steadily in the opposite direction.</p>
+
+  <p class="lede">So this looks somewhere else. <strong>Metagenomics</strong> reads the DNA of whole
+  microbial communities straight from the environment, without culturing anything, which reaches the
+  overwhelming majority of bacteria nobody has ever grown in a lab. PANTS searches four such
+  communities that have all had decades of exposure to plastic and every reason to evolve a use for
+  it: the <strong>human gut</strong>, <strong>compost</strong>, the <strong>ocean surface</strong>
+  where plastic debris collects, and <strong>landfill</strong>. Roughly 15 million protein sequences
+  from those environments are scanned for the polyesterase fold, then filtered on whether the three
+  catalytic residues actually meet in three-dimensional space rather than merely appearing in the
+  sequence. Survivors get a predicted structure, an active-site measurement, and a rank.</p>
+
   <div class="caveat">
-    <strong>Read the Methods page before using any score.</strong>
-    <strong>{{ counts.evidenced }}</strong> of {{ counts.positives }} positives carry experimental
-    evidence, mostly from PAZy, where an enzyme is listed because activity was <em>measured</em> and
-    published. Trained on those alone the activity head reaches AUC 0.976 across 45 independent
-    sequence clusters, against 0.829 for a composition-only baseline. Trained on the
-    similarity-annotated remainder it reaches 1.000, which is not a better result but a circular one.
+    <strong>The honest part.</strong> Detecting this enzyme family is easy; telling which members
+    actually chew through PET is not, and that is the open problem here. Only
+    <strong>{{ counts.evidenced }}</strong> of {{ counts.positives }} positives rest on a published
+    measurement rather than on a computer inferring the label from sequence similarity. Trained on
+    the measured ones the model separates real PET enzymes from other members of the fold at AUC
+    0.976 across 45 independent sequence families. Trained on the inferred ones it scores a perfect
+    1.000 — which is not a better model but a circular one, since it is only rediscovering the rule
+    used to make the labels. Scores here rank candidates worth testing at the bench; they are not
+    evidence that any candidate works. <a href="{{ url_for('main.methods') }}">Read the Methods
+    page</a> before using one.
   </div>
 </div>
 
@@ -20,6 +41,7 @@
   <div class="md-card"><div class="kpi">{{ counts.candidates }}</div><div class="kpi-label">candidates recovered</div></div>
   <div class="md-card"><div class="kpi">{{ counts.structures }}</div><div class="kpi-label">predicted structures</div></div>
   <div class="md-card"><div class="kpi">{{ counts.evidenced }}</div><div class="kpi-label">experimentally evidenced positives</div></div>
+  <div class="md-card"><div class="kpi">{{ known|length }}</div><div class="kpi-label">known enzymes catalogued</div></div>
   <div class="md-card"><div class="kpi">{{ counts.measurements }}</div><div class="kpi-label">activity measurements, all cited</div></div>
 </div>
 
