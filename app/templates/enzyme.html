@@ -108,7 +108,11 @@
       <label><input type="checkbox" id="self-toggle" checked>
         <span class="swatch" style="background:#1e73be"></span> {{ e.enzyme_id }}</label>
       <label style="margin-top:8px"><input type="checkbox" id="triad-toggle" checked>
-        <span class="swatch" style="background:#ff2d55"></span> catalytic triad</label>
+        <span class="swatch" style="background:#eaff00"></span> catalytic triad</label>
+      {% if mut_at %}
+      <label><input type="checkbox" id="mut-toggle" checked>
+        <span class="swatch" style="background:#ff2ec4"></span> {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }}</label>
+      {% endif %}
       <h3 style="margin-top:12px">Overlay another</h3>
       <div id="picker" style="max-height:260px;overflow-y:auto"></div>
       <button id="reset" style="margin-top:10px">Focus active site</button>
@@ -213,9 +217,12 @@
 {% block scripts %}
 {% if e.coord_path %}
 <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
-<script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ data_version }}"></script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ asset('js/viewer.js') }}"></script>
 <script>
 const SELF = {{ e.enzyme_id|tojson }};
+// Positions are in this enzyme's own numbering, the same numbering the
+// structure file uses, so they index the model directly.
+const MUT_POSITIONS = {{ mut_at.keys()|list|tojson }};
 const OTHERS = {{ others|tojson }};
 const picker = document.getElementById('picker');
 
@@ -244,12 +251,16 @@ OTHERS.forEach((o, i) => {
     {isReference: true, triad: {ser: 160, asp: 206, his: 237}});
   await PANTSViewer.add(SELF, '/static/reference_structures/{{ e.coord_path }}', {
     colour: '#1e73be',
-    triad: {ser: {{ e.triad_ser_resnum or 'null' }}, asp: {{ e.triad_asp_resnum or 'null' }}, his: {{ e.triad_his_resnum or 'null' }}}
+    triad: {ser: {{ e.triad_ser_resnum or 'null' }}, asp: {{ e.triad_asp_resnum or 'null' }}, his: {{ e.triad_his_resnum or 'null' }}},
+    mutations: MUT_POSITIONS
   });
 })();
 document.getElementById('ref-toggle').addEventListener('change', e => PANTSViewer.setVisible('reference', e.target.checked));
 document.getElementById('self-toggle').addEventListener('change', e => PANTSViewer.setVisible(SELF, e.target.checked));
 document.getElementById('triad-toggle').addEventListener('change', e => PANTSViewer.setTriadVisible(e.target.checked));
+{% if mut_at %}
+document.getElementById('mut-toggle').addEventListener('change', e => PANTSViewer.setMutationsVisible(e.target.checked));
+{% endif %}
 document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());
 document.getElementById('zoomall').addEventListener('click', () => PANTSViewer.zoomAll());
 </script>

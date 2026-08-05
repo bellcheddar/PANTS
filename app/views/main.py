@@ -62,6 +62,26 @@ def _counts() -> Dict[str, int]:
         }
 
 
+def asset(filename: str) -> str:
+    """Cache-busting version for a static file: its modification time.
+
+    DATA_VERSION was doing this job and could not: it defaults to "dev" and never changes,
+    so every asset URL was permanently `?v=dev` while nginx served /static/ as
+    `max-age=31536000, immutable`. `immutable` is a promise to the browser that the body
+    at this URL will never differ, so it does not revalidate at all -- for a year. Deploys
+    landed correctly on the server and were invisible in the browser, with no error and
+    nothing stale-looking to notice.
+
+    Keyed on mtime, the URL changes exactly when the file does, which is what makes the
+    immutable header safe rather than a trap.
+    """
+    path = config.STATIC_DIR / filename
+    try:
+        return str(int(path.stat().st_mtime))
+    except OSError:
+        return config.DATA_VERSION
+
+
 @bp.app_context_processor
 def inject_globals() -> Dict[str, Any]:
     with connect() as conn:
@@ -70,7 +90,7 @@ def inject_globals() -> Dict[str, Any]:
         except Exception:
             n_struct = 0
     return {"data_version": config.DATA_VERSION, "schema_version": SCHEMA_VERSION,
-            "n_structures": n_struct}
+            "n_structures": n_struct, "asset": asset}
 
 
 @bp.route("/")
@@ -105,7 +125,8 @@ def home():
     known = _named_enzyme_rows()
     for row in known:
         m = _mutations_for(row["enzyme_id"])
-        row["n_mutations"] = len(m["mutations"]) if m and m.get("mutations") else None
+        row["n_mutations"] = (len(m["mutations"]) if m and m.get("mutations")
+                              else (m or {}).get("n_substitutions"))
         row["parent"] = (m or {}).get("parent") or row.get("matched_positive_id")
         row["pdb_ids"] = json.loads(row.get("pdb_ids_json") or "[]")
         # A published performance figure where there is one, the curated description
@@ -125,7 +146,20 @@ def home():
                 -(r.get("identity_to_lineage_wt") or 0),  # then most-similar first
                 r["enzyme_id"])
     known.sort(key=_key)
+
+    # Grouped for the template: one block per lineage, the wild type first. The Parent
+    # column is gone with this -- it said "wild type" for the wild types themselves, which
+    # reads as though IsPETase has a parent called "wild type". Position in its own group
+    # already says what a row is.
+    groups: List[Dict[str, Any]] = []
+    for row in known:
+        root = row.get("lineage_wt_id") or row["enzyme_id"]
+        if not groups or groups[-1]["root"] != root:
+            groups.append({"root": root, "rows": []})
+        row["is_root"] = (root == row["enzyme_id"])
+        groups[-1]["rows"].append(row)
     return render_template("home.html", active="home", counts=counts, known=known,
+                           groups=groups,
                            by_env=by_env, top=top, n_visible=10, env_label=ENV_LABEL)
 
 
@@ -320,15 +354,32 @@ def _mutations_for(enzyme_id: str) -> Optional[Dict[str, Any]]:
         from pipeline.recall import seeds
     except Exception:
         return None
+    # PDB-derived first: HotPETase and Cut190**SS appear in BOTH lists, as a deliberately
+    # unconfirmed VARIANTS entry (no mutation list) and as a PDB_DERIVED entry carrying the
+    # published substitution count. Checking VARIANTS first returned the empty list and the
+    # count never surfaced, so the table showed a dash for an enzyme with 21 known
+    # substitutions. The two are merged instead of one shadowing the other.
+    pdb_derived = getattr(seeds, "PDB_DERIVED", {}).get(enzyme_id)
+
     for v in seeds.VARIANTS:
         if v.enzyme_id == enzyme_id:
-            return {"parent": v.parent, "mutations": v.mutations,
-                    "confirmed": v.mutations_confirmed, "reference": v.reference,
-                    "notes": v.notes}
+            out = {"parent": v.parent, "mutations": v.mutations,
+                   "confirmed": v.mutations_confirmed, "reference": v.reference,
+                   "notes": v.notes}
+            if pdb_derived and not v.mutations:
+                pdb_id, parent, expected, ref = pdb_derived
+                out.update({"n_substitutions": expected, "confirmed": True,
+                            "reference": ref, "parent": parent,
+                            "notes": f"Sequence taken from the deposited construct "
+                                     f"{pdb_id}: {expected} substitutions against "
+                                     f"{parent}."})
+            return out
     for name, (pdb_id, parent, expected, ref) in getattr(seeds, "PDB_DERIVED", {}).items():
         if name == enzyme_id:
-            return {"parent": parent, "mutations": [], "confirmed": True,
-                    "reference": ref,
+            # No mutation LIST -- the sequence came from a deposited construct -- but the
+            # published substitution count is known and checked, so the table can show it.
+            return {"parent": parent, "mutations": [], "n_substitutions": expected,
+                    "confirmed": True, "reference": ref,
                     "notes": f"Sequence taken from the deposited construct {pdb_id}: "
                              f"{expected} substitutions against {parent}."}
     return None

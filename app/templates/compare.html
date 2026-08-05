@@ -34,7 +34,7 @@
 {% endblock %}
 {% block scripts %}
 <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
-<script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ data_version }}"></script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ asset('js/viewer.js') }}"></script>
 <script>
 const ROWS = {{ rows|tojson }};
 const PRESELECT = new Set({{ preselect|tojson }});

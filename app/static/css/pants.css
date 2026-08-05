@@ -377,3 +377,30 @@ table.data tr.therapeutic td:first-child { box-shadow: inset 3px 0 0 var(--md-ac
      to one digit per line, so "214" rendered as a vertical column of three characters. */
   white-space: nowrap;
 }
+
+/* ---------- the known-enzymes table ---------- */
+/* One tbody per lineage, so a rule between groups needs no marker rows and no colspan
+   trickery: the browser already knows where a group starts. */
+table.data.enzymes tbody.lineage + tbody.lineage tr:first-child td {
+  border-top: 2px solid var(--pv-border);
+}
+table.data.enzymes th .unit { font-weight: 400; font-size: 10px; color: var(--pv-dim); }
+table.data.enzymes td { vertical-align: top; }
+/* Variants sit indented under the wild type that heads their group, which is what makes
+   the Parent column unnecessary. */
+table.data.enzymes td.variant { padding-left: 26px; }
+table.data.enzymes td.variant a { font-weight: 400; }
+table.data.enzymes td.root a { font-weight: 700; }
+table.data.enzymes .tag {
+  font-size: 9px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--pv-dim); border: 1px solid var(--pv-border);
+  border-radius: 8px; padding: 0 5px; margin-left: 5px; white-space: nowrap;
+}
+/* Every PDB id is shown rather than "+4": they are four characters each and wrap happily
+   in their own column, so hiding them behind a counter bought nothing. */
+table.data.enzymes td.pdbs { max-width: 130px; }
+table.data.enzymes td.pdbs a {
+  display: inline-block; font-size: 11px; margin: 0 5px 2px 0;
+}
+table.data.enzymes td.note { font-size: 11px; line-height: 1.5; max-width: 420px; }
+table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }

@@ -32,37 +32,41 @@
   every row at or below it. Each row opens a page carrying its structure, active-site geometry,
   mutation set, measured activity and every external identifier.</p>
   <div class="tbl-wrap" style="margin-top:10px">
-  <table class="data">
+  <table class="data enzymes">
     <thead>
       <tr>
-        <th>Enzyme</th><th>T<sub>opt</sub></th><th>Parent</th><th>Muts</th>
-        <th>%ID to WT</th><th>Cleft Å</th><th>PDB</th><th>Headline</th>
+        <th>Enzyme</th><th class="num">T<sub>opt</sub><br><span class="unit">°C</span></th>
+        <th class="num">Muts</th><th class="num">%ID<br><span class="unit">to WT</span></th>
+        <th class="num">Cleft<br><span class="unit">Å</span></th>
+        <th>Structure</th><th>Notes</th>
       </tr>
     </thead>
-    <tbody>
-      {% for k in known %}
+    {% for g in groups %}
+    <tbody class="lineage">
+      {% for k in g.rows %}
       <tr{% if k.topt_c and k.topt_c <= 40 %} class="therapeutic"{% endif %}>
-        <td><a href="{{ url_for('main.enzyme', enzyme_id=k.enzyme_id) }}"><strong>{{ k.enzyme_id }}</strong></a></td>
-        <td class="num">{% if k.topt_c %}{{ k.topt_c }}{% else %}<span class="muted">—</span>{% endif %}</td>
-        <td>{% if k.parent %}<a href="{{ url_for('main.enzyme', enzyme_id=k.parent) }}" class="muted">{{ k.parent }}</a>{% else %}<span class="muted">wild type</span>{% endif %}</td>
+        <td class="{{ 'root' if k.is_root else 'variant' }}">
+          <a href="{{ url_for('main.enzyme', enzyme_id=k.enzyme_id) }}">{{ k.enzyme_id }}</a>
+          {%- if k.is_root %} <span class="tag">wild type</span>{% endif %}</td>
+        <td class="num">{% if k.topt_c %}{{ '%g'|format(k.topt_c) }}{% else %}<span class="muted">—</span>{% endif %}</td>
         <td class="num">{% if k.n_mutations %}{{ k.n_mutations }}{% else %}<span class="muted">—</span>{% endif %}</td>
         <td class="num">{% if k.identity_to_lineage_wt %}{{ '%.1f'|format(k.identity_to_lineage_wt) }}{% else %}<span class="muted">—</span>{% endif %}</td>
         <td class="num">{% if k.cleft_width_A %}{{ '%.1f'|format(k.cleft_width_A) }}{% else %}<span class="muted">—</span>{% endif %}</td>
-        <td style="font-size:11px">
-          {%- if k.pdb_ids %}{% for pid in k.pdb_ids[:2] %}<a class="mono" href="https://www.rcsb.org/structure/{{ pid }}"
-              target="_blank" rel="noopener noreferrer">{{ pid }}</a>{{ ' ' if not loop.last }}{% endfor %}
-            {%- if k.pdb_ids|length > 2 %}<span class="muted" title="{{ k.pdb_ids|join(', ') }}"> +{{ k.pdb_ids|length - 2 }}</span>{% endif %}
+        <td class="pdbs">
+          {%- if k.pdb_ids %}{% for pid in k.pdb_ids %}<a class="mono" href="https://www.rcsb.org/structure/{{ pid }}"
+              target="_blank" rel="noopener noreferrer">{{ pid }}</a>{% endfor %}
           {%- elif k.struct_source == 'alphafold' %}<span class="muted">AlphaFold</span>
           {%- elif k.struct_source == 'esmfold' %}<span class="muted">predicted</span>
           {%- else %}<span class="muted">—</span>{% endif %}</td>
-        <td style="font-size:11px">{{ k.headline_text or '' }}
-          {%- if k.reference %} <span class="muted">·
-            {%- if k.reference_doi %} <a href="https://doi.org/{{ k.reference_doi }}"
+        <td class="note">{{ k.headline_text or '' }}
+          {%- if k.reference %}<br><span class="muted">
+            {%- if k.reference_doi %}<a href="https://doi.org/{{ k.reference_doi }}"
                 target="_blank" rel="noopener noreferrer">{{ k.reference }}</a>
-            {%- else %} {{ k.reference }}{% endif %}</span>{% endif %}</td>
+            {%- else %}{{ k.reference }}{% endif %}</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
+    {% endfor %}
   </table>
   </div>
   <p class="muted" style="font-size:11px;margin-top:8px">%ID is against the wild type at the root of

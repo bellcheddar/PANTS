@@ -98,6 +98,13 @@ const PANTSViewer = (() => {
      a hue that belongs to no structure and reads at low opacity. */
   const TRIAD_SURFACE_COLOUR = '#eaff00';
   const TRIAD_SURFACE_OPACITY = 0.55;
+  /* Mutated positions get their own surface in fluorescent pink. Two surfaces, two
+     questions: yellow is "where the chemistry happens", pink is "what was changed", and
+     the interesting thing about an engineered variant is how far the second sits from the
+     first. Distinct enough from the yellow to read where a mutation is adjacent to the
+     active site, which is exactly the case worth seeing. */
+  const MUT_SURFACE_COLOUR = '#ff2ec4';
+  const MUT_SURFACE_OPACITY = 0.5;
 
   function addTriadSurface(model, nums, entry) {
     if (!viewer || !entry) return;
@@ -126,6 +133,43 @@ const PANTSViewer = (() => {
     if (!entry || entry.surf === null || entry.surf === undefined) return;
     try { viewer.removeSurface(entry.surf); } catch (err) { /* already gone */ }
     entry.surf = null;
+  }
+
+  /* Mutated residues, same mechanism as the triad surface and tracked separately so the
+     two can be toggled independently. */
+  function addMutationSurface(model, nums, entry) {
+    if (!viewer || !entry || !nums || !nums.length) return;
+    removeMutationSurface(entry);
+    try {
+      const sel = { resi: nums, model: model };
+      const out = viewer.addSurface(
+        $3Dmol.SurfaceType.VDW,
+        { opacity: MUT_SURFACE_OPACITY, color: MUT_SURFACE_COLOUR },
+        sel, sel);
+      if (out && typeof out.then === 'function') {
+        out.then(res => { entry.mutSurf = (res && res.surfid !== undefined) ? res.surfid : res; });
+      } else {
+        entry.mutSurf = (out && out.surfid !== undefined) ? out.surfid : out;
+      }
+    } catch (err) {
+      entry.mutSurf = null;
+    }
+  }
+
+  function removeMutationSurface(entry) {
+    if (!entry || entry.mutSurf === null || entry.mutSurf === undefined) return;
+    try { viewer.removeSurface(entry.mutSurf); } catch (err) { /* already gone */ }
+    entry.mutSurf = null;
+  }
+
+  function setMutationsVisible(on) {
+    loaded.forEach(entry => {
+      removeMutationSurface(entry);
+      if (on && entry.mutations && entry.mutations.length) {
+        addMutationSurface(entry.model, entry.mutations, entry);
+      }
+    });
+    viewer.render();
   }
 
   /**
@@ -157,9 +201,17 @@ const PANTSViewer = (() => {
 
     // The entry exists before the triad is drawn, because the surface id is stored on it.
     const entry = { model, colour, triad: opts.triad || null,
-                    isReference: !!opts.isReference, surf: null };
+                    mutations: opts.mutations || null,
+                    isReference: !!opts.isReference, surf: null, mutSurf: null };
     loaded.set(id, entry);
     if (opts.triad) highlightTriad(model, opts.triad, opts.isReference, entry);
+    if (entry.mutations && entry.mutations.length) {
+      // Sticks as well as the surface: the surface says where, the sticks say which side
+      // chain, and at 0.5 opacity the sticks stay legible underneath.
+      model.setStyle({ resi: entry.mutations },
+                     { stick: { radius: 0.2, colorscheme: 'default' } }, true);
+      addMutationSurface(model, entry.mutations, entry);
+    }
     focusActiveSite();
     viewer.render();
     return id;
@@ -178,6 +230,7 @@ const PANTSViewer = (() => {
     const entry = loaded.get(id);
     if (!entry) return;
     removeTriadSurface(entry);
+    removeMutationSurface(entry);
     viewer.removeModel(entry.model);
     loaded.delete(id);
     viewer.render();
@@ -216,6 +269,6 @@ const PANTSViewer = (() => {
 
   function clear() { Array.from(loaded.keys()).forEach(remove); }
 
-  return { init, add, remove, setVisible, setTriadVisible, reset, zoomAll, clear,
-           PALETTE, REFERENCE_COLOUR };
+  return { init, add, remove, setVisible, setTriadVisible, setMutationsVisible,
+           reset, zoomAll, clear, PALETTE, REFERENCE_COLOUR };
 })();
