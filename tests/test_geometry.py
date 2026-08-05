@@ -175,3 +175,24 @@ def test_oxyanion_donor_one_is_the_nucleophile_elbow():
     nucleophile in an alpha/beta-hydrolase."""
     site = geometry.measure(REFERENCE)
     assert site.oxyanion_n1_resnum == site.ser_resnum + 1
+
+
+def test_reference_plddt_is_normalised_to_the_same_scale():
+    """AlphaFold writes pLDDT 0-100 into the B-factor column and ESMFold writes 0-1.
+
+    Stored unreconciled they landed in one database column together, so an ESMFold model
+    read 0.96 beside an AlphaFold one at 92.01 and the page rendered "1.0" as a confidence
+    score. The scale is detected from the values, not assumed from which source produced
+    them.
+    """
+    from pipeline.structure import reference
+
+    def pdb(bfactors):
+        return "\n".join(
+            f"ATOM  {i:5d}  CA  ALA A{i:4d}    "
+            f"   0.000   0.000   0.000  1.00{b:6.2f}           C"
+            for i, b in enumerate(bfactors, start=1))
+
+    assert reference._mean_plddt(pdb([0.80, 0.90, 1.00])) == 90.0   # 0-1 input, rescaled
+    assert reference._mean_plddt(pdb([80.0, 90.0, 100.0])) == 90.0  # already 0-100, left alone
+    assert reference._mean_plddt("no atoms here") is None

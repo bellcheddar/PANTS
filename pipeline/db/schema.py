@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 SCHEMA = """
 -- ============================================================
@@ -156,6 +156,54 @@ CREATE TABLE IF NOT EXISTS geometry (
 );
 
 CREATE INDEX IF NOT EXISTS idx_geometry_cleft ON geometry(cleft_width_A);
+
+-- Structures and geometry for the CHARACTERISED enzymes, mirroring the candidate tables.
+--
+-- Separate tables rather than a shared one because `structures` and `geometry` are keyed
+-- on candidate_id with a foreign key into `candidates`, and a characterised enzyme is not
+-- a candidate. Widening those keys would let a metagenomic hit and a reference enzyme
+-- collide in the same namespace, which is precisely the distinction the whole evaluation
+-- rests on.
+--
+-- `source` records where the coordinates came from, because it is not one thing: an
+-- experimental PDB entry where one exists, otherwise ESMFold for the engineered variants,
+-- which have neither a PDB entry nor a UniProt accession of their own. A geometric
+-- comparison across a mixture of crystal structures and predictions is only honest if the
+-- reader can see which is which.
+CREATE TABLE IF NOT EXISTS reference_structures (
+    enzyme_id               TEXT PRIMARY KEY,
+    source                  TEXT,        -- 'pdb' | 'alphafold' | 'esmfold'
+    source_id               TEXT,        -- PDB id or UniProt accession
+    coord_path              TEXT,        -- viewer PDB, superposed, under app/static/reference_structures
+    plddt_mean              REAL,        -- predictions only; NULL for experimental
+    resolution_A            REAL,        -- experimental only
+    rmsd_ca_to_ispetase_A   REAL,
+    superposition_reference TEXT DEFAULT '6EQE',
+    n_residues              INTEGER,
+    built_at                TEXT,
+    model_version           TEXT,
+    FOREIGN KEY(enzyme_id) REFERENCES characterised_enzymes(enzyme_id)
+);
+
+CREATE TABLE IF NOT EXISTS reference_geometry (
+    enzyme_id                     TEXT PRIMARY KEY,
+    triad_ser_resnum              INTEGER,
+    triad_his_resnum              INTEGER,
+    triad_asp_resnum              INTEGER,
+    ser_og_his_ne2_dist_A         REAL,
+    his_nd1_asp_od_dist_A         REAL,
+    ser_his_asp_angle_deg         REAL,
+    oxyanion_n1_dist_A            REAL,
+    oxyanion_n1_resnum            INTEGER,
+    oxyanion_n2_dist_A            REAL,
+    oxyanion_n2_resnum            INTEGER,
+    oxyanion_n2_angle_deg         REAL,
+    cleft_width_A                 REAL,
+    cleft_depth_A                 REAL,
+    n_cleft_residues              INTEGER,
+    aromatic_clamp_residues_json  TEXT,
+    FOREIGN KEY(enzyme_id) REFERENCES reference_structures(enzyme_id)
+);
 
 -- ============================================================
 -- Reference set: characterised PETase/MHETase-like plus ESTHER hard negatives

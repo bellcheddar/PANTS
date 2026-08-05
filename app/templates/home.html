@@ -24,6 +24,47 @@
 </div>
 
 <div class="md-card" style="margin-top:16px">
+  <h2>Known and characterised enzymes</h2>
+  <p class="muted">Every named PETase and polyesterase in the reference set, ordered by optimum
+  temperature rather than by name, because that ordering is the finding: the engineered lineage
+  runs <em>away</em> from body temperature. Each row opens a page carrying its structure, active-site
+  geometry, mutation set, measured activity and every external identifier.
+  <span class="mono" style="font-size:11px">37 °C</span> is the therapeutic target.</p>
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Enzyme</th><th>T<sub>opt</sub></th><th>Parent</th><th>Muts</th>
+        <th>Cleft Å</th><th>Structure</th><th>Headline result</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for k in known %}
+      <tr{% if k.topt_c and k.topt_c <= 40 %} class="therapeutic"{% endif %}>
+        <td><a href="{{ url_for('main.enzyme', enzyme_id=k.enzyme_id) }}"><strong>{{ k.enzyme_id }}</strong></a></td>
+        <td class="num">{% if k.topt_c %}{{ k.topt_c }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{% if k.parent %}<a href="{{ url_for('main.enzyme', enzyme_id=k.parent) }}" class="muted">{{ k.parent }}</a>{% else %}<span class="muted">wild type</span>{% endif %}</td>
+        <td class="num">{% if k.n_mutations %}{{ k.n_mutations }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td class="num">{% if k.cleft_width_A %}{{ '%.1f'|format(k.cleft_width_A) }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td style="font-size:11px">
+          {%- if k.pdb_first %}<span class="mono">{{ k.pdb_first }}</span>
+          {%- elif k.struct_source == 'alphafold' %}<span class="muted">AlphaFold</span>
+          {%- elif k.struct_source == 'esmfold' %}<span class="muted">predicted</span>
+          {%- else %}<span class="muted">—</span>{% endif %}</td>
+        <td style="font-size:11px">{{ k.performance or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted" style="font-size:11px;margin-top:8px">Optimum temperatures come from UniProt where
+  an experimental value is curated and from the literature review otherwise; each enzyme page shows
+  which, with its evidence code. Where a value is published as a range the table shows the midpoint
+  and the page shows the range. Cleft width is measured on the structure named in the Structure
+  column, so it mixes crystal structures with predictions; the page says which for each.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
   <h2>By source environment</h2>
   <div class="tbl-wrap">
   <table class="data">

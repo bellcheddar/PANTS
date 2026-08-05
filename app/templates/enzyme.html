@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}{{ e.enzyme_id }}{% endblock %}
+{% block content %}
+
+<div class="md-card">
+  <h2 class="mono">{{ e.enzyme_id }}</h2>
+  <p class="muted">
+    {% if e.organism %}{{ e.organism }} · {% endif %}{{ e.seq_length }} aa
+    {%- if mut and mut.parent %} · engineered from <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>{% endif %}
+    {%- if e.source_ref %} · {{ e.source_ref }}{% endif %}
+  </p>
+  {% if e.performance %}<p><strong>{{ e.performance }}</strong></p>{% endif %}
+</div>
+
+<div class="md-grid" style="margin-top:16px">
+
+  <div class="md-card">
+    <h2>Activity</h2>
+    <table class="data">
+      <tr><td>Optimum temperature</td><td>{% if e.topt_c %}<strong>{{ e.topt_c }} °C</strong>{% else %}<span class="muted">not recorded</span>{% endif %}</td></tr>
+      {% if e.topt_text %}<tr><td>As published</td><td class="muted">{{ e.topt_text }}</td></tr>{% endif %}
+      <tr><td>Optimum pH</td><td>{% if e.ph_opt %}{{ e.ph_opt }}{% else %}<span class="muted">not recorded</span>{% endif %}</td></tr>
+      <tr><td>Family</td><td>{{ e.family or '—' }}</td></tr>
+    </table>
+  </div>
+
+  <div class="md-card">
+    <h2>Structure</h2>
+    {% if e.struct_source %}
+    <table class="data">
+      <tr><td>Source</td><td>
+        {% if e.struct_source == 'pdb' %}Experimental, PDB <span class="mono">{{ e.struct_source_id }}</span>
+        {% elif e.struct_source == 'alphafold' %}AlphaFold model, <span class="mono">{{ e.struct_source_id }}</span>
+        {% else %}ESMFold prediction{% endif %}</td></tr>
+      {% if e.resolution_A %}<tr><td>Resolution</td><td>{{ e.resolution_A }} Å</td></tr>{% endif %}
+      {% if e.plddt_mean %}<tr><td>Mean pLDDT</td><td>{{ '%.1f'|format(e.plddt_mean) }}</td></tr>{% endif %}
+      <tr><td>Residues</td><td>{{ e.n_residues }}</td></tr>
+      {% if e.rmsd_ca_to_ispetase_A %}<tr><td>Cα RMSD to IsPETase</td><td>{{ '%.2f'|format(e.rmsd_ca_to_ispetase_A) }} Å</td></tr>{% endif %}
+    </table>
+    {% else %}
+    <p class="muted">No structure built yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="md-card">
+    <h2>Active site</h2>
+    {% if e.triad_ser_resnum %}
+    <table class="data">
+      <tr><td>Catalytic triad</td><td class="mono">Ser{{ e.triad_ser_resnum }} · His{{ e.triad_his_resnum }} · Asp{{ e.triad_asp_resnum }}</td></tr>
+      <tr><td>Ser OG → His NE2</td><td>{{ '%.2f'|format(e.ser_og_his_ne2_dist_A) }} Å</td></tr>
+      <tr><td>His ND1 → Asp OD</td><td>{{ '%.2f'|format(e.his_nd1_asp_od_dist_A) }} Å</td></tr>
+      {% if e.oxyanion_n1_resnum %}
+      <tr><td>Oxyanion donor 1</td><td class="mono">{{ e.oxyanion_n1_resnum }} ({{ '%.2f'|format(e.oxyanion_n1_dist_A) }} Å)</td></tr>{% endif %}
+      {% if e.oxyanion_n2_resnum %}
+      <tr><td>Oxyanion donor 2</td><td class="mono">{{ e.oxyanion_n2_resnum }} ({{ '%.2f'|format(e.oxyanion_n2_dist_A) }} Å)</td></tr>{% endif %}
+      <tr><td>Cleft width</td><td>{% if e.cleft_width_A %}{{ '%.2f'|format(e.cleft_width_A) }} Å{% else %}—{% endif %}</td></tr>
+      <tr><td>Cleft depth</td><td>{% if e.cleft_depth_A %}{{ '%.2f'|format(e.cleft_depth_A) }} Å{% else %}—{% endif %}</td></tr>
+      <tr><td>Cleft residues</td><td>{{ e.n_cleft_residues or '—' }}</td></tr>
+    </table>
+    {% if clamp %}<p style="margin-top:8px"><span class="muted">Aromatic clamp:</span>
+      <span class="mono" style="font-size:11px">{{ clamp|join(' · ') }}</span></p>{% endif %}
+    {% else %}
+    <p class="muted">No triad measured. Either no structure was built, or the three residues
+    are present in sequence but not connected in space, which is the distinction the
+    geometry stage exists to make.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+{% if mut %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Mutations</h2>
+  {% if mut.mutations %}
+  <p>
+    {% for m in mut.mutations %}<span class="mono chip">{{ m }}</span>{% endfor %}
+  </p>
+  <p class="muted">{{ mut.mutations|length }} substitution{{ '' if mut.mutations|length == 1 else 's' }}
+    against <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>. Every one was applied by a
+    routine that refuses any substitution whose stated parent residue does not match, so a wrong
+    position or a mature-versus-precursor numbering shift fails loudly rather than producing a
+    plausible but wrong sequence.</p>
+  {% else %}
+  <p class="muted">Sequence recovered from a deposited construct rather than derived from a
+    mutation list.</p>
+  {% endif %}
+  <p class="muted" style="margin-top:8px">{{ mut.notes }}</p>
+  {% if mut.reference %}<p class="muted">Reference: {{ mut.reference }}</p>{% endif %}
+</div>
+{% endif %}
+
+{% if e.coord_path %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Structure, superposed on IsPETase</h2>
+  <p class="muted">Aligned onto IsPETase 6EQE when it was written, so anything added below
+  overlays directly and the browser does no alignment. The catalytic triad is drawn from the
+  residues the geometry stage measured, not from positions inferred by an alignment.</p>
+  <div class="viewer-shell" style="margin-top:14px">
+    <div id="viewer"></div>
+    <div id="viewer-error" class="caveat" style="display:none"></div>
+    <div class="viewer-controls">
+      <label><input type="checkbox" id="ref-toggle" checked>
+        <span class="swatch" style="background:#9aa5b1"></span> IsPETase 6EQE</label>
+      <label><input type="checkbox" id="self-toggle" checked>
+        <span class="swatch" style="background:#1e73be"></span> {{ e.enzyme_id }}</label>
+      <label style="margin-top:8px"><input type="checkbox" id="triad-toggle" checked>
+        <span class="swatch" style="background:#ff2d55"></span> catalytic triad</label>
+      <h3 style="margin-top:12px">Overlay another</h3>
+      <div id="picker" style="max-height:260px;overflow-y:auto"></div>
+      <button id="reset" style="margin-top:10px">Focus active site</button>
+      <button id="zoomall" style="margin-top:6px">Whole molecule</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Measured activity</h2>
+  {% if measurements %}
+  <div class="tbl-wrap">
+  <table class="data">
+    <thead><tr><th>Parameter</th><th>Value</th><th>Substrate</th><th>Evidence</th><th>Source</th></tr></thead>
+    <tbody>
+      {% for m in measurements %}
+      <tr>
+        <td>{{ m.parameter_type.replace('_',' ') }}</td>
+        <td class="num">{% if m.rate_value is not none %}{{ m.rate_value }} {{ m.rate_units or '' }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{{ m.substrate_form or '—' }}</td>
+        <td><span class="mono" style="font-size:10px">{{ m.evidence_code or '—' }}</span>
+            {% if m.extraction_confidence == 'review' %}<span class="muted" style="font-size:10px"> review</span>{% endif %}</td>
+        <td style="font-size:11px">{% if m.source_doi %}{% if m.source_doi.startswith('http') %}<a href="{{ m.source_doi }}" target="_blank" rel="noopener noreferrer">source</a>{% else %}<span class="mono">{{ m.source_doi[:40] }}</span>{% endif %}{% else %}—{% endif %}</td>
+      </tr>
+      {% if m.raw_text %}<tr><td></td><td colspan="4" class="muted" style="font-size:11px;padding-top:0">{{ m.raw_text }}</td></tr>{% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">No measurement rows. The enzyme is in the reference set on the strength of
+  its curation source rather than a value extracted into this database.</p>
+  {% endif %}
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Related in PANTS</h2>
+  <div class="md-grid">
+    <div>
+      <h3>Lineage</h3>
+      {% if mut and mut.parent %}<p>Engineered from <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>.</p>{% endif %}
+      {% if children %}
+      <p>Variants built on this enzyme:<br>
+        {% for c in children %}<a class="chip" href="/enzyme/{{ c }}">{{ c }}</a>{% endfor %}</p>
+      {% elif not (mut and mut.parent) %}
+      <p class="muted">No recorded parent or derived variants.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h3>Nearest metagenomic candidates</h3>
+      {% if nearest %}
+      <p class="muted">{{ n_nearest }} candidate{{ '' if n_nearest == 1 else 's' }} in the
+        catalogue have this as their nearest characterised enzyme{% if n_nearest > nearest|length %},
+        showing the top {{ nearest|length }} by bitscore{% endif %}.</p>
+      <p>{% for c in nearest %}<a class="chip mono" style="font-size:10px"
+           href="{{ url_for('main.candidate', cid=c.candidate_id) }}"
+           title="{{ env_label.get(c.source_environment, c.source_environment) }} · {{ c.seq_length }} aa · bitscore {{ '%.0f'|format(c.recall_bitscore) }}">{{ c.candidate_id.replace('PANTS-','') }}</a>{% endfor %}</p>
+      <p><a href="{{ url_for('main.compare') }}?{% for c in nearest[:4] %}id={{ c.candidate_id }}&amp;{% endfor %}">Superpose the top four →</a></p>
+      {% else %}
+      <p class="muted">No candidate in the catalogue names this enzyme as its nearest match.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Identifiers and cross-references</h2>
+  <div class="md-grid">
+    {% for group, items in links.items() %}
+      {% if items %}
+      <div>
+        <h3>{{ group|capitalize }}</h3>
+        <p>{% for l in items %}<a class="chip" href="{{ l.url }}"
+             {% if l.url.startswith('http') %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ l.label }}</a>{% endfor %}</p>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% if e.activity_substrate_notes %}
+  <p class="muted" style="margin-top:10px;font-size:11px">{{ e.activity_substrate_notes }}</p>
+  {% endif %}
+</div>
+
+{% if seq %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Sequence <span class="muted" style="font-size:12px;font-weight:400">{{ seq|length }} aa</span></h2>
+  <p class="mono" style="word-break:break-all;font-size:12px">{{ seq }}</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if e.coord_path %}
+<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ data_version }}"></script>
+<script>
+const SELF = {{ e.enzyme_id|tojson }};
+const OTHERS = {{ others|tojson }};
+const picker = document.getElementById('picker');
+
+OTHERS.forEach((o, i) => {
+  const colour = PANTSViewer.PALETTE[i % PANTSViewer.PALETTE.length];
+  const lab = document.createElement('label');
+  lab.innerHTML = `<input type="checkbox" data-id="${o.enzyme_id}">` +
+    `<span class="swatch" style="background:${colour}"></span>` +
+    `<span style="font-size:12px">${o.enzyme_id}</span>` +
+    `<span class="muted" style="font-size:10px">${o.source}</span>`;
+  picker.appendChild(lab);
+  lab.querySelector('input').addEventListener('change', async (ev) => {
+    if (ev.target.checked) {
+      await PANTSViewer.add(o.enzyme_id, `/static/reference_structures/${o.coord_path}`, {
+        colour, triad: {ser: o.triad_ser_resnum, asp: o.triad_asp_resnum, his: o.triad_his_resnum}
+      });
+    } else {
+      await PANTSViewer.remove(o.enzyme_id);
+    }
+  });
+});
+
+(async () => {
+  await PANTSViewer.init('viewer');
+  await PANTSViewer.add('reference', '/static/reference/6EQE.pdb',
+    {isReference: true, triad: {ser: 160, asp: 206, his: 237}});
+  await PANTSViewer.add(SELF, '/static/reference_structures/{{ e.coord_path }}', {
+    colour: '#1e73be',
+    triad: {ser: {{ e.triad_ser_resnum or 'null' }}, asp: {{ e.triad_asp_resnum or 'null' }}, his: {{ e.triad_his_resnum or 'null' }}}
+  });
+})();
+document.getElementById('ref-toggle').addEventListener('change', e => PANTSViewer.setVisible('reference', e.target.checked));
+document.getElementById('self-toggle').addEventListener('change', e => PANTSViewer.setVisible(SELF, e.target.checked));
+document.getElementById('triad-toggle').addEventListener('change', e => PANTSViewer.setTriadVisible(e.target.checked));
+document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());
+document.getElementById('zoomall').addEventListener('click', () => PANTSViewer.zoomAll());
+</script>
+{% endif %}
+{% endblock %}

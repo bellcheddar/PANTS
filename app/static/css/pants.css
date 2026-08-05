@@ -84,6 +84,17 @@ td.num, th.num { text-align: right; font-family: 'Roboto Mono', monospace; }
 .pill.human_gut { background: var(--env-gut); }
 .pill.unknown  { background: var(--md-text-muted); }
 
+/* A neutral tag, for things that are lists rather than categories: mutation sets, external
+   identifiers, related enzymes. Distinct from .pill, which carries a category COLOUR and
+   would imply a classification these do not have. */
+.chip {
+  display: inline-block; margin: 0 4px 4px 0; padding: 2px 9px;
+  border: 1px solid var(--pv-border); border-radius: 12px;
+  font-size: 11px; color: var(--pv-text); text-decoration: none; white-space: nowrap;
+}
+a.chip:hover { border-color: var(--pv-accent); color: var(--pv-accent);
+               background: rgba(143,180,255,.08); }
+
 /* ---------- structure viewer ---------- */
 .viewer-shell { display: grid; grid-template-columns: 1fr 260px; gap: 16px; }
 #viewer {
@@ -332,3 +343,9 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
    1400px, leaving the fifth stranded on its own line; 220px fits five and still
    collapses sensibly on narrow viewports. */
 .md-grid.kpis { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+
+/* Rows at or below the therapeutic target. A left rule rather than a background fill: the
+   table already uses colour for source environments, and a second colour language in the
+   same view would read as a category rather than as a threshold. */
+table.data tr.therapeutic td:first-child { box-shadow: inset 3px 0 0 var(--md-accent-green); }

@@ -99,7 +99,16 @@ def home():
             "LEFT JOIN structures s ON s.candidate_id=c.candidate_id "
             "LEFT JOIN geometry g ON g.candidate_id=c.candidate_id "
             "ORDER BY c.recall_bitscore DESC")]
-    return render_template("home.html", active="home", counts=counts,
+    # The reference enzymes, ordered from the therapeutic end of the temperature range to
+    # the industrial one, because that ordering IS the finding: the engineered lineage runs
+    # away from 37 degC, and a table sorted by name would hide it.
+    known = _named_enzyme_rows()
+    for row in known:
+        m = _mutations_for(row["enzyme_id"])
+        row["n_mutations"] = len(m["mutations"]) if m and m.get("mutations") else None
+        row["parent"] = (m or {}).get("parent") or row.get("matched_positive_id")
+        row["pdb_first"] = (json.loads(row.get("pdb_ids_json") or "[]") or [None])[0]
+    return render_template("home.html", active="home", counts=counts, known=known,
                            by_env=by_env, top=top, n_visible=10, env_label=ENV_LABEL)
 
 
@@ -199,3 +208,177 @@ def methods():
 @bp.route("/healthz")
 def healthz():
     return {"status": "ok", "data_version": config.DATA_VERSION}
+
+
+# ======================================================================================
+# Known and characterised enzymes
+#
+# The reference set gets its own pages because it is the thing everything else is judged
+# against: a candidate's cleft width or triad geometry means little on its own and a great
+# deal beside IsPETase's, measured on the same code path. These pages are the one place
+# where the sequence, the mutations, the structure, the measured activity and every
+# external identifier for a named enzyme sit together.
+# ======================================================================================
+
+# Enzymes curated by name, as opposed to the bulk sets keyed by accession (PAZy:n,
+# ESTHER:x, EC:x, PLC:x). Those are real data and are counted everywhere, but they are not
+# what anyone means by "the known PETases".
+# Qualified with the ce. alias: three joined tables carry an enzyme_id column and an
+# unqualified reference is ambiguous.
+NAMED_ENZYME_FILTER = (
+    "ce.enzyme_id NOT LIKE 'PAZy:%' AND ce.enzyme_id NOT LIKE 'ESTHER:%' "
+    "AND ce.enzyme_id NOT LIKE 'EC:%' AND ce.enzyme_id NOT LIKE 'PLC:%'"
+)
+
+# Experimental evidence outranks a review. Both are kept (UniProt curates IsPETase at
+# 40 degC, the review gives 30-35, measured on different substrates), so the display has to
+# choose deterministically rather than by whichever row the database returns first.
+_EVIDENCE_RANK = "CASE a.evidence_code WHEN 'ECO:0000269' THEN 0 ELSE 1 END"
+
+
+def _named_enzyme_rows() -> List[Dict[str, Any]]:
+    with connect() as conn:
+        # Wrapped in a subselect so the ORDER BY sorts the RESULT rather than
+        # re-evaluating the correlated subqueries in the sort context, which produced two
+        # separately-sorted groups: four enzymes with a Topt, then the NULLs, then the
+        # remaining nine with a Topt sorted again from the start.
+        return [dict(r) for r in conn.execute(f"""SELECT * FROM (
+            SELECT ce.enzyme_id, ce.uniprot, ce.organism, ce.seq_length, ce.source_ref,
+                   ce.pdb_ids_json, ce.matched_positive_id, ce.family,
+                   ce.activity_substrate_notes,
+                   (SELECT a.rate_value FROM activity_measurements a
+                     WHERE a.enzyme_id=ce.enzyme_id AND a.parameter_type='topt'
+                     ORDER BY {_EVIDENCE_RANK} LIMIT 1)               AS topt_c,
+                   (SELECT a.raw_text FROM activity_measurements a
+                     WHERE a.enzyme_id=ce.enzyme_id AND a.parameter_type='topt'
+                     ORDER BY {_EVIDENCE_RANK} LIMIT 1)               AS topt_text,
+                   (SELECT a.rate_value FROM activity_measurements a
+                     WHERE a.enzyme_id=ce.enzyme_id AND a.parameter_type='ph_opt'
+                     ORDER BY {_EVIDENCE_RANK} LIMIT 1)               AS ph_opt,
+                   (SELECT a.raw_text FROM activity_measurements a
+                     WHERE a.enzyme_id=ce.enzyme_id
+                       AND a.parameter_type='performance_claim' LIMIT 1) AS performance,
+                   rs.source AS struct_source, rs.source_id AS struct_source_id,
+                   rs.coord_path, rs.plddt_mean, rs.resolution_A,
+                   rs.rmsd_ca_to_ispetase_A, rs.n_residues,
+                   rg.cleft_width_A, rg.cleft_depth_A, rg.n_cleft_residues,
+                   rg.triad_ser_resnum, rg.triad_asp_resnum, rg.triad_his_resnum,
+                   rg.ser_og_his_ne2_dist_A, rg.his_nd1_asp_od_dist_A,
+                   rg.oxyanion_n1_dist_A, rg.oxyanion_n1_resnum,
+                   rg.oxyanion_n2_dist_A, rg.oxyanion_n2_resnum,
+                   rg.aromatic_clamp_residues_json
+            FROM characterised_enzymes ce
+            LEFT JOIN reference_structures rs ON rs.enzyme_id = ce.enzyme_id
+            LEFT JOIN reference_geometry  rg ON rg.enzyme_id = ce.enzyme_id
+            WHERE {NAMED_ENZYME_FILTER} AND ce.is_positive = 1
+            ) ORDER BY (topt_c IS NULL), topt_c, enzyme_id""")]
+
+
+def _mutations_for(enzyme_id: str) -> Optional[Dict[str, Any]]:
+    """Mutation set and parent, read from the curated seed definitions.
+
+    Imported lazily and defensively: pipeline.recall.seeds is pure stdlib today, but the
+    web venv is deliberately thin and this page must not be the thing that drags a
+    dependency onto the droplet.
+    """
+    try:
+        from pipeline.recall import seeds
+    except Exception:
+        return None
+    for v in seeds.VARIANTS:
+        if v.enzyme_id == enzyme_id:
+            return {"parent": v.parent, "mutations": v.mutations,
+                    "confirmed": v.mutations_confirmed, "reference": v.reference,
+                    "notes": v.notes}
+    for name, (pdb_id, parent, expected, ref) in getattr(seeds, "PDB_DERIVED", {}).items():
+        if name == enzyme_id:
+            return {"parent": parent, "mutations": [], "confirmed": True,
+                    "reference": ref,
+                    "notes": f"Sequence taken from the deposited construct {pdb_id}: "
+                             f"{expected} substitutions against {parent}."}
+    return None
+
+
+def _links_for(row: Dict[str, Any], mut: Optional[Dict[str, Any]]) -> Dict[str, List[Dict[str, str]]]:
+    """Every external identifier and cross-reference for one enzyme, grouped.
+
+    Gathered here rather than in the template so a missing accession produces no link
+    instead of a dead one pointing at a URL built from None.
+    """
+    pdb_ids = json.loads(row.get("pdb_ids_json") or "[]")
+    out: Dict[str, List[Dict[str, str]]] = {"structure": [], "sequence": [],
+                                            "activity": [], "internal": []}
+    for pid in pdb_ids:
+        out["structure"].append({"label": f"PDB {pid}",
+                                 "url": f"https://www.rcsb.org/structure/{pid}"})
+    src, sid = row.get("struct_source"), row.get("struct_source_id")
+    if src == "alphafold" and sid:
+        out["structure"].append({"label": f"AlphaFold {sid}",
+                                 "url": f"https://alphafold.ebi.ac.uk/entry/{sid}"})
+    if row.get("uniprot"):
+        acc = row["uniprot"]
+        out["sequence"].append({"label": f"UniProt {acc}",
+                                "url": f"https://www.uniprot.org/uniprotkb/{acc}"})
+        out["sequence"].append({"label": "InterPro domains",
+                                "url": f"https://www.ebi.ac.uk/interpro/protein/UniProtKB/{acc}/"})
+    # PAZy indexes by its own id, and the same protein is often present under an accession
+    # we already hold, so the cross-reference is by accession rather than by name.
+    if row.get("uniprot"):
+        out["activity"].append({"label": "PAZy (search by accession)",
+                                "url": f"https://pazy.eu/?s={row['uniprot']}"})
+    out["activity"].append({"label": "ESTHER family database",
+                            "url": "https://bioweb.supagro.inrae.fr/ESTHER/"})
+    if mut and mut.get("parent"):
+        out["internal"].append({"label": f"Parent enzyme: {mut['parent']}",
+                                "url": f"/enzyme/{mut['parent']}"})
+    return out
+
+
+@bp.route("/enzyme/<path:enzyme_id>")
+def enzyme(enzyme_id: str):
+    """One characterised enzyme: everything known about it, in one place."""
+    rows = {r["enzyme_id"]: r for r in _named_enzyme_rows()}
+    row = rows.get(enzyme_id)
+    if row is None:
+        abort(404)
+
+    with connect() as conn:
+        seq = conn.execute("SELECT sequence FROM characterised_enzymes WHERE enzyme_id=?",
+                           (enzyme_id,)).fetchone()
+        measurements = [dict(r) for r in conn.execute(
+            "SELECT parameter_type, rate_value, rate_units, temperature_c, ph, "
+            "       substrate_form, raw_text, evidence_code, source_doi, "
+            "       extraction_confidence "
+            "FROM activity_measurements WHERE enzyme_id=? "
+            "ORDER BY parameter_type, rate_value", (enzyme_id,))]
+        # Derived enzymes that name this one as their parent: the lineage, downward.
+        children = [r[0] for r in conn.execute(
+            "SELECT enzyme_id FROM characterised_enzymes WHERE matched_positive_id=? "
+            "ORDER BY enzyme_id", (enzyme_id,))]
+        # Candidates whose nearest characterised enzyme is this one. This is the join that
+        # makes the page a hub rather than a leaf: it connects the reference set to the
+        # metagenomic catalogue.
+        nearest = [dict(r) for r in conn.execute(
+            "SELECT candidate_id, source_environment, seq_length, recall_bitscore, "
+            "       recall_profile_identity "
+            "FROM candidates WHERE nearest_characterised_id=? "
+            "ORDER BY recall_bitscore DESC LIMIT 25", (enzyme_id,))]
+        n_nearest = int(conn.execute(
+            "SELECT COUNT(*) FROM candidates WHERE nearest_characterised_id=?",
+            (enzyme_id,)).fetchone()[0])
+        # Everything else with a structure, for the overlay picker.
+        others = [dict(r) for r in conn.execute(
+            "SELECT rs.enzyme_id, rs.coord_path, rs.source, rg.triad_ser_resnum, "
+            "       rg.triad_asp_resnum, rg.triad_his_resnum "
+            "FROM reference_structures rs "
+            "LEFT JOIN reference_geometry rg ON rg.enzyme_id=rs.enzyme_id "
+            "WHERE rs.enzyme_id != ? AND rs.coord_path IS NOT NULL "
+            "ORDER BY rs.enzyme_id", (enzyme_id,))]
+
+    mut = _mutations_for(enzyme_id)
+    return render_template(
+        "enzyme.html", active="home", e=row, seq=seq[0] if seq else None,
+        mut=mut, measurements=measurements, children=children, nearest=nearest,
+        n_nearest=n_nearest, others=others, links=_links_for(row, mut),
+        clamp=json.loads(row.get("aromatic_clamp_residues_json") or "[]"),
+        env_label=ENV_LABEL)
