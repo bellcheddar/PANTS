@@ -79,10 +79,15 @@
     <li>Published activity data is not harmonised across assay formats. Absolute rate predictions should not be trusted.</li>
     <li>Crystalline PET degradation at 37 °C by any known enzyme is slow. PANTS ranks relative promise, not therapeutic viability.</li>
     <li>Predicted structures are predictions. Cleft geometry on a metagenomic sequence with no close homologue carries real uncertainty, and a brittle version of that measurement scored IsPETase's own prediction at half its crystal value before being fixed.</li>
-      <li>AUC 0.976 is measured against hard negatives drawn from other &alpha;/&beta;-hydrolase
-      families. It shows the head separates measured polyesterases from those; it does not show
-      that it ranks PET activity <em>within</em> the polyesterase family, which is the harder and
-      more useful question.</li>
+      <li>AUC 0.976 is measured against hard negatives from other &alpha;/&beta;-hydrolase families.
+      Tested against the near misses instead it reaches 1.000, which is a warning rather than a
+      result: every near miss is a single ESTHER family (Cutinase), and one homogeneous family
+      separates as a block (composition alone scores 0.910). Neither contrast shows that the head
+      ranks PET activity <em>within</em> the polyesterase family.</li>
+      <li>The within-family question has no dataset. It needs PET-<em>inactive</em> polyesterases,
+      measured and published, and databases record what works: nobody systematically publishes a
+      failed assay. That is publication bias, not a curation gap, and more database mining will not
+      fix it.</li>
     <li>Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo.</li>
     <li>Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.</li>
     <li>Cleft width currently separates a fungal cutinase from the polyesterase family, but does not order that family by PET activity. Family-level separation is a much easier task than the one that matters.</li>

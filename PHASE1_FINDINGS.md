@@ -666,3 +666,66 @@ serving an HTML error page), **OpenBind** (small-molecule structure-affinity for
 targets; first release is 699 compounds against one antiviral protein), and **BindingDB**
 (protein-small-molecule affinity, and PET is a polymer). **BRENDA** remains promising for
 kinetics but needs a registered account, so it is a manual step.
+
+---
+
+# The within-family question, and why it cannot yet be asked
+
+Having reached AUC 0.976 against distant hard negatives, the obvious next test was the one
+that actually matters: can the head separate a **measured PET degrader** from a
+**near miss**, an esterase of similar fold that works on soluble esters but not on
+crystalline PET?
+
+The result looked spectacular and is not:
+
+| Contrast | ESM-2 head | Composition only | Margin |
+|---|---|---|---|
+| vs distant α/β-hydrolase families | 0.979 | 0.887 | +0.092 |
+| **vs near misses** | **1.000 ± 0.000** | 0.910 | +0.090 |
+| vs both | 0.976 | 0.829 | +0.147 |
+
+**AUC 1.000 is a warning, not a triumph**, and this project has already been caught by one.
+
+## What the near-miss set actually is
+
+Every one of the 125 near misses is a single ESTHER family: `Cutinase`. They are closer to
+the positives in sequence than the distant negatives are (median 39.6% identity against
+31.1%), so the perfect score is not simply distance. It is **homogeneity**: one tight,
+coherent family separates as a block, which is an easy problem for a sequence model and
+nearly as easy for amino-acid composition alone (0.910).
+
+Separating the `Cutinase` family from the `Polyesterase-lipase-cutinase` family is a
+**family-level** question wearing the clothes of a functional one. It does not show that
+the head ranks PET activity *within* the polyesterase family.
+
+## Why the real question has no dataset
+
+The honest test needs PET-**inactive** members of the polyesterase family, measured and
+published. Those barely exist, and the reason is structural rather than accidental:
+**databases record what works.** PAZy lists enzymes because activity was found. Nobody
+systematically publishes "we expressed this polyesterase, assayed it on PET, and it did
+nothing", so the negative class for the question that matters is largely unwritten.
+
+This is a publication-bias problem, not a curation gap, and no amount of further database
+mining will fix it. The routes that would:
+
+1. **Ordinal within-paper comparisons.** Papers that assay several enzymes under one
+   protocol do rank them, and the weak ones are recorded even when they are not called
+   negatives. The project brief already proposes this fallback for exactly this reason.
+2. **Quantitative rates rather than a binary label.** Regression on measured activity
+   sidesteps the need for a negative class, and the activity_measurements table exists for
+   it. It needs rates on PET itself, which remain the outstanding curation item.
+3. **Geometry as an independent axis.** Cleft width and the aromatic clamp are measured
+   from coordinates and owe nothing to any annotation, though the current evidence shows
+   them separating families rather than tracking PET activity within one.
+
+## One contradictory label, found and fixed
+
+`ESTHER:C9ZCR8` was filed as a near miss (PET-inactive) while being **100% identical over
+185 of its 186 aligned residues** to `PAZy:177`, an enzyme in PAZy because PET activity
+was measured. The near-miss label came from ESTHER family membership; the PAZy label came
+from an experiment. The experiment wins, and the entry is now excluded from training with
+the reason recorded on the row.
+
+One contradiction in 125 is a good rate, and it was only visible because the two label
+sources were kept distinct rather than merged.

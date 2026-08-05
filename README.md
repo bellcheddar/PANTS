@@ -299,10 +299,28 @@ That is a different kind of number from the 1.000. The labels are experimental r
 similarity-derived, the split is across 45 independent units rather than impossible, and
 the head clears the composition baseline by a real margin instead of tying with it.
 
-**What it still does not show.** Those negatives are drawn from other α/β-hydrolase
-families, so the result says the head separates measured polyesterases from *those*. It
-does not show that it ranks PET activity **within** the polyesterase family, which is the
-harder and more useful question, and the one the near misses exist to pose.
+**What it still does not show, tested rather than assumed.** Running the head against the
+125 near misses gave **AUC 1.000**, which is a warning rather than a triumph. Every near
+miss belongs to a single ESTHER family (`Cutinase`), and one homogeneous family separates
+as a block: composition alone scores 0.910 on the same contrast. That is a **family-level**
+question wearing the clothes of a functional one.
+
+| Contrast | ESM-2 head | Composition only |
+|---|---|---|
+| vs distant α/β-hydrolase families | 0.979 | 0.887 |
+| vs near misses | **1.000** | 0.910 |
+| vs both | 0.976 | 0.829 |
+
+The honest test needs PET-**inactive** members of the polyesterase family, measured and
+published. Those barely exist, and the reason is structural: **databases record what
+works.** PAZy lists enzymes because activity was found; nobody systematically publishes
+"we assayed this polyesterase on PET and it did nothing". The negative class for the
+question that matters is largely unwritten, which is publication bias rather than a
+curation gap, and no further database mining will fix it.
+
+Three routes that would, in [`PHASE1_FINDINGS.md`](PHASE1_FINDINGS.md): ordinal
+within-paper rankings, regression on measured rates instead of a binary label, and
+geometry as an annotation-independent axis.
 
 **A caution about the evidence tiers.** Of the 449 entries carrying EC 3.1.1.101 by automatic annotation, none is a measurement: they hold `ECO:0000256` (by similarity), not `ECO:0000269` (experimental). They were briefly labelled "unreviewed", which reads as a curation backlog rather than the substantive difference it is. Sixteen positives have experimental evidence. That is the number the Methods tab will report.
 

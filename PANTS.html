@@ -555,7 +555,35 @@
 </tbody>
 </table></div>
 <p>That is a different kind of number from the 1.000. The labels are experimental rather than similarity-derived, the split is across 45 independent units rather than impossible, and the head clears the composition baseline by a real margin instead of tying with it.</p>
-<p><strong>What it still does not show.</strong> Those negatives are drawn from other α/β-hydrolase families, so the result says the head separates measured polyesterases from <em>those</em>. It does not show that it ranks PET activity <strong>within</strong> the polyesterase family, which is the harder and more useful question, and the one the near misses exist to pose.</p>
+<p><strong>What it still does not show, tested rather than assumed.</strong> Running the head against the 125 near misses gave <strong>AUC 1.000</strong>, which is a warning rather than a triumph. Every near miss belongs to a single ESTHER family (<code>Cutinase</code>), and one homogeneous family separates as a block: composition alone scores 0.910 on the same contrast. That is a <strong>family-level</strong> question wearing the clothes of a functional one.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Contrast</th>
+<th>ESM-2 head</th>
+<th>Composition only</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Contrast">vs distant α/β-hydrolase families</td>
+<td data-label="ESM-2 head">0.979</td>
+<td data-label="Composition only">0.887</td>
+</tr>
+<tr>
+<td data-label="Contrast">vs near misses</td>
+<td data-label="ESM-2 head"><strong>1.000</strong></td>
+<td data-label="Composition only">0.910</td>
+</tr>
+<tr>
+<td data-label="Contrast">vs both</td>
+<td data-label="ESM-2 head">0.976</td>
+<td data-label="Composition only">0.829</td>
+</tr>
+</tbody>
+</table></div>
+<p>The honest test needs PET-<strong>inactive</strong> members of the polyesterase family, measured and published. Those barely exist, and the reason is structural: <strong>databases record what works.</strong> PAZy lists enzymes because activity was found; nobody systematically publishes "we assayed this polyesterase on PET and it did nothing". The negative class for the question that matters is largely unwritten, which is publication bias rather than a curation gap, and no further database mining will fix it.</p>
+<p>Three routes that would, in <a href="PHASE1_FINDINGS.md"><code>PHASE1_FINDINGS.md</code></a>: ordinal within-paper rankings, regression on measured rates instead of a binary label, and geometry as an annotation-independent axis.</p>
 <p><strong>A caution about the evidence tiers.</strong> Of the 449 entries carrying EC 3.1.1.101 by automatic annotation, none is a measurement: they hold <code>ECO:0000256</code> (by similarity), not <code>ECO:0000269</code> (experimental). They were briefly labelled "unreviewed", which reads as a curation backlog rather than the substantive difference it is. Sixteen positives have experimental evidence. That is the number the Methods tab will report.</p>
 <h2>🔭 The profile library and the recall run</h2>
 <p>Recall is a two-stage funnel: MMseqs2 casts the net across millions of sequences fast, HMMER makes the sensitive call on the survivors. Every candidate keeps its retrieval numbers (E-value, bitscore, profile identity), because those are the baseline the learned model has to beat.</p>
