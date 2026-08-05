@@ -35,9 +35,11 @@
   <table class="data enzymes">
     <thead>
       <tr>
-        <th>Enzyme</th><th class="num">T<sub>opt</sub><br><span class="unit">°C</span></th>
-        <th class="num">Muts</th><th class="num">%ID<br><span class="unit">to WT</span></th>
-        <th class="num">Cleft<br><span class="unit">Å</span></th>
+        <th>Enzyme</th>
+        <th class="num" title="Optimum temperature, °C">T<sub>opt</sub></th>
+        <th class="num" title="Substitutions against the lineage wild type">Muts</th>
+        <th class="num" title="Percent identity to the wild type at the root of this lineage">%ID</th>
+        <th class="num" title="Active-site cleft width, Å">Cleft</th>
         <th>Structure</th><th>Notes</th>
       </tr>
     </thead>
@@ -71,7 +73,8 @@
     {% endfor %}
   </table>
   </div>
-  <p class="muted" style="font-size:11px;margin-top:8px">%ID is against the wild type at the root of
+  <p class="muted" style="font-size:11px;margin-top:8px">T<sub>opt</sub> is in °C and cleft width in Å;
+  the coloured edge marks the family. %ID is against the wild type at the root of
   that enzyme's own lineage, not against IsPETase: LCC-ICCG is 98.6% identical to LCC and only about
   50% to IsPETase, and only the first says how far engineering moved it. Wild types are 100% by
   definition. Optimum temperatures come from UniProt where

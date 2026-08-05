@@ -12,6 +12,60 @@
   {% if e.performance %}<p><strong>{{ e.performance }}</strong></p>{% endif %}
 </div>
 
+{% if e.coord_path %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Structure, superposed on IsPETase</h2>
+  <p class="muted">Aligned onto IsPETase 6EQE when it was written, so anything added below
+  overlays directly and the browser does no alignment. The catalytic triad is drawn from the
+  residues the geometry stage measured, not from positions inferred by an alignment.</p>
+  <div class="viewer-shell" style="margin-top:14px">
+    <div id="viewer"></div>
+    <div id="viewer-error" class="caveat" style="display:none"></div>
+    <div class="viewer-controls">
+      <label><input type="checkbox" id="ref-toggle" checked>
+        <span class="swatch" style="background:#9aa5b1"></span> IsPETase 6EQE</label>
+      <label><input type="checkbox" id="self-toggle" checked>
+        <span class="swatch" style="background:#1e73be"></span> {{ e.enzyme_id }}</label>
+      <label style="margin-top:8px"><input type="checkbox" id="triad-toggle" checked>
+        <span class="swatch" style="background:#eaff00"></span> catalytic triad</label>
+      {% if mut_at %}
+      <label><input type="checkbox" id="mut-toggle" checked>
+        <span class="swatch" style="background:#ff2ec4"></span> {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }}</label>
+      {% endif %}
+      <h3 style="margin-top:12px">Overlay another</h3>
+      <div id="picker" style="max-height:260px;overflow-y:auto"></div>
+      <div class="viewer-buttons">
+        <button id="reset">Focus active site</button>
+        <button id="zoomall">Whole molecule</button>
+        <button id="spin">Spin</button>
+        <button id="style-cartoon">Cartoon</button>
+        <button id="style-sticks">Sticks</button>
+        <button id="dl-pdb">Download PDB</button>
+        <button id="dl-png">Save image</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if seq %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Sequence <span class="muted" style="font-size:12px;font-weight:400">{{ seq|length }} aa
+    {%- if mut_at %} · {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }}{% endif %}</span></h2>
+  <p class="muted" style="font-size:12px">
+    <span class="seq-key triad"></span> catalytic triad
+    {%- if mut_at %} &nbsp; <span class="seq-key mut"></span> substitution against
+      <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>{% endif %}
+    &nbsp;· the same colours as the viewer above. Click any residue to select it in both.</p>
+  <div class="seq">{% for ch in seq %}{% set pos = loop.index %}{%
+    if pos in triad_at %}<span class="seq-res triad" data-pos="{{ pos }}"
+      title="{{ ch }}{{ pos }} — catalytic {{ triad_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
+    elif mut_at.get(pos) %}<span class="seq-res mut" data-pos="{{ pos }}"
+      title="{{ ch }}{{ pos }} — substitution {{ mut_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
+    else %}<span class="seq-res" data-pos="{{ pos }}" title="{{ ch }}{{ pos }}">{{ ch }}</span>{% endif %}{% endfor %}</div>
+</div>
+{% endif %}
+
 <div class="md-grid" style="margin-top:16px">
 
   <div class="md-card">
@@ -93,53 +147,6 @@
 </div>
 {% endif %}
 
-{% if e.coord_path %}
-<div class="md-card" style="margin-top:16px">
-  <h2>Structure, superposed on IsPETase</h2>
-  <p class="muted">Aligned onto IsPETase 6EQE when it was written, so anything added below
-  overlays directly and the browser does no alignment. The catalytic triad is drawn from the
-  residues the geometry stage measured, not from positions inferred by an alignment.</p>
-  <div class="viewer-shell" style="margin-top:14px">
-    <div id="viewer"></div>
-    <div id="viewer-error" class="caveat" style="display:none"></div>
-    <div class="viewer-controls">
-      <label><input type="checkbox" id="ref-toggle" checked>
-        <span class="swatch" style="background:#9aa5b1"></span> IsPETase 6EQE</label>
-      <label><input type="checkbox" id="self-toggle" checked>
-        <span class="swatch" style="background:#1e73be"></span> {{ e.enzyme_id }}</label>
-      <label style="margin-top:8px"><input type="checkbox" id="triad-toggle" checked>
-        <span class="swatch" style="background:#eaff00"></span> catalytic triad</label>
-      {% if mut_at %}
-      <label><input type="checkbox" id="mut-toggle" checked>
-        <span class="swatch" style="background:#ff2ec4"></span> {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }}</label>
-      {% endif %}
-      <h3 style="margin-top:12px">Overlay another</h3>
-      <div id="picker" style="max-height:260px;overflow-y:auto"></div>
-      <button id="reset" style="margin-top:10px">Focus active site</button>
-      <button id="zoomall" style="margin-top:6px">Whole molecule</button>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-{% if seq %}
-<div class="md-card" style="margin-top:16px">
-  <h2>Sequence <span class="muted" style="font-size:12px;font-weight:400">{{ seq|length }} aa
-    {%- if mut_at %} · {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }}{% endif %}</span></h2>
-  <p class="muted" style="font-size:12px">
-    <span class="seq-key triad"></span> catalytic triad
-    {%- if mut_at %} &nbsp; <span class="seq-key mut"></span> substitution against
-      <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>{% endif %}
-    &nbsp;· the same colours as the viewer above. Click any residue to select it in both.</p>
-  <div class="seq">{% for ch in seq %}{% set pos = loop.index %}{%
-    if pos in triad_at %}<span class="seq-res triad" data-pos="{{ pos }}"
-      title="Catalytic {{ triad_at[pos] }}{{ pos }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
-    elif mut_at.get(pos) %}<span class="seq-res mut" data-pos="{{ pos }}"
-      title="{{ mut_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
-    else %}<span class="seq-res" data-pos="{{ pos }}">{{ ch }}</span>{% endif %}{% endfor %}</div>
-</div>
-{% endif %}
-
 <div class="md-card" style="margin-top:16px">
   <h2>Measured activity</h2>
   {% if measurements %}
@@ -152,9 +159,15 @@
         <td>{{ m.parameter_type.replace('_',' ') }}</td>
         <td class="num">{% if m.rate_value is not none %}{{ m.rate_value }} {{ m.rate_units or '' }}{% else %}<span class="muted">—</span>{% endif %}</td>
         <td>{{ m.substrate_form or '—' }}</td>
-        <td><span class="mono" style="font-size:10px">{{ m.evidence_code or '—' }}</span>
+        <td>{% if m.evidence_code %}<a class="mono" style="font-size:10px"
+              href="{{ evidence_link(m.evidence_code) }}" target="_blank" rel="noopener noreferrer"
+              title="{{ 'Experimental, from a publication' if m.evidence_code == 'ECO:0000269' else 'Inferred by curator' }}">{{ m.evidence_code }}</a>
+            {%- else %}—{% endif %}
             {% if m.extraction_confidence == 'review' %}<span class="muted" style="font-size:10px"> review</span>{% endif %}</td>
-        <td style="font-size:11px">{% if m.source_doi %}{% if m.source_doi.startswith('http') %}<a href="{{ m.source_doi }}" target="_blank" rel="noopener noreferrer">source</a>{% else %}<span class="mono">{{ m.source_doi[:40] }}</span>{% endif %}{% else %}—{% endif %}</td>
+        <td style="font-size:11px">{% for cl in citation_links(m.source_doi) %}{%
+            if cl.url %}<a href="{{ cl.url }}" target="_blank" rel="noopener noreferrer">{{ cl.label }}</a>{%
+            else %}<span class="muted">{{ cl.label }}</span>{% endif %}{{ ' · ' if not loop.last }}{%
+            else %}—{% endfor %}</td>
       </tr>
       {% if m.raw_text %}<tr><td></td><td colspan="4" class="muted" style="font-size:11px;padding-top:0">{{ m.raw_text }}</td></tr>{% endif %}
       {% endfor %}
@@ -284,6 +297,24 @@ seqEls.forEach(el => el.addEventListener('click', () => {
 
 document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());
 document.getElementById('zoomall').addEventListener('click', () => PANTSViewer.zoomAll());
+
+const spinBtn = document.getElementById('spin');
+spinBtn.addEventListener('click', () => {
+  const on = PANTSViewer.toggleSpin();
+  spinBtn.textContent = on ? 'Stop' : 'Spin';
+  spinBtn.classList.toggle('active', on);
+});
+document.getElementById('style-cartoon').addEventListener('click', () => PANTSViewer.setRepresentation('cartoon'));
+document.getElementById('style-sticks').addEventListener('click', () => PANTSViewer.setRepresentation('stick'));
+document.getElementById('dl-pdb').addEventListener('click', () => {
+  // The coordinates the page already fetched, superposed on IsPETase, not the original
+  // deposit: what is downloaded is what is being looked at.
+  const a = document.createElement('a');
+  a.href = '/static/reference_structures/{{ e.coord_path }}';
+  a.download = '{{ e.enzyme_id }}_superposed.pdb';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+document.getElementById('dl-png').addEventListener('click', () => PANTSViewer.savePNG('{{ e.enzyme_id }}.png'));
 </script>
 {% endif %}
 {% endblock %}

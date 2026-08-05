@@ -90,7 +90,8 @@ def inject_globals() -> Dict[str, Any]:
         except Exception:
             n_struct = 0
     return {"data_version": config.DATA_VERSION, "schema_version": SCHEMA_VERSION,
-            "n_structures": n_struct, "asset": asset}
+            "n_structures": n_struct, "asset": asset,
+            "citation_links": citation_links, "evidence_link": evidence_link}
 
 
 @bp.route("/")
@@ -340,6 +341,45 @@ def _named_enzyme_rows() -> List[Dict[str, Any]]:
             LEFT JOIN reference_geometry  rg ON rg.enzyme_id = ce.enzyme_id
             WHERE {NAMED_ENZYME_FILTER} AND ce.is_positive = 1
             ) ORDER BY (topt_c IS NULL), topt_c, enzyme_id""")]
+
+
+def citation_links(source: Optional[str]) -> List[Dict[str, str]]:
+    """Split a source field into linkable citations.
+
+    The column holds several shapes, sometimes mixed in one value:
+    `PMID:22194294;PMID:32269349`, `PMID:39551294;doi:10.1016/j.ijbiomac.2024.137732`,
+    and bare URLs. Each token is resolved to its own link so a row citing three papers
+    offers three links rather than one opaque string.
+
+    Anything unrecognised is returned as text with no url, because a citation that cannot
+    be resolved should look unresolved rather than link somewhere plausible and wrong.
+    """
+    out: List[Dict[str, str]] = []
+    if not source:
+        return out
+    for tok in (x.strip() for x in source.replace(",", ";").split(";")):
+        if not tok:
+            continue
+        low = tok.lower()
+        if low.startswith("pmid:"):
+            pmid = tok.split(":", 1)[1].strip()
+            out.append({"label": f"PMID {pmid}",
+                        "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"})
+        elif low.startswith("doi:"):
+            doi = tok.split(":", 1)[1].strip()
+            out.append({"label": doi, "url": f"https://doi.org/{doi}"})
+        elif low.startswith("http"):
+            out.append({"label": "source", "url": tok})
+        else:
+            out.append({"label": tok, "url": ""})
+    return out
+
+
+def evidence_link(code: Optional[str]) -> str:
+    """Evidence Ontology term page for an ECO code."""
+    if not code or not code.upper().startswith("ECO:"):
+        return ""
+    return f"https://evidenceontology.org/term/{code}/"
 
 
 def _reference_doi(reference: Optional[str]) -> Optional[str]:

@@ -332,6 +332,58 @@ const PANTSViewer = (() => {
     viewer.zoom(0.55);          // pull back so the surrounding fold stays in frame
   }
 
+  /* ---- extra controls ---- */
+
+  let spinning = false;
+  function toggleSpin() {
+    if (!viewer) return false;
+    spinning = !spinning;
+    // 3Dmol drives its own animation loop, so this does not need a rAF here.
+    viewer.spin(spinning ? 'y' : false);
+    return spinning;
+  }
+
+  /** Cartoon or sticks for the backbone, WITHOUT disturbing the highlights: the triad and
+   *  mutation surfaces are separate objects, but their stick overlays are styles on the
+   *  same model and would be wiped by a bare setStyle, so they are reapplied. */
+  function setRepresentation(kind) {
+    if (!viewer) return;
+    loaded.forEach(entry => {
+      const base = (kind === 'stick')
+        ? { stick: { radius: entry.isReference ? 0.08 : 0.12, color: entry.colour } }
+        : styleFor(entry.colour, entry.isReference);
+      entry.model.setStyle({}, base);
+      if (entry.triad) {
+        const nums = [entry.triad.ser, entry.triad.asp, entry.triad.his].filter(Number.isFinite);
+        if (nums.length) {
+          entry.model.setStyle({ resi: nums },
+            { stick: { radius: entry.isReference ? 0.15 : 0.25, colorscheme: 'default' } }, true);
+        }
+      }
+      if (entry.mutations && entry.mutations.length) {
+        entry.model.setStyle({ resi: entry.mutations },
+          { stick: { radius: 0.2, colorscheme: 'default' } }, true);
+      }
+    });
+    viewer.render();
+  }
+
+  /** Save the canvas as a PNG. Uses 3Dmol's own pngURI so the image is the rendered
+   *  scene rather than a re-read of the framebuffer, which comes back blank on some
+   *  drivers once the context has been presented. */
+  function savePNG(filename) {
+    if (!viewer) return;
+    try {
+      const uri = viewer.pngURI();
+      const a = document.createElement('a');
+      a.href = uri;
+      a.download = filename || 'structure.png';
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (err) {
+      showError('Could not save the image: ' + err.message);
+    }
+  }
+
   function reset() { if (viewer) { focusActiveSite(); viewer.render(); } }
 
   function zoomAll() { if (viewer) { viewer.zoomTo(); viewer.render(); } }
@@ -340,5 +392,6 @@ const PANTSViewer = (() => {
 
   return { init, add, remove, setVisible, setTriadVisible, setMutationsVisible,
            setResidueClickHandler, selectResidue,
+           toggleSpin, setRepresentation, savePNG,
            reset, zoomAll, clear, PALETTE, REFERENCE_COLOUR };
 })();

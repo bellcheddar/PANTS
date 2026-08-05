@@ -432,3 +432,14 @@ table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: now
   box-shadow: 0 0 0 2px #ffffff, 0 0 6px 2px rgba(255,255,255,.5);
   border-radius: 2px;
 }
+
+/* Viewer control buttons, in a grid so seven of them stay tidy in a 260px rail rather
+   than becoming a tall stack. */
+.viewer-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px;
+}
+.viewer-buttons button { width: 100%; }
+.viewer-buttons button.active {
+  border-color: var(--pv-accent); color: var(--pv-accent);
+  background: rgba(143,180,255,.12);
+}
