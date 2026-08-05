@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title %}Lineages{% endblock %}
+{% block content %}
+<div class="md-card">
+  <h2>One lineage, side by side</h2>
+  <p class="muted">Every structure here was aligned onto IsPETase 6EQE when it was written, so
+  these panels are already in register: <strong>rotating one rotates all of them</strong>, and the
+  same view means the same orientation in every panel. The catalytic triad is drawn in
+  <span class="key-triad">yellow</span> and substituted residues in
+  <span class="key-mut">pink</span>, using the residues the geometry stage measured rather than
+  positions inferred from an alignment.</p>
+
+  <p class="muted">The question this asks, which the catalogue cannot: <strong>do stabilising
+  mutations keep clear of the catalytic machinery, or do some crowd it?</strong> Every substituted
+  residue carries its side-chain distance to the nearest triad side chain, measured once from these
+  coordinates.</p>
+
+  <div class="lineage-tabs">
+    {% for k in order %}
+    <a href="{{ url_for('main.overlay') }}?lineage={{ k }}"
+       class="{{ 'on' if k == chosen }}">{{ k }}
+       <span class="muted">{{ lineages[k]|length }}</span></a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if chosen %}
+{% set fam = lineages[chosen] %}
+<div class="md-card" style="margin-top:16px">
+  <div class="ov-head">
+    <h2 style="margin:0">{{ chosen }} lineage</h2>
+    <div class="ov-controls">
+      <label><input type="checkbox" id="t-triad" checked>
+        <span class="swatch" style="background:#eaff00"></span> triad</label>
+      <label><input type="checkbox" id="t-mut" checked>
+        <span class="swatch" style="background:#ff2ec4"></span> substitutions</label>
+      <button id="ov-reset">Focus active site</button>
+      <button id="ov-all">Whole molecule</button>
+      <button id="ov-spin">Spin</button>
+    </div>
+  </div>
+
+  <div id="ov-grid" class="ov-grid" style="--cols: {{ 3 if fam|length > 4 else fam|length }}; --rows: {{ ((fam|length / (3 if fam|length > 4 else fam|length)) | round(0, 'ceil')) | int }}"></div>
+  <div id="ov-err" class="caveat" style="display:none"></div>
+
+  <div class="ov-legend">
+    {% for e in fam %}
+    <div class="ov-card" data-id="{{ e.enzyme_id }}">
+      <h3><a href="{{ url_for('main.enzyme', enzyme_id=e.enzyme_id) }}">{{ e.enzyme_id }}</a>
+        {% if e.is_root %}<span class="tag">wild type</span>{% endif %}</h3>
+      <p class="muted">
+        {%- if e.source == 'pdb' %}crystal structure {{ e.source_id }}{% if e.resolution_A %},
+          {{ e.resolution_A }} Å{% endif %}
+        {%- elif e.source == 'alphafold' %}AlphaFold model
+        {%- else %}ESMFold prediction{% if e.plddt_mean %}, pLDDT {{ '%.0f'|format(e.plddt_mean) }}{% endif %}{% endif %}
+        {%- if e.n_mutations %} · {{ e.n_mutations }} substitution{{ '' if e.n_mutations == 1 else 's' }}{% endif %}
+        {%- if e.cleft_width_A %} · cleft {{ '%.1f'|format(e.cleft_width_A) }} Å{% endif %}</p>
+      {% if not e.triad_ser_resnum %}
+      <p class="ov-dist close">no triad measured in this structure
+        <span class="muted">— the three residues are present but not within hydrogen-bonding
+        distance in this crystal form, so the panel shows the whole molecule</span></p>
+      {% endif %}
+      {% if e.mut_geom %}
+      {% set nearest = (e.mut_geom.values()|list|sort(attribute='d'))[0] %}
+      <p class="ov-dist {{ 'close' if nearest.d < 5 else '' }}">
+        nearest substitution to the triad: <strong>{{ nearest.d }} Å</strong>
+        <span class="muted">({{ nearest.res }}{% if nearest.sep <= 1 %}, adjacent in sequence{% endif %})</span>
+      </p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% set noTriad = fam|rejectattr('triad_ser_resnum')|list %}
+  {% if noTriad %}
+  <p class="muted" style="font-size:11px;margin-top:12px">{{ noTriad|map(attribute='enzyme_id')|join(', ')
+    }} {{ 'has' if noTriad|length == 1 else 'have' }} no measured triad. The geometry stage requires
+  both charge-relay hydrogen bonds within {{ '3.5' }} Å, and in these deposits the catalytic serine
+  and histidine sit further apart than that — 3.88 Å in 8H5K, for instance. That is a real
+  observation about the crystal form, not a missing enzyme, and the threshold is deliberately not
+  relaxed to make them pass: it is the check that makes "connected in space" mean anything.</p>
+  {% endif %}
+  <p class="muted" style="font-size:11px;margin-top:12px">Distances are side chain to side chain,
+  excluding backbone atoms. Measured any-atom to any-atom they came out at 1.31–1.35 Å for four
+  variants, which is a peptide bond rather than a contact: those residues simply sit next to a
+  triad residue in sequence. Where a substituted residue is adjacent in sequence it is marked, so
+  a short distance that only reflects the fold's connectivity is visible as such.
+  {% if fam|selectattr('source', 'equalto', 'esmfold')|list %}
+  Panels built from predictions carry the loops that gate the cleft at lower confidence than the
+  crystal structures beside them; a distance measured on one is weaker evidence than the same
+  distance measured on the other.{% endif %}</p>
+</div>
+{% else %}
+<div class="md-card" style="margin-top:16px">
+  <p class="muted">No lineage has more than one solved member yet.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if chosen %}
+<script src="{{ url_for('static', filename='js/3Dmol-min.js') }}?v={{ asset('js/3Dmol-min.js') }}"></script>
+<script>
+const FAM = {{ lineages[chosen]|tojson }};
+const COLS = Number(getComputedStyle(document.getElementById('ov-grid'))
+  .getPropertyValue('--cols')) || 3;
+const ROWS = Math.ceil(FAM.length / COLS);
+const TRIAD_C = '#eaff00', MUT_C = '#ff2ec4';
+const err = document.getElementById('ov-err');
+const surfaces = [];          // {viewer, id} so a toggle can remove exactly its own
+
+/* One canvas for the whole grid.
+ *
+ * createViewerGrid puts every panel in a SINGLE WebGL context, which is what makes this
+ * safe: browsers cap simultaneous contexts around eight to sixteen, and a lineage of nine
+ * with one context each would sit on that limit. control_all links the cameras, so the
+ * panels stay in the shared frame the coordinates were written in. */
+let grid;
+try {
+  grid = $3Dmol.createViewerGrid(
+    document.getElementById('ov-grid'),
+    {rows: ROWS, cols: COLS, control_all: true},
+    {backgroundColor: '#0d1120'});
+} catch (e) {
+  err.style.display = 'block';
+  err.textContent = 'Could not start the 3D viewers: ' + e.message;
+}
+
+function viewerAt(i) { return grid[Math.floor(i / COLS)][i % COLS]; }
+
+function addSurface(v, sel, colour, opacity) {
+  try {
+    const out = v.addSurface($3Dmol.SurfaceType.VDW, {opacity, color: colour}, sel, sel);
+    const keep = id => surfaces.push({v, id});
+    // Repaint when it resolves: a surface builds asynchronously and nothing in 3Dmol
+    // repaints when it finishes, so one completing after the last render is never drawn.
+    if (out && typeof out.then === 'function') out.then(r => { keep(r && r.surfid !== undefined ? r.surfid : r); v.render(); });
+    else { keep(out && out.surfid !== undefined ? out.surfid : out); v.render(); }
+  } catch (e) { /* a surface is an enhancement, not the panel */ }
+}
+
+function clearSurfaces() {
+  surfaces.splice(0).forEach(({v, id}) => { try { v.removeSurface(id); } catch (e) {} });
+}
+
+function paint() {
+  clearSurfaces();
+  const triadOn = document.getElementById('t-triad').checked;
+  const mutOn = document.getElementById('t-mut').checked;
+  FAM.forEach((e, i) => {
+    const v = viewerAt(i);
+    v.setStyle({}, {cartoon: {color: e.is_root ? '#9aa5b1' : '#1e73be', opacity: 0.9}});
+    const triad = [e.triad_ser_resnum, e.triad_his_resnum, e.triad_asp_resnum]
+      .filter(Number.isFinite);
+    if (triadOn && triad.length) {
+      v.setStyle({resi: triad}, {stick: {radius: 0.22, colorscheme: 'default'}}, true);
+      addSurface(v, {resi: triad}, TRIAD_C, 0.55);
+    }
+    if (mutOn && e.mutations && e.mutations.length) {
+      v.setStyle({resi: e.mutations}, {stick: {radius: 0.2, colorscheme: 'default'}}, true);
+      addSurface(v, {resi: e.mutations}, MUT_C, 0.5);
+    }
+    v.render();
+  });
+}
+
+/* Framed per viewer rather than once with control_all left to propagate.
+ *
+ * control_all links INTERACTION -- dragging one panel turns them all -- but it did not
+ * carry a programmatic zoomTo, so the grid opened on whole molecules and the triad and
+ * substitution surfaces were a few pixels each. Each panel is framed on its OWN triad,
+ * which is also more correct: the structures are superposed but not identical in length,
+ * and several ESMFold models carry long disordered termini that would drag a shared frame
+ * far off the fold. */
+function focusSite() {
+  FAM.forEach((e, i) => {
+    const v = viewerAt(i);
+    const t = [e.triad_ser_resnum, e.triad_his_resnum, e.triad_asp_resnum]
+      .filter(Number.isFinite);
+    if (t.length) { v.zoomTo({resi: t}); v.zoom(0.42); } else v.zoomTo();
+    v.render();
+  });
+}
+
+function zoomAll() {
+  FAM.forEach((_, i) => { const v = viewerAt(i); v.zoomTo(); v.render(); });
+}
+
+(async () => {
+  if (!grid) return;
+  for (let i = 0; i < FAM.length; i++) {
+    const e = FAM[i], v = viewerAt(i);
+    try {
+      const text = await (await fetch('/static/reference_structures/' + e.coord_path)).text();
+      const model = v.addModel(text, 'pdb');
+      // Clicking a substituted residue reports how close it sits to the chemistry.
+      model.setClickable({resi: e.mutations || []}, true, atom => {
+        const g = (e.mutation_geometry_json ? JSON.parse(e.mutation_geometry_json) : {})[atom.resi];
+        const card = document.querySelector(`.ov-card[data-id="${CSS.escape(e.enzyme_id)}"]`);
+        if (card && g) {
+          let line = card.querySelector('.ov-pick') || card.appendChild(
+            Object.assign(document.createElement('p'), {className: 'ov-pick'}));
+          line.innerHTML = `<strong>${g.res}${atom.resi}</strong> — ${g.d} Å from the nearest `
+            + `triad side chain` + (g.sep <= 1 ? ', adjacent in sequence' : '');
+        }
+      });
+    } catch (ex) {
+      err.style.display = 'block';
+      err.textContent = 'Could not load ' + e.enzyme_id + ': ' + ex.message;
+    }
+  }
+  paint();
+  focusSite();
+})();
+
+document.getElementById('t-triad').addEventListener('change', paint);
+document.getElementById('t-mut').addEventListener('change', paint);
+document.getElementById('ov-reset').addEventListener('click', focusSite);
+document.getElementById('ov-all').addEventListener('click', zoomAll);
+let spinning = false;
+document.getElementById('ov-spin').addEventListener('click', e => {
+  spinning = !spinning;
+  FAM.forEach((_, i) => viewerAt(i).spin(spinning ? 'y' : false));
+  e.target.textContent = spinning ? 'Stop' : 'Spin';
+  e.target.classList.toggle('active', spinning);
+});
+</script>
+{% endif %}
+{% endblock %}

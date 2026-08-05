@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 SCHEMA = """
 -- ============================================================
@@ -366,4 +366,8 @@ COLUMN_MIGRATIONS = [
     # twenty references were already out by +42, +26 and -40, which silently made the
     # sequence panel mark the wrong residues as catalytic.
     ("reference_structures", "seq_offset", "INTEGER"),
+    # v11: for each substituted residue, how far it sits from the catalytic machinery.
+    # Precomputed from the superposed coordinates: measuring it at request time would put
+    # geometry in the web process, which is deliberately thin.
+    ("reference_structures", "mutation_geometry_json", "TEXT"),
 ]

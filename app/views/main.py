@@ -323,6 +323,54 @@ def compare():
                            env_label=ENV_LABEL)
 
 
+@bp.route("/overlay")
+def overlay():
+    """Small multiples of one lineage, sharing a camera and a coordinate frame.
+
+    The question a table cannot pose: do stabilising mutations keep clear of the catalytic
+    machinery, or do some crowd it? Every structure here was superposed onto IsPETase when
+    it was written, so the panels are already in register and rotating one rotates all.
+    """
+    with connect() as conn:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT rs.enzyme_id, rs.coord_path, rs.source, rs.source_id, rs.plddt_mean, "
+            "       rs.resolution_A, rs.seq_offset, rs.mutation_geometry_json, "
+            "       ce.lineage_wt_id, ce.identity_to_lineage_wt, ce.seq_length, "
+            "       rg.triad_ser_resnum, rg.triad_his_resnum, rg.triad_asp_resnum, "
+            "       rg.cleft_width_A "
+            "FROM reference_structures rs "
+            "JOIN characterised_enzymes ce ON ce.enzyme_id=rs.enzyme_id "
+            "LEFT JOIN reference_geometry rg ON rg.enzyme_id=rs.enzyme_id "
+            "WHERE rs.coord_path IS NOT NULL ORDER BY ce.lineage_wt_id, ce.enzyme_id")]
+
+    for r in rows:
+        m = _mutations_for(r["enzyme_id"])
+        off = r.get("seq_offset") or 0
+        r["derived_from"] = (m or {}).get("derived_from")
+        r["n_mutations"] = (len((m or {}).get("mutations") or [])
+                            or (m or {}).get("n_substitutions"))
+        # Structure numbering for the viewer; the geometry blob is keyed the same way.
+        r["mutations"] = sorted(
+            int("".join(c for c in x if c.isdigit())) + off
+            for x in (m or {}).get("mutations", []) if any(c.isdigit() for c in x))
+        r["mut_geom"] = json.loads(r.get("mutation_geometry_json") or "{}")
+        r["is_root"] = r["enzyme_id"] == r["lineage_wt_id"]
+
+    # Only lineages with more than one member: a grid of one panel compares nothing.
+    lineages: Dict[str, List[Dict[str, Any]]] = {}
+    for r in rows:
+        lineages.setdefault(r["lineage_wt_id"], []).append(r)
+    lineages = {k: sorted(v, key=lambda x: (not x["is_root"], x["n_mutations"] or 0))
+                for k, v in lineages.items() if len(v) > 1}
+
+    order = [k for k in ("IsPETase", "LCC", "BhrPETase", "Cut190") if k in lineages]
+    order += [k for k in lineages if k not in order]
+    want = request.args.get("lineage")
+    active = want if want in lineages else (order[0] if order else None)
+    return render_template("overlay.html", active="overlay", lineages=lineages,
+                           order=order, chosen=active, env_label=ENV_LABEL)
+
+
 @bp.route("/api/structures")
 def api_structures():
     """Structure metadata for the viewer, including triad residue numbers."""

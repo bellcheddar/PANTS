@@ -522,3 +522,35 @@ table.data.enzymes .qualified sup { color: var(--md-accent-amber); font-size: 9p
 .fx-ttl{font-family:var(--mono);font-size:10px;fill:var(--pv-text)}
 .fx-hit{cursor:pointer}
 .fx-hit:hover{opacity:.75}
+
+/* ---------- lineage overlay grid ---------- */
+.lineage-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.lineage-tabs a{font-size:12px;padding:5px 12px;border:1px solid var(--pv-border);
+  border-radius:20px;color:var(--pv-dim);text-decoration:none}
+.lineage-tabs a.on{color:var(--pv-accent);border-color:var(--pv-accent);
+  background:rgba(143,180,255,.10)}
+.lineage-tabs a:hover{color:var(--pv-accent)}
+.key-triad{color:#eaff00;font-weight:600}
+.key-mut{color:#ff2ec4;font-weight:600}
+.ov-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.ov-controls{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ov-controls label{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--pv-dim)}
+.ov-controls button.active{border-color:var(--pv-accent);color:var(--pv-accent);
+  background:rgba(143,180,255,.12)}
+/* One canvas covers the whole grid, so the container is sized and 3Dmol subdivides it.
+   Height scales with the row count rather than being fixed, or a lineage of nine would
+   render nine letterbox slivers. */
+.ov-grid{position:relative;width:100%;
+  /* Height follows the row count: three rows in a 540px box gives 180px slivers. */
+  height:clamp(320px, calc(var(--rows,2) * 230px), 78vh);
+  border:1px solid var(--pv-border);border-radius:var(--md-radius);overflow:hidden;
+  background:#0d1120}
+.ov-legend{display:grid;gap:12px;margin-top:14px;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.ov-card{background:var(--pv-panel);border:1px solid var(--pv-border);border-radius:6px;
+  padding:12px 14px}
+.ov-card h3{margin:0 0 3px;font-size:14px}
+.ov-card p{margin:0;font-size:11.5px;line-height:1.5}
+.ov-dist{margin-top:6px !important;color:var(--pv-text)}
+.ov-dist.close{color:#ff2ec4}
+.ov-pick{margin-top:6px !important;color:var(--md-accent-amber) !important}
