@@ -3,6 +3,26 @@
 **Planning pass output for `pants_spec_v1.md` section 13.**
 **Date: 2026-08-04. Target deployment: `pants.mdeller.com` (port 8005).**
 
+> **Status, 2026-08-05.** This document is the plan as written before any code existed.
+> It is kept unedited as a record of what was predicted, because several predictions were
+> wrong in instructive ways. What actually happened is in
+> [`PHASE1_FINDINGS.md`](PHASE1_FINDINGS.md) and the project README.
+>
+> The three the plan got wrong, all of them assumptions rather than estimates:
+>
+> - **"Order 10^2 positives."** There were 17 with experimental evidence, spanning 5
+>   sequence clusters, which is too few for the plan's own evaluation protocol to run.
+>   Resolved only on the last day, by PAZy.
+> - **Risk 1 was framed as "the negative set might be too easy".** The real problem was
+>   the *positive* labels: 449 of them were assigned by sequence similarity, so a
+>   sequence model reproducing them scored AUC 1.000 and meant nothing.
+> - **The environment list omitted the human gut**, which is the one that matches the
+>   therapeutic framing and now supplies 71% of the catalogue.
+>
+> Estimates, by contrast, held up well: MMseqs2 and HMMER installed cleanly, torch ran on
+> Python 3.14, the two-venv split kept the web process thin, and the compute figures were
+> pessimistic rather than optimistic.
+
 ---
 
 ## 0. What the codebase actually says (corrections to the spec)

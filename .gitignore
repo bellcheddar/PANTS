@@ -36,3 +36,11 @@ models/*.pkl
 
 # pytest
 .pytest_cache/
+
+# macOS/iCloud conflict copies of the database ("pants 2.db" and its WAL/SHM)
+*[0-9].db
+*[0-9].db-wal
+*[0-9].db-shm
+
+# predicted structures are build products, like the mmCIF alongside them
+app/static/structures/*.pdb
