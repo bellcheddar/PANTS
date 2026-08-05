@@ -72,7 +72,9 @@
             title="{{ k.enzyme_id }} · {{ k.family_label }} family">
           <a href="{{ url_for('main.enzyme', enzyme_id=k.enzyme_id) }}">{{ k.display_label }}</a>
           {%- if k.is_root %} <span class="tag">wild type</span>{% endif %}</td>
-        <td class="num">{% if k.topt_c %}{{ '%g'|format(k.topt_c) }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td class="num">{% if k.topt_c %}<span
+            title="{{ k.topt_text or 'No qualifying text recorded.' }}">{{ '%g'|format(k.topt_c) }}</span>
+          {%- else %}<span class="muted" title="No optimum temperature is recorded for this enzyme">—</span>{% endif %}</td>
         <td class="num">{% if k.n_mutations %}{{ k.n_mutations }}{% else %}<span class="muted">—</span>{% endif %}</td>
         <td class="num">{% if k.identity_to_lineage_wt %}{{ '%.1f'|format(k.identity_to_lineage_wt) }}{% else %}<span class="muted">—</span>{% endif %}</td>
         <td class="num">{% if k.cleft_width_A %}<span
@@ -102,6 +104,11 @@
   than four aromatic residues: it is a percentile of the distances between them, so with three instead
   of five it is not comparable with the rest of the column. TurboPETase is the case in point, and it is
   not an artefact: two of its eight substitutions delete an aromatic side chain outright.
+  Where a source records several optima, the one measured on <strong>PET</strong> is shown in
+  preference to one measured on a model ester, and failing that the one with the most independent
+  publications behind it; hover any value for the basis and the alternatives. That choice matters:
+  LCC's optimum is 50 °C on pNP-butanoate but above 70 °C on PET, and the first would place it
+  near the therapeutic end of this table for a substrate the project is not about.
   T<sub>opt</sub> is in °C and cleft width in Å;
   the coloured edge marks the family. %ID is against the wild type at the root of
   that enzyme's own lineage, not against IsPETase: LCC-ICCG is 98.6% identical to LCC and only about
