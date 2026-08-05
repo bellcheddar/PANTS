@@ -72,9 +72,7 @@
 <div class="md-card" style="margin-top:16px">
   <h2>Mutations</h2>
   {% if mut.mutations %}
-  <p>
-    {% for m in mut.mutations %}<span class="mono chip">{{ m }}</span>{% endfor %}
-  </p>
+  <p class="mono" style="font-size:13px;line-height:1.9">{{ mut.mutations|join(', ') }}</p>
   <p class="muted">{{ mut.mutations|length }} substitution{{ '' if mut.mutations|length == 1 else 's' }}
     against <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>. Every one was applied by a
     routine that refuses any substitution whose stated parent residue does not match, so a wrong
@@ -85,7 +83,13 @@
     mutation list.</p>
   {% endif %}
   <p class="muted" style="margin-top:8px">{{ mut.notes }}</p>
-  {% if mut.reference %}<p class="muted">Reference: {{ mut.reference }}</p>{% endif %}
+  {% if mut.reference %}<p class="muted">Reference:
+    {%- if e.reference_doi %} <a href="https://doi.org/{{ e.reference_doi }}" target="_blank"
+        rel="noopener noreferrer">{{ mut.reference }}</a>
+      <span class="mono" style="font-size:10px">doi:{{ e.reference_doi }}</span>
+    {%- else %} {{ mut.reference }}
+      <span title="No DOI is recorded for this citation. A guess would send you to the wrong paper.">(no DOI recorded)</span>
+    {%- endif %}</p>{% endif %}
 </div>
 {% endif %}
 
@@ -191,8 +195,16 @@
 
 {% if seq %}
 <div class="md-card" style="margin-top:16px">
-  <h2>Sequence <span class="muted" style="font-size:12px;font-weight:400">{{ seq|length }} aa</span></h2>
-  <p class="mono" style="word-break:break-all;font-size:12px">{{ seq }}</p>
+  <h2>Sequence <span class="muted" style="font-size:12px;font-weight:400">{{ seq|length }} aa
+    {%- if mut_at %} · {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }} marked{% endif %}</span></h2>
+  {% if mut_at %}
+  <p class="muted" style="font-size:12px">Substitutions against
+    <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a> are marked in red with their position.
+    The residue shown is the one in <em>this</em> enzyme, not the parent.</p>
+  {% endif %}
+  <div class="seq">{% for ch in seq %}{% set pos = loop.index %}{% if mut_at.get(pos) %}<span
+      class="seq-res mut" title="{{ mut_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{% else %}<span
+      class="seq-res">{{ ch }}</span>{% endif %}{% endfor %}</div>
 </div>
 {% endif %}
 

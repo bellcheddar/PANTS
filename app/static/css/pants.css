@@ -349,3 +349,31 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
    table already uses colour for source environments, and a second colour language in the
    same view would read as a category rather than as a threshold. */
 table.data tr.therapeutic td:first-child { box-shadow: inset 3px 0 0 var(--md-accent-green); }
+
+/* ---------- sequence with substitutions marked ---------- */
+/* Laid out as inline-blocks rather than as one text run, because each mutated residue
+   carries its position number above it and a bare <sup> would break the monospace grid:
+   the numbers are wider than one character, so they have to sit outside the flow. */
+.seq {
+  font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; line-height: 2.6; word-break: break-all;
+  padding-top: 6px;
+}
+.seq-res { display: inline-block; width: 1ch; text-align: center; color: var(--pv-text); }
+.seq-res.mut {
+  position: relative;
+  color: #ff4d5e; font-weight: 700;
+  background: rgba(255,77,94,.14);
+  box-shadow: inset 0 0 0 1px rgba(255,77,94,.55);
+  border-radius: 2px;
+}
+/* The position sits above its residue, centred on it. Absolute so a three or four digit
+   number does not push the sequence grid apart. */
+.seq-res.mut .seq-num {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  font-size: 9px; font-weight: 600; line-height: 1.4;
+  color: #ff4d5e; opacity: .95; pointer-events: none;
+  /* Without this the label inherits the 1ch width of the residue it sits above and wraps
+     to one digit per line, so "214" rendered as a vertical column of three characters. */
+  white-space: nowrap;
+}

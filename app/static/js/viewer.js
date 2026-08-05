@@ -75,18 +75,57 @@ const PANTSViewer = (() => {
    * spatially connected Ser/His/Asp) rather than by sequence position, so what is drawn is
    * what was actually measured, not a guess from an alignment.
    */
-  function highlightTriad(model, triad, isReference) {
+  function highlightTriad(model, triad, isReference, entry) {
     const nums = [triad.ser, triad.asp, triad.his].filter(n => Number.isFinite(n));
     if (!nums.length) return;
     const radius = isReference ? 0.15 : 0.25;
     // add=true so the cartoon underneath survives.
     model.setStyle({ resi: nums }, { stick: { radius, colorscheme: 'default' } }, true);
-    if (Number.isFinite(triad.ser)) {
-      model.setStyle({ resi: [triad.ser] }, {
-        stick: { radius, colorscheme: 'default' },
-        sphere: { radius: 0.8, color: '#ff2d55', opacity: 0.4 },
-      }, true);
+
+    // A translucent surface over ALL THREE residues, not a sphere on the nucleophile.
+    // The sphere marked one atom and said nothing about the shape of the pocket the three
+    // residues form together, which is the thing being compared between structures.
+    //
+    // A surface belongs to the VIEWER, not to the model, so unlike setStyle it is not
+    // undone by restyling and has to be tracked and removed explicitly. Its id is kept on
+    // the entry so toggling the triad off, hiding a structure or removing it entirely all
+    // clean up rather than leaving an orphaned surface floating in the scene.
+    addTriadSurface(model, nums, entry);
+  }
+
+  /* Fluorescent yellow, chosen against the viewer's near-black background: the palette
+     used for the structures themselves is all blues and warm mid-tones, so the triad needs
+     a hue that belongs to no structure and reads at low opacity. */
+  const TRIAD_SURFACE_COLOUR = '#eaff00';
+  const TRIAD_SURFACE_OPACITY = 0.55;
+
+  function addTriadSurface(model, nums, entry) {
+    if (!viewer || !entry) return;
+    removeTriadSurface(entry);
+    try {
+      const sel = { resi: nums, model: model };
+      const out = viewer.addSurface(
+        $3Dmol.SurfaceType.VDW,
+        { opacity: TRIAD_SURFACE_OPACITY, color: TRIAD_SURFACE_COLOUR },
+        sel, sel);
+      // 3Dmol changed addSurface from returning a surface id to returning a Promise that
+      // resolves to one. Handle both so this does not silently stop cleaning up when the
+      // CDN serves a newer build.
+      if (out && typeof out.then === 'function') {
+        out.then(res => { entry.surf = (res && res.surfid !== undefined) ? res.surfid : res; });
+      } else {
+        entry.surf = (out && out.surfid !== undefined) ? out.surfid : out;
+      }
+    } catch (err) {
+      // A surface is an enhancement; failing to build one must not take the viewer down.
+      entry.surf = null;
     }
+  }
+
+  function removeTriadSurface(entry) {
+    if (!entry || entry.surf === null || entry.surf === undefined) return;
+    try { viewer.removeSurface(entry.surf); } catch (err) { /* already gone */ }
+    entry.surf = null;
   }
 
   /**
@@ -115,10 +154,12 @@ const PANTSViewer = (() => {
     const model = viewer.addModel(text, 'pdb');
     applySS(model, text);
     model.setStyle({}, styleFor(colour, opts.isReference));
-    if (opts.triad) highlightTriad(model, opts.triad, opts.isReference);
 
-    loaded.set(id, { model, colour, triad: opts.triad || null,
-                     isReference: !!opts.isReference });
+    // The entry exists before the triad is drawn, because the surface id is stored on it.
+    const entry = { model, colour, triad: opts.triad || null,
+                    isReference: !!opts.isReference, surf: null };
+    loaded.set(id, entry);
+    if (opts.triad) highlightTriad(model, opts.triad, opts.isReference, entry);
     focusActiveSite();
     viewer.render();
     return id;
@@ -127,7 +168,8 @@ const PANTSViewer = (() => {
   function setTriadVisible(on) {
     loaded.forEach(entry => {
       entry.model.setStyle({}, styleFor(entry.colour, entry.isReference));
-      if (on && entry.triad) highlightTriad(entry.model, entry.triad, entry.isReference);
+      removeTriadSurface(entry);
+      if (on && entry.triad) highlightTriad(entry.model, entry.triad, entry.isReference, entry);
     });
     viewer.render();
   }
@@ -135,6 +177,7 @@ const PANTSViewer = (() => {
   function remove(id) {
     const entry = loaded.get(id);
     if (!entry) return;
+    removeTriadSurface(entry);
     viewer.removeModel(entry.model);
     loaded.delete(id);
     viewer.render();
@@ -144,7 +187,8 @@ const PANTSViewer = (() => {
     const entry = loaded.get(id);
     if (!entry) return;
     entry.model.setStyle({}, visible ? styleFor(entry.colour, entry.isReference) : {});
-    if (visible && entry.triad) highlightTriad(entry.model, entry.triad, entry.isReference);
+    removeTriadSurface(entry);
+    if (visible && entry.triad) highlightTriad(entry.model, entry.triad, entry.isReference, entry);
     viewer.render();
   }
 

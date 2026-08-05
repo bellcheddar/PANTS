@@ -107,7 +107,24 @@ def home():
         m = _mutations_for(row["enzyme_id"])
         row["n_mutations"] = len(m["mutations"]) if m and m.get("mutations") else None
         row["parent"] = (m or {}).get("parent") or row.get("matched_positive_id")
-        row["pdb_first"] = (json.loads(row.get("pdb_ids_json") or "[]") or [None])[0]
+        row["pdb_ids"] = json.loads(row.get("pdb_ids_json") or "[]")
+        # A published performance figure where there is one, the curated description
+        # otherwise, so no row is blank.
+        row["headline_text"] = row.get("performance") or row.get("headline")
+        row["reference"] = (m or {}).get("reference")
+        row["reference_doi"] = _reference_doi(row["reference"])
+
+    # Grouped by lineage, wild type first within each group, IsPETase's lineage first
+    # overall. Sorting by name would scatter a lineage across the table; this keeps a wild
+    # type next to the variants built on it, which is how the set is actually read.
+    lineage_first = {"IsPETase": 0, "LCC": 1, "BhrPETase": 2, "Cut190": 3, "TfCut2": 4}
+    def _key(r):
+        root = r.get("lineage_wt_id") or r["enzyme_id"]
+        return (lineage_first.get(root, 9), root,
+                0 if root == r["enzyme_id"] else 1,      # wild type heads its group
+                -(r.get("identity_to_lineage_wt") or 0),  # then most-similar first
+                r["enzyme_id"])
+    known.sort(key=_key)
     return render_template("home.html", active="home", counts=counts, known=known,
                            by_env=by_env, top=top, n_visible=10, env_label=ENV_LABEL)
 
@@ -245,7 +262,8 @@ def _named_enzyme_rows() -> List[Dict[str, Any]]:
         return [dict(r) for r in conn.execute(f"""SELECT * FROM (
             SELECT ce.enzyme_id, ce.uniprot, ce.organism, ce.seq_length, ce.source_ref,
                    ce.pdb_ids_json, ce.matched_positive_id, ce.family,
-                   ce.activity_substrate_notes,
+                   ce.activity_substrate_notes, ce.headline,
+                   ce.lineage_wt_id, ce.identity_to_lineage_wt,
                    (SELECT a.rate_value FROM activity_measurements a
                      WHERE a.enzyme_id=ce.enzyme_id AND a.parameter_type='topt'
                      ORDER BY {_EVIDENCE_RANK} LIMIT 1)               AS topt_c,
@@ -272,6 +290,23 @@ def _named_enzyme_rows() -> List[Dict[str, Any]]:
             LEFT JOIN reference_geometry  rg ON rg.enzyme_id = ce.enzyme_id
             WHERE {NAMED_ENZYME_FILTER} AND ce.is_positive = 1
             ) ORDER BY (topt_c IS NULL), topt_c, enzyme_id""")]
+
+
+def _reference_doi(reference: Optional[str]) -> Optional[str]:
+    """Verified DOI for a citation string, or None.
+
+    None is a real answer here, not a gap to paper over: the 2025 review and the Cut190
+    reference have no DOI recorded, and a plausible-looking guess would send a reader to
+    the wrong paper. Only DOIs checked through Crossref -- resolved, and the type, title,
+    journal and year matched against the citation -- are in the map.
+    """
+    if not reference:
+        return None
+    try:
+        from pipeline.recall import seeds
+    except Exception:
+        return None
+    return seeds.REFERENCE_DOI.get(reference)
 
 
 def _mutations_for(enzyme_id: str) -> Optional[Dict[str, Any]]:
@@ -376,9 +411,25 @@ def enzyme(enzyme_id: str):
             "ORDER BY rs.enzyme_id", (enzyme_id,))]
 
     mut = _mutations_for(enzyme_id)
+    row = dict(row)
+    row["reference_doi"] = _reference_doi((mut or {}).get("reference"))
+
+    # Map 1-based sequence position -> mutation label, for marking up the sequence panel.
+    # Every confirmed variant in this set matched its parent at offset 0, which is what
+    # apply_mutations verifies, so the stated position indexes the stored sequence
+    # directly. If a set ever needed an offset that fact would be recorded with it, and
+    # this would have to apply it rather than assume zero.
+    mut_at: Dict[int, str] = {}
+    if mut and mut.get("mutations"):
+        for label in mut["mutations"]:
+            digits = "".join(ch for ch in label if ch.isdigit())
+            if digits:
+                mut_at[int(digits)] = label
+
     return render_template(
         "enzyme.html", active="home", e=row, seq=seq[0] if seq else None,
         mut=mut, measurements=measurements, children=children, nearest=nearest,
         n_nearest=n_nearest, others=others, links=_links_for(row, mut),
+        mut_at=mut_at,
         clamp=json.loads(row.get("aromatic_clamp_residues_json") or "[]"),
         env_label=ENV_LABEL)

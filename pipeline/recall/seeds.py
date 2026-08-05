@@ -190,7 +190,7 @@ VARIANTS: List[Variant] = [
         mutations=["N37D", "S121E", "R132E", "A171C", "A180V", "P181V", "D186H",
                    "S193C", "R224E", "N233C", "S242T", "N246D", "S282C"],
         mutations_confirmed=True,
-        reference="Three-directional engineering of IsPETase (PDB 8H5K)",
+        reference="J. Hazard. Mater. 2023",
         notes="Thirteen mutations on IsPETase, including two engineered disulfides "
               "(A171C-S193C, N233C-S282C) and four shared with FAST-PETase "
               "(S121E/D186H/S242T/N246D). Topt 30 C. Confirmed TWICE and independently: "
@@ -204,7 +204,7 @@ VARIANTS: List[Variant] = [
         enzyme_id="DepoPETase", parent="IsPETase",
         mutations=["T88I", "D186H", "D220N", "N233K", "N246D", "R260Y", "S290P"],
         mutations_confirmed=True,
-        reference="Directed evolution of flexible loops, Cell Rep. Phys. Sci. 2023",
+        reference="Cell Rep. Phys. Sci. 2024",
         notes="Seven-mutation IsPETase from flexible-loop directed evolution: Tm +23.3 C "
               "and ~1407-fold more product than wild type. All seven match at offset 0.",
     ),
@@ -212,7 +212,7 @@ VARIANTS: List[Variant] = [
         enzyme_id="LCC-A2", parent="LCC",
         mutations=["F243I", "D238C", "S283C", "Y127G", "H218Y", "N248D"],
         mutations_confirmed=True,
-        reference="Reported relative to LCC-ICCG in the 2025 PET-hydrolase review",
+        reference="Reported relative to LCC-ICCG; 2025 PET-hydrolase review",
         notes="LCC-ICCG plus H218Y/N248D, Topt 78 C. Expressed here against WILD-TYPE LCC "
               "(all six mutations, offset 0) rather than against LCC-ICCG, because a "
               "variant can only be derived from a parent in WILD_TYPES and chaining a "
@@ -306,6 +306,32 @@ VARIANTS: List[Variant] = [
 PDB_DERIVED = {
     "HotPETase": ("7QVH", "IsPETase", 21, "Bell et al. 2022, Nat. Catal."),
     "Cut190**SS": ("7CEF", "Cut190", 4, "Oda/Kawai et al."),
+}
+
+
+# DOIs for the reference strings above, each VERIFIED through Crossref: resolved, and the
+# returned type, title, journal and year checked against the citation rather than trusting
+# the first search hit.
+#
+# That check was not ceremony. A bibliographic search returned, for five of these, a DOI
+# that resolves to something adjacent but wrong: `10.1021/acscatal.0c05126.s001` is the
+# SUPPLEMENTARY FILE for Cui et al., not the paper (the `.sNNN` suffix is the tell);
+# `10.26434/chemrxiv-2021-mcjh6` is the ChemRxiv PREPRINT of Bell et al., not the Nature
+# Catalysis article; and the top hits for Lu et al. and Tournier et al. were both Faculty
+# Opinions RECOMMENDATIONS of the paper, which have their own DOIs and are not the paper.
+# All four look right in a citation and send the reader somewhere else.
+REFERENCE_DOI = {
+    "Cui et al. 2021, ACS Catal.":                 "10.1021/acscatal.0c05126",
+    "Son et al. 2019, ACS Catal.":                 "10.1021/acscatal.9b00568",
+    "Bell et al. 2022, Nat. Catal.":               "10.1038/s41929-022-00821-3",
+    "Lu et al. 2022, Nature (MutCompute)":         "10.1038/s41586-022-04599-z",
+    "Tournier et al. 2020, Nature":                "10.1038/s41586-020-2149-4",
+    "Austin et al. 2018, PNAS":                    "10.1073/pnas.1718804115",
+    "Zhang et al. 2024, Nat. Commun. 15:1417":     "10.1038/s41467-024-45662-9",
+    "Cell Rep. Phys. Sci. 2024":                   "10.1016/j.xcrp.2024.102295",
+    "J. Hazard. Mater. 2023":                      "10.1016/j.jhazmat.2023.132297",
+    # The wild types' own describing papers, for the pages that have no variant reference.
+    "IsPETase":                                    "10.1126/science.aad6359",
 }
 
 

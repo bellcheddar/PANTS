@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 9
 
 SCHEMA = """
 -- ============================================================
@@ -351,4 +351,13 @@ COLUMN_MIGRATIONS = [
     ("geometry", "oxyanion_n2_angle_deg", "REAL"),
     # Which family definition admitted a within-family negative: cluster | profile | both.
     ("characterised_enzymes", "within_family_basis", "TEXT"),
+    # v8: identity to the wild type at the root of this enzyme's lineage, and which enzyme
+    # that is. Precomputed because the alignment needs biotite and the web virtual
+    # environment is deliberately thin.
+    ("characterised_enzymes", "lineage_wt_id", "TEXT"),
+    ("characterised_enzymes", "identity_to_lineage_wt", "REAL"),
+    # v9: one-line description for the summary table. A curated condensation of the notes
+    # this project already holds, kept OUT of activity_measurements because most of these
+    # describe what an enzyme IS rather than reporting a measured value.
+    ("characterised_enzymes", "headline", "TEXT"),
 ]
