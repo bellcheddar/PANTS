@@ -139,6 +139,13 @@ def home():
         # A published performance figure where there is one, the curated description
         # otherwise, so no row is blank.
         row["headline_text"] = row.get("performance") or row.get("headline")
+        # Cleft width is the 90th percentile of PAIRWISE distances between the aromatic
+        # side chains lining the pocket, so it depends on how many there are: five gives
+        # ten pairs, three gives three, and the two are not the same statistic.
+        # TurboPETase reads 8.7 A against 17-24 A for everything else, and it is not an
+        # artefact -- F222I and F243T delete two of its five aromatics outright. The
+        # number is right and the COMPARISON is not, so the count travels with it.
+        row["n_aromatic"] = len(json.loads(row.get("aromatic_clamp_residues_json") or "[]"))
         row["reference"] = (m or {}).get("reference")
         row["reference_doi"] = _reference_doi(row["reference"])
 

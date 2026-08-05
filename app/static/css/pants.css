@@ -499,3 +499,9 @@ table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: now
 }
 *::-webkit-scrollbar-thumb:hover { background: var(--pv-accent); }
 *::-webkit-scrollbar-corner { background: var(--pv-panel); }
+
+/* A number that is correct but not comparable with its column. Dimmed rather than hidden:
+   removing it would lose real geometry, and presenting it plainly invites a comparison the
+   statistic does not support. */
+table.data.enzymes .qualified { color: var(--pv-dim); }
+table.data.enzymes .qualified sup { color: var(--md-accent-amber); font-size: 9px; }
