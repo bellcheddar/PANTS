@@ -330,6 +330,8 @@ REFERENCE_DOI = {
     "Zhang et al. 2024, Nat. Commun. 15:1417":     "10.1038/s41467-024-45662-9",
     "Cell Rep. Phys. Sci. 2024":                   "10.1016/j.xcrp.2024.102295",
     "J. Hazard. Mater. 2023":                      "10.1016/j.jhazmat.2023.132297",
+    "Oda/Kawai et al.":                            "10.1021/acs.biochem.8b00624",
+    "Reported relative to LCC-ICCG; 2025 PET-hydrolase review": "10.1002/pro.70282",
     # The wild types' own describing papers, for the pages that have no variant reference.
     "IsPETase":                                    "10.1126/science.aad6359",
 }

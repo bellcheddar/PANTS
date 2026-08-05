@@ -32,20 +32,26 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from pipeline.db import connect, retry_write
 
-SOURCE = "https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/"
+# The PRIMARY paper for each enzyme, not the review these values were collated from.
+# A reader following a citation should land on the work that made the measurement; a
+# secondary write-up is a route to the primary source, not a substitute for it. Every DOI
+# here was verified through Crossref: resolved, and the type, title, journal and year
+# checked against the citation.
+LEGACY_SOURCE = "https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/"
 
-# enzyme_id, midpoint °C, verbatim wording, headline performance claim
+# enzyme_id, midpoint °C, verbatim wording, headline performance claim, primary DOI
 ROWS = [
-    ("Z1-PETase",    30.0, "30 °C",              "13 mutations, two engineered disulfides; 40x expression yield"),
-    ("IsPETase",     32.5, "30 to 35 °C",        "Wild type; weak on crystalline PET"),
-    ("DuraPETase",   37.0, "37 °C",              "10 mutations; +31 °C thermostability, ~300x activity"),
-    ("FAST-PETase",  50.0, "50 °C",              "38x activity; 33.8 mM monomers in 96 h"),
-    ("DepoPETase",   50.0, "~50 °C (applied)",   "7 mutations; melting temperature +23.3 °C, ~1407x product"),
-    ("HotPETase",    62.5, "60 to 65 °C",        "21 mutations; melting temperature 82.5 °C"),
-    ("Cut190**SS",   65.0, "65 °C",              "Calcium-dependent conformational switching"),
-    ("TurboPETase",  66.5, "65 to 68 °C",        "98.2% depolymerisation at 200 g/kg in 8 h"),
-    ("LCC-ICCG",     68.5, "65 to 72 °C",        "1.3 g PET waste in 3 days from 1.25 mg enzyme"),
-    ("LCC-A2",       78.0, "78 °C",              "LCC-ICCG plus H218Y/N248D"),
+    ("Z1-PETase",    30.0, "30 °C",              "13 mutations, two engineered disulfides; 40x expression yield", "10.1016/j.jhazmat.2023.132297"),
+    ("IsPETase",     32.5, "30 to 35 °C",        "Wild type; weak on crystalline PET",                             "10.1126/science.aad6359"),
+    ("DuraPETase",   37.0, "37 °C",              "10 mutations; +31 °C thermostability, ~300x activity",           "10.1021/acscatal.0c05126"),
+    ("FAST-PETase",  50.0, "50 °C",              "38x activity; 33.8 mM monomers in 96 h",                         "10.1038/s41586-022-04599-z"),
+    ("DepoPETase",   50.0, "~50 °C (applied)",   "7 mutations; melting temperature +23.3 °C, ~1407x product",      "10.1016/j.xcrp.2024.102295"),
+    ("HotPETase",    62.5, "60 to 65 °C",        "21 mutations; melting temperature 82.5 °C",                      "10.1038/s41929-022-00821-3"),
+    ("Cut190**SS",   65.0, "65 °C",              "Calcium-dependent conformational switching",                     "10.1021/acs.biochem.8b00624"),
+    ("TurboPETase",  66.5, "65 to 68 °C",        "98.2% depolymerisation at 200 g/kg in 8 h",                      "10.1038/s41467-024-45662-9"),
+    ("LCC-ICCG",     68.5, "65 to 72 °C",        "1.3 g PET waste in 3 days from 1.25 mg enzyme",                  "10.1038/s41586-020-2149-4"),
+    ("LCC-A2",       78.0, "78 °C",              "LCC-ICCG plus H218Y/N248D",                                      "10.1002/pro.70282"),
+    ("ThermoPETase", 50.0, "50 °C",              "3 mutations; the thermostabilised scaffold FAST-PETase was built on", "10.1021/acscatal.9b00568"),
 ]
 
 
@@ -54,17 +60,23 @@ def main() -> None:
     with connect() as c:
         known = {e for e in c.execute("SELECT enzyme_id FROM characterised_enzymes")
                  for e in [e[0]]}
+        # Rows written by an earlier run pointed at the review rather than the primary
+        # paper. Repoint them rather than inserting duplicates.
+        for enzyme_id, _m, _v, _c, doi in ROWS:
+            c.execute("UPDATE activity_measurements SET source_doi=? "
+                      "WHERE enzyme_id=? AND source_doi=?",
+                      (doi, enzyme_id, LEGACY_SOURCE))
         existing = {(r[0], r[1]) for r in c.execute(
             "SELECT enzyme_id, parameter_type FROM activity_measurements "
-            "WHERE source_doi = ?", (SOURCE,))}
+            "WHERE extraction_confidence = 'review'")}
 
-    for enzyme_id, midpoint, verbatim, claim in ROWS:
+    for enzyme_id, midpoint, verbatim, claim, doi in ROWS:
         if enzyme_id not in known:
             print(f"  SKIP {enzyme_id}: not in characterised_enzymes")
             skipped += 1
             continue
 
-        def _do(enzyme_id=enzyme_id, midpoint=midpoint, verbatim=verbatim, claim=claim):
+        def _do(enzyme_id=enzyme_id, midpoint=midpoint, verbatim=verbatim, claim=claim, doi=doi):
             with connect() as c:
                 if (enzyme_id, "topt") not in existing:
                     c.execute(
@@ -76,20 +88,23 @@ def main() -> None:
                          f"Published as {verbatim}."
                          + (" Midpoint stored in the numeric column; the published "
                             "interval is this text." if " to " in verbatim else ""),
-                         "ECO:0000305", SOURCE, "review"))
+                         "ECO:0000305", doi, "review"))
                 if (enzyme_id, "performance_claim") not in existing:
                     c.execute(
                         "INSERT INTO activity_measurements (enzyme_id, parameter_type, "
                         " substrate_form, raw_text, evidence_code, source_doi, "
                         " extraction_confidence) VALUES (?,?,?,?,?,?,?)",
                         (enzyme_id, "performance_claim", "PET", claim,
-                         "ECO:0000305", SOURCE, "review"))
+                         "ECO:0000305", doi, "review"))
         retry_write(_do)
         added += 1
 
     with connect() as c:
-        n = c.execute("SELECT COUNT(*) FROM activity_measurements WHERE source_doi=?",
-                      (SOURCE,)).fetchone()[0]
+        n = c.execute("SELECT COUNT(*) FROM activity_measurements "
+                      "WHERE extraction_confidence='review'").fetchone()[0]
+        blog = c.execute("SELECT COUNT(*) FROM activity_measurements "
+                         "WHERE source_doi LIKE '%marcdeller.com%'").fetchone()[0]
+        print(f"  rows still citing the blog: {blog}")
         tot = c.execute("SELECT COUNT(*) FROM activity_measurements").fetchone()[0]
     print(f"\n  processed {added}, skipped {skipped}")
     print(f"  rows from this review: {n} of {tot} measurements total")

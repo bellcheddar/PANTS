@@ -2,37 +2,35 @@
 {% block title %}Home{% endblock %}
 {% block content %}
 <div class="md-card">
-  <h2>Therapeutic PETase Design</h2>
-  <p>PANTS mines metagenomic sequence space for PET-degrading enzymes to enable protein
-  engineering and therapeutic discovery.</p>
+  <h2 class="lead-title"><strong>Therapeutic PETase Design:</strong> PANTS mines metagenomic
+  sequence space for PET-degrading enzymes to enable protein engineering and therapeutic
+  discovery.</h2>
 
   <p class="lede">PET is the plastic in drinks bottles and polyester clothing, and fragments of it
-  now turn up in human blood and tissue. A handful of bacterial enzymes can cut PET apart, but
-  almost every one was found or engineered for an industrial recycling reactor: hot, alkaline, and
-  nothing like a human body. An enzyme that would work as a <em>therapeutic</em> has to do its job
-  at 37 °C in blood, and the published lineage has been moving steadily in the opposite direction.</p>
+  now turn up in human blood and tissue. A few bacterial enzymes can cut PET apart, but almost every
+  one was found or engineered for an industrial recycling reactor: hot, alkaline, nothing like a
+  human body. A <em>therapeutic</em> enzyme has to work at 37 °C in blood, and the published lineage
+  has been moving steadily the other way.</p>
 
-  <p class="lede">So this looks somewhere else. <strong>Metagenomics</strong> reads the DNA of whole
-  microbial communities straight from the environment, without culturing anything, which reaches the
-  overwhelming majority of bacteria nobody has ever grown in a lab. PANTS searches four such
-  communities that have all had decades of exposure to plastic and every reason to evolve a use for
-  it: the <strong>human gut</strong>, <strong>compost</strong>, the <strong>ocean surface</strong>
-  where plastic debris collects, and <strong>landfill</strong>. Roughly 15 million protein sequences
-  from those environments are scanned for the polyesterase fold, then filtered on whether the three
-  catalytic residues actually meet in three-dimensional space rather than merely appearing in the
-  sequence. Survivors get a predicted structure, an active-site measurement, and a rank.</p>
+  <p class="lede">So PANTS looks somewhere else. <strong>Metagenomics</strong> reads the DNA of
+  whole microbial communities straight from the environment, without culturing anything, reaching
+  the vast majority of bacteria nobody has ever grown in a lab. PANTS searches four communities with
+  decades of plastic exposure and every reason to have evolved a use for it: the
+  <strong>human gut</strong>, <strong>compost</strong>, the <strong>ocean surface</strong> where
+  debris collects, and <strong>landfill</strong>. Some 15 million protein sequences are scanned for
+  the polyesterase fold, then filtered on whether the three catalytic residues actually meet in
+  space rather than merely appearing in the sequence. Survivors get a predicted structure, an
+  active-site measurement and a rank.</p>
 
   <div class="caveat">
-    <strong>The honest part.</strong> Detecting this enzyme family is easy; telling which members
-    actually chew through PET is not, and that is the open problem here. Only
-    <strong>{{ counts.evidenced }}</strong> of {{ counts.positives }} positives rest on a published
-    measurement rather than on a computer inferring the label from sequence similarity. Trained on
-    the measured ones the model separates real PET enzymes from other members of the fold at AUC
-    0.976 across 45 independent sequence families. Trained on the inferred ones it scores a perfect
-    1.000 — which is not a better model but a circular one, since it is only rediscovering the rule
-    used to make the labels. Scores here rank candidates worth testing at the bench; they are not
-    evidence that any candidate works. <a href="{{ url_for('main.methods') }}">Read the Methods
-    page</a> before using one.
+    <strong>The honest part.</strong> Finding this enzyme family is easy. Telling which of its
+    members actually chew through PET is not, and that is the open problem PANTS exists to work on.
+    Only {{ counts.evidenced }} of the {{ counts.positives }} enzymes it learns from rest on a
+    published measurement; the rest carry a label a computer inferred from sequence similarity. A
+    model trained on those inferred labels looks flawless, but only because it has rediscovered the
+    rule that made them. Scores here rank candidates worth testing at the bench. They are not
+    evidence that any candidate works.
+    <a href="{{ url_for('main.methods') }}">Read the Methods page</a> before using PANTS.
   </div>
 </div>
 
