@@ -67,8 +67,18 @@ def fetch():
         within = list(c.execute(
             "SELECT enzyme_id, sequence FROM characterised_enzymes "
             "WHERE source_ref='PAZy-nonPET' AND sequence IS NOT NULL"))
+        # Same negatives, sliced by which family definition admitted them. The conclusion
+        # should not depend on that choice; if it does, that is worth knowing.
+        by_basis = {}
+        for b in ("cluster", "profile", "both"):
+            q = ("SELECT enzyme_id, sequence FROM characterised_enzymes "
+                 "WHERE source_ref='PAZy-nonPET' AND sequence IS NOT NULL AND "
+                 + ("within_family_basis IN ('cluster','both')" if b == "cluster" else
+                    "within_family_basis IN ('profile','both')" if b == "profile" else
+                    "within_family_basis='both'"))
+            by_basis[b] = [tuple(r) for r in c.execute(q)]
     return ([tuple(r) for r in pos], [tuple(r) for r in out_of_family],
-            [tuple(r) for r in near_miss], [tuple(r) for r in within])
+            [tuple(r) for r in near_miss], [tuple(r) for r in within], by_basis)
 
 
 def evaluate(name, pos, neg, X_by_id, restrict_to_mixed=False):
@@ -118,7 +128,7 @@ def evaluate(name, pos, neg, X_by_id, restrict_to_mixed=False):
 
 if __name__ == "__main__":
     dataset.apply_filters()
-    pos, out_of_family, near_miss, within = fetch()
+    pos, out_of_family, near_miss, within, by_basis = fetch()
     print(f"measured positives      {len(pos)}")
     print(f"out-of-family negatives {len(out_of_family)}")
     print(f"near-miss negatives     {len(near_miss)}")
@@ -132,6 +142,9 @@ if __name__ == "__main__":
         ("near-miss", near_miss, False),
         ("within-family", within, False),
         ("within-family-mixed-clusters-only", within, True),
+        ("within-family[cluster-defined]", by_basis["cluster"], True),
+        ("within-family[profile-defined]", by_basis["profile"], True),
+        ("within-family[both-tests]", by_basis["both"], True),
     ]
     results = []
     for name, neg, restrict in regimes:

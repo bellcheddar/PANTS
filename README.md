@@ -285,7 +285,7 @@ What is in the database today:
 | Positives | 854 | Of which **341 experimentally measured**, the rest predicted (see below) |
 | Hard negatives | 131 | Matched on five axes |
 | Measured-set head | AUC **0.976** | 45 independent clusters, against a 0.829 composition baseline |
-| Near misses | 150 | 124 ESTHER `Cutinase` family, plus **26 within-family negatives**: PAZy enzymes measured on another plastic that share a 30% cluster with a PET-active one |
+| Near misses | 153 | 124 ESTHER `Cutinase` family, plus **29 within-family negatives**: PAZy enzymes measured on another plastic that share a 30% cluster with a PET-active one |
 | Activity measurements | 48 | Km, Topt, pH optimum, each citing its PubMed IDs |
 | Embeddings | 848 | ESM-2 t12-35M, 480-dim, frozen |
 | Excluded from training | 70 | Fragments and length outliers, marked not deleted |
@@ -400,7 +400,28 @@ at the boundary that matters.** The head beats composition in every regime excep
 In the strictest one, where every negative has a PET-active enzyme inside its own cluster,
 so family membership carries no information at all, it scores 0.493: a coin flip.
 
-**That last row is underpowered, and saying so is part of the result.** One cluster holds
+**The conclusion does not depend on where the family boundary is drawn.** "Inside the
+family" has no single right answer, so the same test was run under three definitions:
+
+| Family definition | Negatives | Shared clusters | Head AUC | Composition |
+|---|---|---|---|---|
+| Shares a 30% cluster with a PET-active enzyme | 26 | 7 | 0.493 ± 0.297 | 0.398 |
+| Hits the per-cluster profile library (the test recall applies to every candidate) | 12 | 3 | **0.279 ± 0.168** | 0.413 |
+| Passes both | 12 | 3 | 0.279 ± 0.168 | 0.413 |
+
+Under the stricter, profile-based definition the head is not merely at chance but
+*inverted*: it ranks the within-family negatives **above** the PET-active enzymes. With 12
+negatives across 3 shared clusters that is not evidence of a real inverse signal, and it
+should not be read as one. What it does do is close off the remaining optimistic reading,
+because no choice of family boundary produces discrimination.
+
+A fourth definition was tried and rejected rather than reported: the pooled `PLC_all.hmm`
+profile admits only 6 of the 155, and misses proteins literally named `Cutinase` and
+`CutL1`. That is the pooled profile's already-documented failure — it scored 0/111 on the
+near misses, which is why the per-cluster library exists — and quoting it would have
+understated the negative set by reproducing a known bug.
+
+**The strictest rows are underpowered, and saying so is part of the result.** One cluster holds
 85% of the positives, so the cluster-grouped folds come out badly lopsided, and the
 per-fold AUCs are 0.193, 0.714, 0.208 and 0.857. A mean of 0.493 across that spread cannot
 distinguish "no signal" from "not enough data to detect one". What it does rule out is a

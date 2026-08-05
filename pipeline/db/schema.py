@@ -301,4 +301,6 @@ COLUMN_MIGRATIONS = [
     ("geometry", "oxyanion_n1_resnum", "INTEGER"),
     ("geometry", "oxyanion_n2_resnum", "INTEGER"),
     ("geometry", "oxyanion_n2_angle_deg", "REAL"),
+    # Which family definition admitted a within-family negative: cluster | profile | both.
+    ("characterised_enzymes", "within_family_basis", "TEXT"),
 ]

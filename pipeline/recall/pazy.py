@@ -29,6 +29,7 @@ is the experimental one. Do not mistake it for a per-record confidence score.
 
 from __future__ import annotations
 
+import pathlib
 from dataclasses import dataclass
 from typing import Dict, Iterator, List, Optional
 
@@ -70,6 +71,41 @@ def _first_doi(p: dict) -> Optional[str]:
     return None
 
 
+def _profile_family_hits(sequences: Dict[str, str], evalue: float = 1e-5) -> Dict[str, float]:
+    """Which sequences hit the per-cluster profile HMM library.
+
+    Uses the library the recall stage actually scans candidates against, NOT the pooled
+    `PLC_all.hmm`. The pooled profile misses proteins named `Cutinase` and `CutL1`
+    outright, which is the same failure that scored it 0/111 on the near misses.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+
+    from .. import config, seqtools
+
+    lib = config.INTERIM_DIR / "library2" / "library.hmm"
+    if not lib.exists() or shutil.which("hmmscan") is None or not sequences:
+        return {}
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    fasta = seqtools.write_fasta(sequences.items(), tmp / "q.fasta")
+    tbl = tmp / "q.tbl"
+    proc = subprocess.run(
+        ["hmmscan", "--tblout", str(tbl), "-E", str(evalue), "--noali", str(lib), str(fasta)],
+        capture_output=True, text=True)
+    if proc.returncode != 0:
+        return {}
+    best: Dict[str, float] = {}
+    for line in tbl.read_text().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        f = line.split()
+        sid, e = f[2], float(f[4])
+        if sid not in best or e < best[sid]:
+            best[sid] = e
+    return best
+
+
 def load_within_family_negatives(label: str = "v1", identity: float = 0.3
                                  ) -> Dict[str, object]:
     """PAZy enzymes measured on a plastic that is NOT PET, restricted to those sharing a
@@ -95,6 +131,26 @@ def load_within_family_negatives(label: str = "v1", identity: float = 0.3
     stored under their own source_ref so they can always be included or excluded
     deliberately, and any metric computed against them is a lower bound on how well the
     head separates true PET activity, not a clean estimate of it.
+
+    **Two family definitions, both recorded.** "Inside the family" has no single right
+    answer, and the choice changes the answer, so neither is hidden:
+
+      cluster   shares a 30% identity cluster with a PET-active enzyme          26
+      profile   hits the per-cluster profile HMM library, which is the SAME     15
+                test the recall stage applies to every metagenomic candidate
+      both                                                                      12
+      union                                                                     29
+
+    Each negative records which tests it passed, so an evaluation can be run under any of
+    them. That matters because neither test is clean: the profile library admits PAZy:165,
+    an enzyme named "Amidase" that has no business in a polyesterase set, and the cluster
+    test admits proteins that cluster with polyesterases without hitting any profile.
+
+    A third definition was tried and discarded: the pooled `PLC_all.hmm` profile matches
+    only 6, and misses proteins literally named `Cutinase` and `CutL1`. That is the pooled
+    profile's known failure -- it scored 0/111 on the near misses, which is why the
+    per-cluster library exists -- and using it here would have understated the set by
+    reproducing a bug already documented in library.py.
     """
     from .. import seqtools
 
@@ -121,6 +177,12 @@ def load_within_family_negatives(label: str = "v1", identity: float = 0.3
         for member, rep in clusters.items():
             grouped.setdefault(rep, []).append(member)
 
+        # Second family test: the per-cluster profile library, which is the SAME test the
+        # recall stage applies to every metagenomic candidate. Run over the non-PET set so
+        # each negative can record which definitions it satisfies.
+        profile_hits = _profile_family_hits(
+            {k: v["amino_acid_sequence"] for k, v in by_id.items() if k not in pet})
+
         keep = []
         for rep, members in grouped.items():
             has_pet = any(mm in pet for mm in members)
@@ -128,7 +190,16 @@ def load_within_family_negatives(label: str = "v1", identity: float = 0.3
             if has_pet and others:
                 report["mixed_clusters"] = int(report["mixed_clusters"]) + 1
                 keep.extend((mm, rep) for mm in others)
+        # Union: cluster-shared OR profile-matched. Recorded separately rather than
+        # merged, because the choice of family definition changes the answer.
+        in_cluster = {mm for mm, _rep in keep}
+        for mm in profile_hits:
+            if mm not in in_cluster:
+                keep.append((mm, None))
         report["candidates"] = len(keep)
+        report["by_cluster"] = len(in_cluster)
+        report["by_profile"] = len(profile_hits)
+        report["by_both"] = len(in_cluster & set(profile_hits))
 
         with connect() as conn:
             for eid, rep in keep:
@@ -160,6 +231,11 @@ def load_within_family_negatives(label: str = "v1", identity: float = 0.3
                       + f"Curated set: {CITATION}."),
                      "PAZy-nonPET", now()),
                 )
+                basis = ("both" if (eid in in_cluster and eid in profile_hits)
+                         else "cluster" if eid in in_cluster else "profile")
+                conn.execute(
+                    "UPDATE characterised_enzymes SET within_family_basis=? "
+                    "WHERE enzyme_id=?", (basis, f"{eid}-nonPET"))
                 report["added"] = int(report["added"]) + 1
 
         m.counts(n_input=len(clean), n_output=int(report["added"]),
