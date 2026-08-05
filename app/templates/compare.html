@@ -1,86 +1,189 @@
 {% extends "base.html" %}
 {% block title %}Superpose{% endblock %}
-{% block head %}
-
-{% endblock %}
 {% block content %}
 <div class="md-card">
   <h2>Superposed structures</h2>
   <p class="muted">Every structure was aligned onto IsPETase (PDB 6EQE) when it was written, so these
-  overlay directly: the browser does no alignment. Catalytic triads are drawn as ball-and-stick,
-  using the residues the geometry stage actually measured rather than positions inferred from an alignment.</p>
+  overlay directly and the browser aligns nothing. Catalytic triads are drawn from the residues the
+  geometry stage measured, not from positions inferred by an alignment.
+  <strong>IsPETase and FAST-PETase are shown by default</strong>: a candidate's geometry only means
+  something beside a known enzyme, and one reference cannot show how far a working engineered variant
+  has already moved from the wild type.</p>
 
   <div class="viewer-shell" style="margin-top:14px">
     <div id="viewer"></div>
-      <div id="viewer-error" class="caveat" style="display:none"></div>
+    <div id="viewer-error" class="caveat" style="display:none"></div>
     <div class="viewer-controls">
-      <h3>Structures</h3>
-      <label>
-        <input type="checkbox" id="ref-toggle" checked>
-        <span class="swatch" style="background:#9aa5b1"></span> IsPETase 6EQE (reference)
-      </label>
-      <div id="picker" style="max-height:380px;overflow-y:auto;margin-top:8px"></div>
-      <label style="margin-top:8px"><input type="checkbox" id="triad-toggle" checked><span class="swatch" style="background:#ff2d55"></span> catalytic triad</label>
-      <button id="reset" style="margin-top:10px">Focus active site</button>
-      <button id="zoomall" style="margin-top:6px">Whole molecule</button>
-      <div class="viewer-note">
-        Interaction is deliberately minimal for now: pick structures, toggle the reference, reset the camera.
-        How candidates get chosen, how the triad is surfaced and whether pLDDT colouring becomes the default
-        are still to be designed.
+      <label><input type="checkbox" id="triad-toggle" checked>
+        <span class="swatch" style="background:#eaff00"></span> catalytic triad</label>
+      <label><input type="checkbox" id="mut-toggle" checked>
+        <span class="swatch" style="background:#ff2ec4"></span> substitutions</label>
+
+      <h3 style="margin-top:12px">Reference enzymes</h3>
+      <div id="pick-refs" class="picker"></div>
+      <h3 style="margin-top:10px">Candidates</h3>
+      <div id="pick-cands" class="picker" style="max-height:200px"></div>
+
+      <div class="viewer-buttons">
+        <button id="reset">Focus active site</button>
+        <button id="zoomall">Whole molecule</button>
+        <button id="spin">Spin</button>
+        <button id="style-cartoon">Cartoon</button>
+        <button id="style-sticks">Sticks</button>
+        <button id="dl-pdb">Download PDB</button>
+        <button id="dl-png">Save image</button>
       </div>
     </div>
   </div>
 </div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>Sequences <span class="muted" style="font-size:12px;font-weight:400">one per selected
+    structure</span></h2>
+  <p class="muted" style="font-size:12px">
+    <span class="seq-key triad"></span> catalytic triad &nbsp;
+    <span class="seq-key mut"></span> substitution against the lineage wild type
+    &nbsp;· triad positions are labelled; hover any residue for its number. Click one to select it
+    in the viewer, or click a residue in the viewer to find it here.</p>
+  <div id="seq-panels"></div>
+  <p id="seq-empty" class="muted">Nothing selected.</p>
+</div>
 {% endblock %}
+
 {% block scripts %}
-{# Vendored, not from 3Dmol.org: a CDN script is a third-party request on every
-   structure page, and an outage there silently empties the viewer. #}
 <script src="{{ url_for('static', filename='js/3Dmol-min.js') }}?v={{ asset('js/3Dmol-min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ asset('js/viewer.js') }}"></script>
 <script>
-const ROWS = {{ rows|tojson }};
+const REFS  = {{ refs|tojson }};
+const CANDS = {{ cands|tojson }};
 const PRESELECT = new Set({{ preselect|tojson }});
-const picker = document.getElementById('picker');
+const ALL = {};
+[...REFS, ...CANDS].forEach(r => { ALL[r.sid] = r; });
 
-ROWS.forEach((r, i) => {
-  const id = r.candidate_id;
-  const colour = PANTSViewer.PALETTE[i % PANTSViewer.PALETTE.length];
-  const lab = document.createElement('label');
-  lab.innerHTML = `<input type="checkbox" data-id="${id}">` +
-    `<span class="swatch" style="background:${colour}"></span>` +
-    `<span class="mono" style="font-size:12px">${id.replace('PANTS-','')}</span>` +
-    `<span class="muted" style="font-size:11px">${r.plddt_mean ? r.plddt_mean.toFixed(0) : '-'}</span>`;
-  picker.appendChild(lab);
-  const cb = lab.querySelector('input');
-  cb.addEventListener('change', async () => {
-    if (cb.checked) {
-      await PANTSViewer.add(id, `/static/structures/${id}.pdb`, {
-        colour, triad: {ser: r.triad_ser_resnum, asp: r.triad_asp_resnum, his: r.triad_his_resnum}
-      });
-    } else {
-      await PANTSViewer.remove(id);
-    }
+/* ---------- sequence panels, matching the enzyme page exactly ---------- */
+const panels = document.getElementById('seq-panels');
+const empty = document.getElementById('seq-empty');
+
+function residueSpan(ch, pos, rec) {
+  const triad = rec.triad_at && rec.triad_at[pos];
+  const mut = rec.mut_labels && rec.mut_labels[pos];
+  const cls = triad ? 'seq-res triad' : (mut ? 'seq-res mut' : 'seq-res');
+  const title = triad ? `${ch}${pos} — catalytic ${triad}`
+              : mut   ? `${ch}${pos} — substitution ${mut}`
+                      : `${ch}${pos}`;
+  // Only the triad carries a printed number. A thirteen-substitution variant labelled
+  // inline is unreadable, which is why those rely on the tooltip.
+  const num = triad ? `<span class="seq-num">${pos}</span>` : '';
+  return `<span class="${cls}" data-pos="${pos}" title="${title}">${num}${ch}</span>`;
+}
+
+function addSequence(sid) {
+  const rec = ALL[sid];
+  if (!rec || !rec.sequence || document.querySelector(`.seq-block[data-sid="${sid}"]`)) return;
+  const block = document.createElement('div');
+  block.className = 'seq-block';
+  block.dataset.sid = sid;
+  const nmut = Object.keys(rec.mut_labels || {}).length;
+  block.innerHTML =
+    `<div class="seq-label"><span class="swatch" style="background:${rec.colour}"></span>` +
+    `${rec.label}<span class="muted" style="font-weight:400"> · ${rec.sequence.length} aa` +
+    (nmut ? ` · ${nmut} substitution${nmut === 1 ? '' : 's'}` +
+            (rec.parent ? ` vs ${rec.parent}` : '') : '') + `</span></div>` +
+    `<div class="seq">` +
+    [...rec.sequence].map((ch, i) => residueSpan(ch, i + 1, rec)).join('') + `</div>`;
+  panels.appendChild(block);
+  block.querySelectorAll('.seq-res').forEach(el => el.addEventListener('click', () => {
+    const pos = Number(el.dataset.pos);
+    markSequence(pos, sid);
+    PANTSViewer.selectResidue(pos, false, sid);
+  }));
+  empty.style.display = 'none';
+}
+
+function removeSequence(sid) {
+  const b = document.querySelector(`.seq-block[data-sid="${sid}"]`);
+  if (b) b.remove();
+  if (!panels.children.length) empty.style.display = '';
+}
+
+/* Scoped to the structure the residue belongs to: with several overlaid, "residue 160" is
+   ambiguous until you know whose. */
+function markSequence(resi, sid) {
+  document.querySelectorAll('.seq-res.picked').forEach(el => el.classList.remove('picked'));
+  const scope = sid ? `.seq-block[data-sid="${sid}"] ` : '';
+  const hit = document.querySelector(`${scope}.seq-res[data-pos="${resi}"]`);
+  if (hit) { hit.classList.add('picked'); hit.scrollIntoView({block: 'nearest', inline: 'nearest'}); }
+}
+PANTSViewer.setResidueClickHandler(markSequence);
+
+/* ---------- pickers ---------- */
+function buildPicker(el, rows, offset) {
+  rows.forEach((r, i) => {
+    const colour = PANTSViewer.PALETTE[(i + offset) % PANTSViewer.PALETTE.length];
+    r.colour = colour;
+    const extra = r.kind === 'reference'
+      ? `<span class="muted" style="font-size:10px">${r.source}</span>`
+      : `<span class="muted" style="font-size:10px">${r.plddt_mean ? r.plddt_mean.toFixed(0) : '-'}</span>`;
+    const lab = document.createElement('label');
+    lab.innerHTML = `<input type="checkbox" data-id="${r.sid}">` +
+      `<span class="swatch" style="background:${colour}"></span>` +
+      `<span style="font-size:12px">${r.label}</span> ${extra}`;
+    el.appendChild(lab);
+    const cb = lab.querySelector('input');
+    cb.addEventListener('change', async () => {
+      if (cb.checked) {
+        await PANTSViewer.add(r.sid, r.url, {
+          colour,
+          triad: {ser: r.triad_ser_resnum, asp: r.triad_asp_resnum, his: r.triad_his_resnum},
+          mutations: r.mutations || []
+        });
+        addSequence(r.sid);
+      } else {
+        await PANTSViewer.remove(r.sid);
+        removeSequence(r.sid);
+      }
+    });
+    if (PRESELECT.has(r.sid)) cb.checked = true;
   });
-  if (PRESELECT.has(id)) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
-});
+}
+buildPicker(document.getElementById('pick-refs'), REFS, 0);
+buildPicker(document.getElementById('pick-cands'), CANDS, 3);
 
 (async () => {
   await PANTSViewer.init('viewer');
-  await PANTSViewer.add('reference', '/static/reference/6EQE.pdb', {isReference: true,
-    triad: {ser: 160, asp: 206, his: 237}});
-  // Nothing selected yet: show the two highest-confidence candidates so the page is not empty.
-  if (!PRESELECT.size) {
-    const first = picker.querySelectorAll('input');
-    for (let i = 0; i < Math.min(2, first.length); i++) {
-      first[i].checked = true; first[i].dispatchEvent(new Event('change'));
+  // One at a time rather than all at once: each add() builds two surfaces, and issuing a
+  // dozen concurrently on first paint stutters for no benefit.
+  for (const el of document.querySelectorAll('#pick-refs input, #pick-cands input')) {
+    if (el.checked) {
+      el.dispatchEvent(new Event('change'));
+      await new Promise(r => setTimeout(r, 0));
     }
   }
 })();
 
-document.getElementById('ref-toggle').addEventListener('change', e =>
-  PANTSViewer.setVisible('reference', e.target.checked));
 document.getElementById('triad-toggle').addEventListener('change', e => PANTSViewer.setTriadVisible(e.target.checked));
+document.getElementById('mut-toggle').addEventListener('change', e => PANTSViewer.setMutationsVisible(e.target.checked));
 document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());
 document.getElementById('zoomall').addEventListener('click', () => PANTSViewer.zoomAll());
+const spinBtn = document.getElementById('spin');
+spinBtn.addEventListener('click', () => {
+  const on = PANTSViewer.toggleSpin();
+  spinBtn.textContent = on ? 'Stop' : 'Spin';
+  spinBtn.classList.toggle('active', on);
+});
+document.getElementById('style-cartoon').addEventListener('click', () => PANTSViewer.setRepresentation('cartoon'));
+document.getElementById('style-sticks').addEventListener('click', () => PANTSViewer.setRepresentation('stick'));
+document.getElementById('dl-pdb').addEventListener('click', () => {
+  // One file per selected structure. They are separate deposits and predictions that
+  // happen to share a frame, so concatenating them would present them as one model.
+  document.querySelectorAll('#pick-refs input:checked, #pick-cands input:checked')
+    .forEach(cb => {
+      const r = ALL[cb.dataset.id];
+      const a = document.createElement('a');
+      a.href = r.url; a.download = `${r.label}_superposed.pdb`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+});
+document.getElementById('dl-png').addEventListener('click', () => PANTSViewer.savePNG('pants_superposed.png'));
 </script>
 {% endblock %}

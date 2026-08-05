@@ -190,25 +190,28 @@ const PANTSViewer = (() => {
 
   function setResidueClickHandler(fn) { onPick = fn; }
 
-  function makeClickable(model) {
+  function makeClickable(model, id) {
     try {
       model.setClickable({}, true, (atom) => {
         if (!atom || !Number.isFinite(atom.resi)) return;
-        selectResidue(atom.resi, true);
+        // The id travels with the click: with several structures overlaid, "residue 160"
+        // is ambiguous until you know whose.
+        selectResidue(atom.resi, true, id);
       });
     } catch (err) { /* older builds without setClickable: clicking simply does nothing */ }
   }
 
   /** Mark a residue in the viewer. `notify` false when the call CAME from the page, so a
    *  sequence click does not bounce back and re-enter its own handler. */
-  function selectResidue(resi, notify) {
+  function selectResidue(resi, notify, id) {
     if (pickedSurf !== null && pickedSurf !== undefined) {
       try { viewer.removeSurface(pickedSurf); } catch (err) { /* gone */ }
       pickedSurf = null;
     }
     pickedResi = resi;
     if (Number.isFinite(resi)) {
-      const target = Array.from(loaded.values()).find(e => !e.isReference) ||
+      const target = (id && loaded.get(id)) ||
+                     Array.from(loaded.values()).find(e => !e.isReference) ||
                      loaded.values().next().value;
       if (target) {
         const sel = { resi: [resi], model: target.model };
@@ -227,7 +230,7 @@ const PANTSViewer = (() => {
       }
     }
     viewer.render();
-    if (notify && typeof onPick === 'function') onPick(resi);
+    if (notify && typeof onPick === 'function') onPick(resi, id);
   }
 
   function setMutationsVisible(on) {
@@ -273,7 +276,7 @@ const PANTSViewer = (() => {
                     isReference: !!opts.isReference, surf: null, mutSurf: null };
     loaded.set(id, entry);
     if (opts.triad) highlightTriad(model, opts.triad, opts.isReference, entry);
-    makeClickable(model);
+    makeClickable(model, id);
     if (entry.mutations && entry.mutations.length) {
       // Sticks as well as the surface: the surface says where, the sticks say which side
       // chain, and at 0.5 opacity the sticks stay legible underneath.

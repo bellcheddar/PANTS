@@ -469,3 +469,10 @@ table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: now
 .md-grid.kpis { grid-template-columns: repeat(6, 1fr); }
 @media (max-width: 1100px) { .md-grid.kpis { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 640px)  { .md-grid.kpis { grid-template-columns: repeat(2, 1fr); } }
+
+/* Superpose: one sequence block per selected structure, each headed by the swatch that
+   identifies it in the viewer, so a colour in the 3D scene maps to a named sequence. */
+.picker { max-height: 190px; overflow-y: auto; }
+.seq-block + .seq-block { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--pv-border); }
+.seq-label { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.seq-label .swatch { margin-right: 6px; }

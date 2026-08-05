@@ -18,6 +18,11 @@ from pipeline.db.schema import SCHEMA_VERSION
 
 bp = Blueprint("main", __name__)
 
+# Shown by default in the Superpose view: the wild type everything is aligned onto, and
+# one engineered variant that measurably works, so the frame opens with a comparison rather
+# than a single structure.
+DEFAULT_COMPARE = ["IsPETase", "FAST-PETase"]
+
 ENV_LABEL = {
     "compost": "Compost",
     "marine_plastisphere": "Marine plastisphere",
@@ -220,18 +225,64 @@ def candidate(cid: str):
 
 @bp.route("/compare")
 def compare():
-    """The superposed viewer. Structures are already in a common frame."""
+    """The superposed viewer: reference enzymes and metagenomic candidates in one frame.
+
+    Everything here was aligned onto IsPETase 6EQE when it was written, so any combination
+    overlays directly and the browser aligns nothing. Two references are shown by default,
+    IsPETase and FAST-PETase, because a candidate's geometry is only meaningful next to
+    something known, and one reference cannot show how much a WORKING engineered enzyme
+    already differs from the wild type.
+    """
     with connect() as conn:
-        rows = [dict(r) for r in conn.execute(
-            "SELECT c.candidate_id, c.source_environment, c.seq_length, "
+        cands = [dict(r) for r in conn.execute(
+            "SELECT c.candidate_id AS sid, c.source_environment, c.seq_length, c.sequence, "
             "       s.plddt_mean, g.cleft_width_A, "
             "       g.triad_ser_resnum, g.triad_asp_resnum, g.triad_his_resnum "
             "FROM candidates c JOIN structures s ON s.candidate_id=c.candidate_id "
             "LEFT JOIN geometry g ON g.candidate_id=c.candidate_id "
             "ORDER BY s.plddt_mean DESC")]
-    preselect = [r for r in request.args.getlist("id") if r]
-    return render_template("compare.html", active="compare", rows=rows,
-                           preselect=preselect, env_label=ENV_LABEL)
+        for r in cands:
+            r["kind"] = "candidate"
+            r["url"] = f"/static/structures/{r['sid']}.pdb"
+            r["label"] = r["sid"].replace("PANTS-", "")
+
+        refs = [dict(r) for r in conn.execute(
+            "SELECT rs.enzyme_id AS sid, rs.coord_path, rs.source, rs.plddt_mean, "
+            "       ce.sequence, ce.seq_length, ce.lineage_wt_id, "
+            "       rg.cleft_width_A, rg.triad_ser_resnum, rg.triad_asp_resnum, "
+            "       rg.triad_his_resnum "
+            "FROM reference_structures rs "
+            "JOIN characterised_enzymes ce ON ce.enzyme_id = rs.enzyme_id "
+            "LEFT JOIN reference_geometry rg ON rg.enzyme_id = rs.enzyme_id "
+            "WHERE rs.coord_path IS NOT NULL ORDER BY rs.enzyme_id")]
+        for r in refs:
+            r["kind"] = "reference"
+            r["url"] = f"/static/reference_structures/{r['coord_path']}"
+            r["label"] = r["sid"]
+            m = _mutations_for(r["sid"])
+            r["parent"] = (m or {}).get("parent")
+            r["mutations"] = sorted(
+                int("".join(ch for ch in x if ch.isdigit()))
+                for x in (m or {}).get("mutations", [])
+                if any(ch.isdigit() for ch in x))
+            r["mut_labels"] = {int("".join(ch for ch in x if ch.isdigit())): x
+                               for x in (m or {}).get("mutations", [])
+                               if any(ch.isdigit() for ch in x)}
+
+    for r in cands + refs:
+        r["triad_at"] = {int(r[k]): lab for k, lab in
+                         (("triad_ser_resnum", "Ser"), ("triad_his_resnum", "His"),
+                          ("triad_asp_resnum", "Asp")) if r.get(k)}
+        r.setdefault("mutations", [])
+        r.setdefault("mut_labels", {})
+
+    # ?id= accepts either kind, so a link from an enzyme page and a link from the
+    # catalogue both land here with their subject already selected.
+    requested = [x for x in request.args.getlist("id") if x]
+    preselect = requested or DEFAULT_COMPARE
+    return render_template("compare.html", active="compare", refs=refs, cands=cands,
+                           preselect=preselect, default_refs=DEFAULT_COMPARE,
+                           env_label=ENV_LABEL)
 
 
 @bp.route("/api/structures")
