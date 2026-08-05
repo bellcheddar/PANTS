@@ -213,8 +213,14 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
 }
 .md-credit-links { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .md-credit-links a {
-  font-size: 11px; color: var(--pv-dim); text-decoration: none;
-  border: 1px solid var(--pv-border); border-radius: 20px; padding: 2px 10px;
+  /* Fixed height + flex centring, not padding. Padding alone left the text sitting high
+     in the pill, because the 11px glyphs occupy less than their line box and the leftover
+     leading all fell to the bottom. Centring in a known box puts it exactly in the middle
+     and lets the pill be shorter. */
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 19px; box-sizing: border-box;
+  font-size: 11px; line-height: 1; color: var(--pv-dim); text-decoration: none;
+  border: 1px solid var(--pv-border); border-radius: 20px; padding: 0 10px;
   white-space: nowrap;
 }
 .md-credit-links a:hover {
@@ -222,21 +228,23 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
   background: rgba(143,180,255,.08);
 }
 
-/* Source and data badges. No pill of their own: the shield is a pure black image blended
-   with `screen`, which composites to exactly the backdrop and so disappears against the
-   slab's gradient, leaving only the wordmark and logo.
+/* Source and data badges, wearing the same pill as the contact links: identical height,
+   border, radius and colour, so the whole row reads as one set of controls.
 
-   opacity is the tone control. shields.io hardcodes its text to #fff, so the glyphs would
-   otherwise be far brighter than the contact pills beside them; 0.45 lands them on the
-   same perceived lightness as --pv-dim. It also dims the logo by the same factor, which is
-   why logoColor is white in the URL rather than the target colour -- both then composite
-   to the same tone and the badge reads as one object. */
+   The awkward part is the shield's OWN vertical padding. A shields.io badge is 20px tall
+   around 11px text, so roughly 4.5px of air top and bottom. Scaling the image down to fit
+   a 19px pill would shrink its text to about 9px, noticeably smaller than the 11px beside
+   it. So the image keeps its natural size and the padding is CLIPPED instead: a negative
+   vertical margin pulls the layout box in to 14px while the image still paints at 20px,
+   and overflow:hidden on the anchor trims what spills. The 11px text sits inside the kept
+   band, so nothing of it is cut and it stays the same size as its neighbours. */
 .md-credit-links a.md-badge {
-  display: inline-flex; align-items: center;
-  border: 0; padding: 0; line-height: 0;
+  padding: 0 5px;          /* the shield carries its own horizontal padding as well */
+  overflow: hidden;
 }
 .md-credit-links a.md-badge img {
   display: block; height: 20px; width: auto;
+  margin: -3px 0;
   mix-blend-mode: screen;
   /* Tint, not opacity. Opacity blends toward the backdrop and can only make a neutral
      grey: it matched the pills' lightness while missing their blue by 36 points on the
@@ -313,7 +321,7 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
   /* The shields are fixed-width images and cannot shed text, so they wrap to their own
      row rather than shrinking. Scaled down slightly so two fit side by side on a phone
      instead of stacking into two more rows. */
-  .md-credit-links a.md-badge img { height: 18px; }
+  .md-credit-links a { height: 18px; padding: 0 8px; }
 }
 
 /* Strapline and tagline move as one block beside the banner, so they wrap
