@@ -242,11 +242,14 @@ VARIANTS: List[Variant] = [
               "and ~1407-fold more product than wild type. All seven match at offset 0.",
     ),
     Variant(
-        enzyme_id="LCC-A2", parent="LCC",
+        enzyme_id="LCC-A2", parent="LCC", derived_from="LCC-ICCG",
         mutations=["F243I", "D238C", "S283C", "Y127G", "H218Y", "N248D"],
         mutations_confirmed=True,
         reference="Reported relative to LCC-ICCG; 2025 PET-hydrolase review",
-        notes="LCC-ICCG plus H218Y/N248D, Topt 78 C. Expressed here against WILD-TYPE LCC "
+        notes="LCC-ICCG plus H218Y/N248D, Topt 78 C. Built ON LCC-ICCG, not on wild-type "
+              "LCC: its six substitutions are ICCG's four plus H218Y and N248D, verified as "
+              "a strict superset. The display nests it under ICCG accordingly. "
+              "Expressed here against WILD-TYPE LCC "
               "(all six mutations, offset 0) rather than against LCC-ICCG, because a "
               "variant can only be derived from a parent in WILD_TYPES and chaining a "
               "variant onto a variant would hide which residues were actually checked.",
