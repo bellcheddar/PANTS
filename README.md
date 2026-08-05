@@ -421,6 +421,53 @@ The practical conclusion is not that the approach fails, but that **the evaluati
 label-limited rather than method-limited**, and the binding constraint is now a few dozen
 measured within-family negatives rather than any modelling choice.
 
+### 🔬 And the same test on geometry
+
+Geometry is the one signal here measured off coordinates rather than inherited from an
+annotation, so it is the obvious thing to try on the contrast the embeddings failed.
+AlphaFold models were taken for the characterised enzymes that have them (131 measured:
+114 PET-active, 17 within-family negatives) and the active site measured on each. Mean
+pLDDT is 90.4 against 91.3, so nothing below is a model-confidence artefact.
+
+Compared directly, several features separate the two groups convincingly:
+
+| Feature | PET-active | Within-family negatives | AUC | p |
+|---|---|---|---|---|
+| Cleft depth (Å) | 4.20 | 3.41 | **0.819** | <0.001 |
+| Cleft-lining residues | 82.9 | 88.3 | 0.788 * | <0.001 |
+| Oxyanion donor 2 distance (Å) | 4.56 | 4.95 | 0.742 * | 0.001 |
+| Oxyanion donor 1 distance (Å) | 2.97 | 3.23 | 0.696 * | 0.009 |
+| Cleft width (Å) | 19.38 | 21.78 | 0.686 * | 0.014 |
+| Triad Ser–His (Å) | 2.87 | 2.87 | 0.599 | 0.190 |
+
+\* inversely predictive: the feature is *lower* in PET-active enzymes.
+
+PET-active polyesterases have deeper, narrower clefts with fewer lining residues and a
+tighter oxyanion hole. That is a physically sensible picture, and three of those p-values
+survive Bonferroni correction across the nine features tested.
+
+**It does not survive cluster-grouped evaluation.** Trained on all nine features and split
+by 30% cluster, exactly as every other number in this project:
+
+| | AUC | Folds |
+|---|---|---|
+| Geometry, cluster-grouped | **0.533 ± 0.185** | 0.394 / 0.838 / 0.525 / 0.375 |
+| Sequence embeddings, same question | 0.493 ± 0.297 | — |
+
+So the apparent geometric signature is **largely cluster structure**. Within the enzymes to
+hand, PET-active ones really do have deeper clefts; but which enzymes are PET-active is
+confounded with which family they belong to, and once a model has to generalise to a
+cluster it has never seen, the separation goes. Only 8 clusters contain a negative at all
+and only 4 of those also contain a PET-active enzyme, which is far too thin a base to
+learn a transferable rule from.
+
+**Both signals fail the same test for the same reason, and it is not the method.** This is
+the clearest statement of the constraint the project is actually under: raw feature
+differences that look decisive at p<0.001 collapse under cluster-grouped splitting, which
+is precisely why that splitting is the rule here and why the composition baseline is
+reported permanently. The finding is not "geometry does not work" but "geometry cannot be
+shown to work on 17 negatives spanning 4 shared clusters".
+
 Three routes that would, in [`PHASE1_FINDINGS.md`](PHASE1_FINDINGS.md): ordinal
 within-paper rankings, regression on measured rates instead of a binary label, and
 geometry as an annotation-independent axis.
@@ -645,14 +692,14 @@ Roadmap for PANTS, roughly in dependency order. Suggestions welcome.
 - [x] **Confirm the outstanding mutation sets.** All five are resolved, and two further variants (DepoPETase, LCC-A2) were found in the same pass. HotPETase and Cut190\*\*SS came from crystal structures; DuraPETase, TurboPETase and Z1-PETase from verified mutation sets, all matching at offset 0. Every engineered variant now carries a sequence, and the whole seed set rebuilds from one command
 - [x] **Choose and acquire the metagenome collections, size-checked first.** 2,220,462 predicted proteins (858 MB) from landfill, marine plastisphere and compost assemblies. Only assemblies carry proteins: MGnify's largest plastisphere study has 357 samples and no protein sequences at all, being 16S amplicon
 - [x] **Build the recall stage.** One profile HMM per 30% cluster, each anchored on UniProt's own Active site annotation, MMseqs2 prefilter then hmmscan and a triad completeness filter. 128 candidates from 2.2M proteins in 24 minutes, with discard counts reported at every step
-- [ ] **Detect the oxyanion hole properly.** Currently a weak sequence proxy: the hole is formed by backbone amides, which is a structural property, so the real determination has to wait for the structure stage
+- [x] **Detect the oxyanion hole properly.** The structure stage was already doing it structurally, but **wrongly**: "the two backbone N atoms closest to the serine" returns Met161 and Trp185 on IsPETase, whose published donors are Tyr87 and Met161. Now takes donor 1 by position (the nucleophile elbow) and donor 2 from the sequence-distant oxyanion loop via an N–H direction test, recovering both donors from 6EQE and pinned by three regression tests. Geometry records *which* residues it identified, since the old output could not have revealed the error
 - [x] **Embed the candidate set.** ESM-2 t12-35M, frozen, CPU, mean-pooled with padding and CLS/EOS excluded. 848 vectors at 480 dimensions in under a minute
 - [x] **Filter fragments and length outliers.** From UniProt's own Fragment flag rather than a length cutoff, plus a 200 to 450 aa window derived from the experimentally evidenced positives. Marked, never deleted, so the catalogue stays complete and the exclusion stays auditable
 - [ ] **Train the PET activity head.** PU-corrected loss with the class prior estimated rather than assumed, sensitivity-tested across 1/3/5/10%, then Platt or isotonic calibration
 - [ ] **Run the full evaluation protocol.** Cluster splits at 30% and 50%, leave-one-family-out, retrieval baseline, reliability diagrams, prospective holdout by date, and separate reporting for the measured-activity and annotation-only subsets
 - [x] **Smoke-test ESMFold before committing to a full run.** Cleared: 8.44 GB model (it bundles ESM-2 3B), 31 min to load, 109 s to fold 290 residues. No Boltz-2 fallback needed. The prediction reproduces IsPETase's crystal active site exactly (S160/D206/H237, Ser-His 2.98 A against 2.94)
 - [x] **Extract active-site geometry, validated on crystal structures first.** The triad is found by geometry rather than sequence position, and recovers the published triads of 6EQE and 4EB0 exactly. Validation caught a brittle cleft-width metric: a hard radius feeding a max meant a 0.4 A shift in one residue halved the answer, scoring IsPETase's own prediction at 11.09 A against its crystal's 20.90 A. Now a percentile over a wider radius, and crystal-to-prediction disagreement fell from 9.81 A to 1.81 A
-- [ ] **Establish whether geometry actually tracks PET activity.** The robust metric separates the fungal cutinase from the Polyesterase-lipase-cutinase family by ~7 A, but the family members do not order among themselves by PET activity: IsPETase, the best ambient-temperature degrader of the three, has the narrowest cleft of them. Family-level separation is a much easier task than the one that matters, and only the former is currently demonstrated
+- [x] **Establish whether geometry actually tracks PET activity.** Tested on AlphaFold models of 131 characterised enzymes (114 PET-active, 17 within-family negatives), pLDDT-matched so nothing is a model-confidence artefact. Raw feature differences are convincing and physically sensible (cleft depth AUC 0.819, p<0.001; PET-active enzymes have deeper, narrower clefts with a tighter oxyanion hole), but **cluster-grouped it collapses to 0.533 ± 0.185**, statistically indistinguishable from the sequence head's 0.493. The signature is largely cluster structure. Same constraint as the sequence side: 8 clusters hold a negative, only 4 of them shared with an active
 - [x] **Build the v1 tabs.** Home, Catalogue, Candidate, Compare and Methods, with 3Dmol.js over static PDB and Plotly for every chart
 - [x] **Superposed interactive structure viewer, first working version.** Verified in a real browser, not assumed: multiple structures load into one Mol\* viewport in distinct colours and genuinely overlay, which confirms the pre-superposed-at-write-time design end to end. Two rendering defects remain, both recorded below
 - [x] **Render structures as cartoon rather than wireframe.** Root cause found: Mol\* fell back to lines because gemmi's mmCIF carries no polymer or secondary-structure annotation, and the UMD build exports only 9 symbols. Moved to 3Dmol.js and now write HELIX/SHEET records computed with biotite's P-SEA `annotate_sse`, which 3Dmol parses to set `atom.ss` directly
