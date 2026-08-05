@@ -207,6 +207,24 @@ VARIANTS: List[Variant] = [
 # against whatever the gut recall returns.
 
 
+# Variants whose sequence was recovered from a CRYSTAL STRUCTURE rather than derived from
+# a mutation list. This is the stronger route where it exists: the PDB SEQRES is the
+# construct that was actually expressed, crystallised and assayed, so nothing is applied
+# or assumed. The stored sequence is the MATURE construct, not the precursor, which is why
+# it is shorter than its parent.
+#
+# Each was verified by aligning against its parent and checking the substitution count
+# against the published one, rather than trusting the name on the PDB entry:
+#
+#   HotPETase   7QVH  272 aa, 21 substitutions vs IsPETase   (paper reports ~21)
+#   Cut190**SS  7CEF  262 aa,  4 substitutions vs Cut190     (S226P/R228S plus two
+#                                                             construct-boundary changes)
+PDB_DERIVED = {
+    "HotPETase": ("7QVH", "IsPETase", 21, "Bell et al. 2022, Nat. Catal."),
+    "Cut190**SS": ("7CEF", "Cut190", 4, "Oda/Kawai et al."),
+}
+
+
 def parse_mutation(mut: str) -> Tuple[str, int, str]:
     m = _MUT.match(mut.strip())
     if not m:

@@ -254,7 +254,36 @@
 </table></div>
 <h3>The engineered lineage, from the literature</h3>
 <p>Every variant named in the project brief. They are in the database at <strong>weaker provenance</strong> than the block above: <code>extraction_confidence='review'</code> and <code>ECO:0000305</code> (inferred by curator) rather than <code>ECO:0000269</code> (experimental, from a publication), because the values were collated from a secondary review rather than read from each primary paper.</p>
-<p><strong>Five of them carry no sequence at all</strong>, so no measurement can be attached: DuraPETase, HotPETase, Z1-PETase, TurboPETase and Cut190**SS were recorded without one because their complete mutation sets could not be confirmed, and a partial set yields a wrong sequence. Only FAST-PETase, LCC-ICCG and ThermoPETase are sequence-resolved and therefore usable.</p>
+<p><strong>Two of the five missing sequences were recovered from crystal structures</strong>, which is a stronger route than deriving them: a PDB SEQRES is the construct that was actually expressed, crystallised and assayed, so nothing is applied or assumed. Each was verified by aligning against its parent and checking the substitution count against the published one, rather than trusting the name on the entry.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Source</th>
+<th>Length</th>
+<th>Substitutions vs parent</th>
+<th>Published</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Variant">HotPETase</td>
+<td data-label="Source">PDB <code>7QVH</code></td>
+<td data-label="Length">272 aa</td>
+<td data-label="Substitutions vs parent">21 vs IsPETase</td>
+<td data-label="Published">~21</td>
+</tr>
+<tr>
+<td data-label="Variant">Cut190**SS</td>
+<td data-label="Source">PDB <code>7CEF</code></td>
+<td data-label="Length">262 aa</td>
+<td data-label="Substitutions vs parent">4 vs Cut190 (incl. S226P/R228S)</td>
+<td data-label="Published">S226P/R228S</td>
+</tr>
+</tbody>
+</table></div>
+<p>Both are stored as the <strong>mature construct</strong>, so they are shorter than their precursor parents.</p>
+<p><strong>Three still carry no sequence: DuraPETase, TurboPETase and Z1-PETase.</strong> None has a name-matched PDB entry, none is in PAZy, and their mutation sets are in primary supplementaries. The PDB does hold generic "IsPETase variant V20/V22" structures that <em>might</em> be among them, but assigning one on a guess is exactly the error that would silently poison the profiles, so they stay empty.</p>
 <p>Values collated in <a href="https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/">Engineering Evolution: How FAST-PETase and Other Variants Are Transforming Plastic Biodegradation</a>.</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>

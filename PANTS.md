@@ -139,10 +139,24 @@ provenance** than the block above: `extraction_confidence='review'` and `ECO:000
 (inferred by curator) rather than `ECO:0000269` (experimental, from a publication), because
 the values were collated from a secondary review rather than read from each primary paper.
 
-**Five of them carry no sequence at all**, so no measurement can be attached: DuraPETase,
-HotPETase, Z1-PETase, TurboPETase and Cut190\*\*SS were recorded without one because their
-complete mutation sets could not be confirmed, and a partial set yields a wrong sequence.
-Only FAST-PETase, LCC-ICCG and ThermoPETase are sequence-resolved and therefore usable.
+**Two of the five missing sequences were recovered from crystal structures**, which is a
+stronger route than deriving them: a PDB SEQRES is the construct that was actually
+expressed, crystallised and assayed, so nothing is applied or assumed. Each was verified by
+aligning against its parent and checking the substitution count against the published one,
+rather than trusting the name on the entry.
+
+| Variant | Source | Length | Substitutions vs parent | Published |
+|---|---|---|---|---|
+| HotPETase | PDB `7QVH` | 272 aa | 21 vs IsPETase | ~21 |
+| Cut190\*\*SS | PDB `7CEF` | 262 aa | 4 vs Cut190 (incl. S226P/R228S) | S226P/R228S |
+
+Both are stored as the **mature construct**, so they are shorter than their precursor parents.
+
+**Three still carry no sequence: DuraPETase, TurboPETase and Z1-PETase.** None has a
+name-matched PDB entry, none is in PAZy, and their mutation sets are in primary
+supplementaries. The PDB does hold generic "IsPETase variant V20/V22" structures that
+*might* be among them, but assigning one on a guess is exactly the error that would
+silently poison the profiles, so they stay empty.
 
 Values collated in
 [Engineering Evolution: How FAST-PETase and Other Variants Are Transforming Plastic Biodegradation](https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/).
