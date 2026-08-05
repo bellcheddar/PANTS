@@ -222,6 +222,19 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
   background: rgba(143,180,255,.08);
 }
 
+/* Source and data badges. Same pill as the contact links so the bar stays one object,
+   with the icon and a slightly stronger border marking them as project resources rather
+   than personal links. The icon inherits currentColor, so it picks up the hover state
+   without a second rule. */
+.md-credit-links a.md-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-color: var(--pv-border);
+  color: var(--pv-text);
+}
+.md-credit-links a.md-badge svg {
+  width: 12px; height: 12px; display: block; flex-shrink: 0;
+}
+
 /* --- banner + strapline, sharing a baseline --- */
 .md-masthead {
   display: flex; align-items: flex-end; gap: 20px;
@@ -286,6 +299,10 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
   .md-tagline { font-size: 11px; }
   .md-nav { gap: 16px; }
   .md-credit-links a { padding: 1px 8px; }
+  /* Below this width the badges keep their icon and drop the word: the bar already
+     carries three contact links and would otherwise wrap to a third row. */
+  .md-credit-links a.md-badge span { display: none; }
+  .md-credit-links a.md-badge { padding: 2px 7px; }
 }
 
 /* Strapline and tagline move as one block beside the banner, so they wrap
