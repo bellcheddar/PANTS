@@ -345,10 +345,15 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
 .md-grid.kpis { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 
 
-/* Rows at or below the therapeutic target. A left rule rather than a background fill: the
-   table already uses colour for source environments, and a second colour language in the
-   same view would read as a category rather than as a threshold. */
-table.data tr.therapeutic td:first-child { box-shadow: inset 3px 0 0 var(--md-accent-green); }
+/* The left rule on the first cell now encodes FAMILY, set inline per row, so the
+   therapeutic threshold cannot also live there. It marks the temperature cell instead,
+   where it is next to the number it refers to. */
+table.data.enzymes tr.therapeutic td:nth-child(2) {
+  color: var(--md-accent-green); font-weight: 700;
+}
+table.data.enzymes tr.therapeutic td:nth-child(2)::after {
+  content: ' \25C0'; font-size: 8px; vertical-align: middle; opacity: .9;
+}
 
 /* ---------- sequence with substitutions marked ---------- */
 /* Laid out as inline-blocks rather than as one text run, because each mutated residue
@@ -362,9 +367,9 @@ table.data tr.therapeutic td:first-child { box-shadow: inset 3px 0 0 var(--md-ac
 .seq-res { display: inline-block; width: 1ch; text-align: center; color: var(--pv-text); }
 .seq-res.mut {
   position: relative;
-  color: #ff4d5e; font-weight: 700;
-  background: rgba(255,77,94,.14);
-  box-shadow: inset 0 0 0 1px rgba(255,77,94,.55);
+  color: #ff2ec4; font-weight: 700;
+  background: rgba(255,46,196,.16);
+  box-shadow: inset 0 0 0 1px rgba(255,46,196,.6);
   border-radius: 2px;
 }
 /* The position sits above its residue, centred on it. Absolute so a three or four digit
@@ -372,7 +377,7 @@ table.data tr.therapeutic td:first-child { box-shadow: inset 3px 0 0 var(--md-ac
 .seq-res.mut .seq-num {
   position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
   font-size: 9px; font-weight: 600; line-height: 1.4;
-  color: #ff4d5e; opacity: .95; pointer-events: none;
+  color: #ff2ec4; opacity: .95; pointer-events: none;
   /* Without this the label inherits the 1ch width of the residue it sits above and wraps
      to one digit per line, so "214" rendered as a vertical column of three characters. */
   white-space: nowrap;
@@ -404,3 +409,26 @@ table.data.enzymes td.pdbs a {
 }
 table.data.enzymes td.note { font-size: 11px; line-height: 1.5; max-width: 420px; }
 table.data.enzymes td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Sequence residues share the viewer's colour language exactly: yellow is the catalytic
+   triad, pink is a substitution. Two views of one molecule should not use two palettes. */
+.seq-res.triad {
+  position: relative; color: #0d0f1a; font-weight: 700;
+  background: #eaff00; border-radius: 2px;
+}
+.seq-res.triad .seq-num {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  font-size: 9px; font-weight: 600; line-height: 1.4; color: #eaff00;
+  white-space: nowrap; pointer-events: none;
+}
+.seq-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+           vertical-align: -1px; margin-right: 3px; }
+.seq-key.triad { background: #eaff00; }
+.seq-key.mut   { background: #ff2ec4; }
+.seq-res { cursor: pointer; }
+/* The residue currently selected, in either direction. A ring rather than a fill, so it
+   is legible on top of the yellow and pink states without replacing them. */
+.seq-res.picked {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 6px 2px rgba(255,255,255,.5);
+  border-radius: 2px;
+}

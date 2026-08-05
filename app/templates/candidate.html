@@ -78,7 +78,9 @@
 {% endblock %}
 {% block scripts %}
 {% if c.plddt_mean %}
-<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+{# Vendored, not from 3Dmol.org: a CDN script is a third-party request on every
+   structure page, and an outage there silently empties the viewer. #}
+<script src="{{ url_for('static', filename='js/3Dmol-min.js') }}?v={{ asset('js/3Dmol-min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ asset('js/viewer.js') }}"></script>
 <script>
 (async () => {

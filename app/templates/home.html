@@ -45,7 +45,9 @@
     <tbody class="lineage">
       {% for k in g.rows %}
       <tr{% if k.topt_c and k.topt_c <= 40 %} class="therapeutic"{% endif %}>
-        <td class="{{ 'root' if k.is_root else 'variant' }}">
+        <td class="{{ 'root' if k.is_root else 'variant' }}"
+            style="box-shadow: inset 3px 0 0 {{ k.family_colour }}"
+            title="{{ k.family_label }} family">
           <a href="{{ url_for('main.enzyme', enzyme_id=k.enzyme_id) }}">{{ k.enzyme_id }}</a>
           {%- if k.is_root %} <span class="tag">wild type</span>{% endif %}</td>
         <td class="num">{% if k.topt_c %}{{ '%g'|format(k.topt_c) }}{% else %}<span class="muted">—</span>{% endif %}</td>

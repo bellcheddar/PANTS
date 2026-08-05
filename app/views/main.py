@@ -139,6 +139,17 @@ def home():
     # overall. Sorting by name would scatter a lineage across the table; this keeps a wild
     # type next to the variants built on it, which is how the set is actually read.
     lineage_first = {"IsPETase": 0, "LCC": 1, "BhrPETase": 2, "Cut190": 3, "TfCut2": 4}
+    # One colour per family, carried as a left rule on every row of that lineage. It
+    # replaces a green bar that marked "Topt at or below 40 degC" and explained itself
+    # nowhere: a coloured edge reads as a grouping, so it should encode the grouping.
+    family_colour = {
+        "IsPETase":  "#00d084",   # green
+        "LCC":       "#4a9fd4",   # blue
+        "BhrPETase": "#ff4d5e",   # red
+        "Cut190":    "#fcb900",   # amber
+        "TfCut2":    "#9b51e0",   # purple
+        "MHETase":   "#6e78a6",   # grey: not a polyesterase
+    }
     def _key(r):
         root = r.get("lineage_wt_id") or r["enzyme_id"]
         return (lineage_first.get(root, 9), root,
@@ -157,6 +168,11 @@ def home():
         if not groups or groups[-1]["root"] != root:
             groups.append({"root": root, "rows": []})
         row["is_root"] = (root == row["enzyme_id"])
+        # HGMPs are five separate gut-metagenome enzymes, each its own lineage; one shared
+        # colour keeps them legible as a set without inventing five more hues.
+        row["family_colour"] = family_colour.get(
+            root, "#ff6900" if root.startswith("HGMP") else "#3a4570")
+        row["family_label"] = root
         groups[-1]["rows"].append(row)
     return render_template("home.html", active="home", counts=counts, known=known,
                            groups=groups,
@@ -477,8 +493,16 @@ def enzyme(enzyme_id: str):
             if digits:
                 mut_at[int(digits)] = label
 
+    # Triad positions, so the sequence can mark them in the viewer's own yellow.
+    triad_at: Dict[int, str] = {}
+    for key, label in (("triad_ser_resnum", "Ser"), ("triad_his_resnum", "His"),
+                       ("triad_asp_resnum", "Asp")):
+        if row.get(key):
+            triad_at[int(row[key])] = label
+
     return render_template(
         "enzyme.html", active="home", e=row, seq=seq[0] if seq else None,
+        triad_at=triad_at,
         mut=mut, measurements=measurements, children=children, nearest=nearest,
         n_nearest=n_nearest, others=others, links=_links_for(row, mut),
         mut_at=mut_at,

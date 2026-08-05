@@ -122,6 +122,24 @@
 </div>
 {% endif %}
 
+{% if seq %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Sequence <span class="muted" style="font-size:12px;font-weight:400">{{ seq|length }} aa
+    {%- if mut_at %} · {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }}{% endif %}</span></h2>
+  <p class="muted" style="font-size:12px">
+    <span class="seq-key triad"></span> catalytic triad
+    {%- if mut_at %} &nbsp; <span class="seq-key mut"></span> substitution against
+      <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a>{% endif %}
+    &nbsp;· the same colours as the viewer above. Click any residue to select it in both.</p>
+  <div class="seq">{% for ch in seq %}{% set pos = loop.index %}{%
+    if pos in triad_at %}<span class="seq-res triad" data-pos="{{ pos }}"
+      title="Catalytic {{ triad_at[pos] }}{{ pos }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
+    elif mut_at.get(pos) %}<span class="seq-res mut" data-pos="{{ pos }}"
+      title="{{ mut_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{%
+    else %}<span class="seq-res" data-pos="{{ pos }}">{{ ch }}</span>{% endif %}{% endfor %}</div>
+</div>
+{% endif %}
+
 <div class="md-card" style="margin-top:16px">
   <h2>Measured activity</h2>
   {% if measurements %}
@@ -197,26 +215,13 @@
   {% endif %}
 </div>
 
-{% if seq %}
-<div class="md-card" style="margin-top:16px">
-  <h2>Sequence <span class="muted" style="font-size:12px;font-weight:400">{{ seq|length }} aa
-    {%- if mut_at %} · {{ mut_at|length }} substitution{{ '' if mut_at|length == 1 else 's' }} marked{% endif %}</span></h2>
-  {% if mut_at %}
-  <p class="muted" style="font-size:12px">Substitutions against
-    <a href="/enzyme/{{ mut.parent }}">{{ mut.parent }}</a> are marked in red with their position.
-    The residue shown is the one in <em>this</em> enzyme, not the parent.</p>
-  {% endif %}
-  <div class="seq">{% for ch in seq %}{% set pos = loop.index %}{% if mut_at.get(pos) %}<span
-      class="seq-res mut" title="{{ mut_at[pos] }}"><span class="seq-num">{{ pos }}</span>{{ ch }}</span>{% else %}<span
-      class="seq-res">{{ ch }}</span>{% endif %}{% endfor %}</div>
-</div>
-{% endif %}
-
 {% endblock %}
 
 {% block scripts %}
 {% if e.coord_path %}
-<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+{# Vendored, not from 3Dmol.org: a CDN script is a third-party request on every
+   structure page, and an outage there silently empties the viewer. #}
+<script src="{{ url_for('static', filename='js/3Dmol-min.js') }}?v={{ asset('js/3Dmol-min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/viewer.js') }}?v={{ asset('js/viewer.js') }}"></script>
 <script>
 const SELF = {{ e.enzyme_id|tojson }};
@@ -261,6 +266,22 @@ document.getElementById('triad-toggle').addEventListener('change', e => PANTSVie
 {% if mut_at %}
 document.getElementById('mut-toggle').addEventListener('change', e => PANTSViewer.setMutationsVisible(e.target.checked));
 {% endif %}
+/* Two-way residue selection between the sequence panel and the viewer. Each side sets a
+   flag while it drives the other, so the round trip stops after one hop instead of the
+   two handlers calling each other. */
+const seqEls = document.querySelectorAll('.seq-res');
+function markSequence(resi) {
+  seqEls.forEach(el => el.classList.toggle('picked', Number(el.dataset.pos) === resi));
+  const hit = document.querySelector(`.seq-res[data-pos="${resi}"]`);
+  if (hit) hit.scrollIntoView({block: 'nearest', inline: 'nearest'});
+}
+PANTSViewer.setResidueClickHandler(markSequence);
+seqEls.forEach(el => el.addEventListener('click', () => {
+  const pos = Number(el.dataset.pos);
+  markSequence(pos);
+  PANTSViewer.selectResidue(pos, false);   // false: do not call back into markSequence
+}));
+
 document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());
 document.getElementById('zoomall').addEventListener('click', () => PANTSViewer.zoomAll());
 </script>

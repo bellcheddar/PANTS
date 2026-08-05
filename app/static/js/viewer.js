@@ -119,9 +119,19 @@ const PANTSViewer = (() => {
       // resolves to one. Handle both so this does not silently stop cleaning up when the
       // CDN serves a newer build.
       if (out && typeof out.then === 'function') {
-        out.then(res => { entry.surf = (res && res.surfid !== undefined) ? res.surfid : res; });
+        out.then(res => {
+          entry.surf = (res && res.surfid !== undefined) ? res.surfid : res;
+          // MUST repaint. A surface is built asynchronously off the main thread and
+          // nothing in 3Dmol repaints when it finishes, so a surface that completes after
+          // the last render() is simply never drawn. This is why the triad appeared and
+          // the mutations did not: the triad belonged to the reference, added first, and
+          // a later add() happened to repaint it, while the surfaces created by the LAST
+          // add() had no render after them at all.
+          viewer.render();
+        });
       } else {
         entry.surf = (out && out.surfid !== undefined) ? out.surfid : out;
+        viewer.render();
       }
     } catch (err) {
       // A surface is an enhancement; failing to build one must not take the viewer down.
@@ -147,9 +157,13 @@ const PANTSViewer = (() => {
         { opacity: MUT_SURFACE_OPACITY, color: MUT_SURFACE_COLOUR },
         sel, sel);
       if (out && typeof out.then === 'function') {
-        out.then(res => { entry.mutSurf = (res && res.surfid !== undefined) ? res.surfid : res; });
+        out.then(res => {
+          entry.mutSurf = (res && res.surfid !== undefined) ? res.surfid : res;
+          viewer.render();          // see the note in addTriadSurface
+        });
       } else {
         entry.mutSurf = (out && out.surfid !== undefined) ? out.surfid : out;
+        viewer.render();
       }
     } catch (err) {
       entry.mutSurf = null;
@@ -160,6 +174,60 @@ const PANTSViewer = (() => {
     if (!entry || entry.mutSurf === null || entry.mutSurf === undefined) return;
     try { viewer.removeSurface(entry.mutSurf); } catch (err) { /* already gone */ }
     entry.mutSurf = null;
+  }
+
+  /* Residue selection, shared with whatever else is on the page.
+   *
+   * The viewer and a sequence panel are two views of one molecule, so a click in either
+   * should move the selection in both. This owns the viewer half: it makes the model's
+   * atoms clickable, draws a marker on the picked residue, and reports the residue number
+   * to a callback the page supplies.
+   */
+  let onPick = null;
+  let pickedSurf = null;
+  let pickedResi = null;
+  const PICK_COLOUR = '#ffffff';
+
+  function setResidueClickHandler(fn) { onPick = fn; }
+
+  function makeClickable(model) {
+    try {
+      model.setClickable({}, true, (atom) => {
+        if (!atom || !Number.isFinite(atom.resi)) return;
+        selectResidue(atom.resi, true);
+      });
+    } catch (err) { /* older builds without setClickable: clicking simply does nothing */ }
+  }
+
+  /** Mark a residue in the viewer. `notify` false when the call CAME from the page, so a
+   *  sequence click does not bounce back and re-enter its own handler. */
+  function selectResidue(resi, notify) {
+    if (pickedSurf !== null && pickedSurf !== undefined) {
+      try { viewer.removeSurface(pickedSurf); } catch (err) { /* gone */ }
+      pickedSurf = null;
+    }
+    pickedResi = resi;
+    if (Number.isFinite(resi)) {
+      const target = Array.from(loaded.values()).find(e => !e.isReference) ||
+                     loaded.values().next().value;
+      if (target) {
+        const sel = { resi: [resi], model: target.model };
+        try {
+          const out = viewer.addSurface($3Dmol.SurfaceType.VDW,
+            { opacity: 0.85, color: PICK_COLOUR }, sel, sel);
+          if (out && typeof out.then === 'function') {
+            out.then(res => {
+              pickedSurf = (res && res.surfid !== undefined) ? res.surfid : res;
+              viewer.render();
+            });
+          } else { pickedSurf = out; viewer.render(); }
+        } catch (err) { /* selection marker is an enhancement */ }
+        viewer.zoomTo(sel);
+        viewer.zoom(0.6);
+      }
+    }
+    viewer.render();
+    if (notify && typeof onPick === 'function') onPick(resi);
   }
 
   function setMutationsVisible(on) {
@@ -205,6 +273,7 @@ const PANTSViewer = (() => {
                     isReference: !!opts.isReference, surf: null, mutSurf: null };
     loaded.set(id, entry);
     if (opts.triad) highlightTriad(model, opts.triad, opts.isReference, entry);
+    makeClickable(model);
     if (entry.mutations && entry.mutations.length) {
       // Sticks as well as the surface: the surface says where, the sticks say which side
       // chain, and at 0.5 opacity the sticks stay legible underneath.
@@ -270,5 +339,6 @@ const PANTSViewer = (() => {
   function clear() { Array.from(loaded.keys()).forEach(remove); }
 
   return { init, add, remove, setVisible, setTriadVisible, setMutationsVisible,
+           setResidueClickHandler, selectResidue,
            reset, zoomAll, clear, PALETTE, REFERENCE_COLOUR };
 })();
