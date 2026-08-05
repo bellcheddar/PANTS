@@ -2,7 +2,7 @@
 
 > **Find PET-degrading enzymes that work at 37 °C in serum, not at 70 °C in a reactor.**
 
-![python](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white) ![flask](https://img.shields.io/badge/flask-3.1-000000?logo=flask&logoColor=white) ![sqlite](https://img.shields.io/badge/sqlite-WAL-003B57?logo=sqlite&logoColor=white) ![esm2](https://img.shields.io/badge/ESM--2-t12--35M-467FF7) ![status](https://img.shields.io/badge/status-in%20development-fcb900) ![author](https://img.shields.io/badge/author-Marc%20C.%20Deller%2C%20D.Phil.-1C244B)
+![python](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white) ![flask](https://img.shields.io/badge/flask-3.1-000000?logo=flask&logoColor=white) ![sqlite](https://img.shields.io/badge/sqlite-WAL-003B57?logo=sqlite&logoColor=white) ![esm2](https://img.shields.io/badge/ESM--2-t12--35M-467FF7) ![status](https://img.shields.io/badge/status-in%20development-fcb900) ![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21807353-1C244B?logo=doi&logoColor=white) ![data](https://img.shields.io/badge/data-CC--BY--4.0-9b51e0) ![author](https://img.shields.io/badge/author-Marc%20C.%20Deller%2C%20D.Phil.-1C244B)
 
 <table>
 <tr>
@@ -535,8 +535,9 @@ Roadmap for PANTS, roughly in dependency order. Suggestions welcome.
 - [x] **Curate measured activity data.** Taken from UniProt's machine-readable, citable annotations rather than transcribed from PDFs, which is where fabrication risk lives. `EC 3.1.1.101` (poly(ethylene terephthalate) hydrolase) gave 459 entries and took the positive set from 87 sequences in 11 clusters to 529 in 29. 47 measurements extracted (21 Km, 8 Topt, 8 pH optima, 10 qualitative), each carrying its PubMed IDs, with `comparable_group_id` keyed on parameter plus substrate so a Km on pNP-butanoate is never pooled with one on PET film
 - [x] **Add the gut microbiome as a fourth source environment.** The three current environments (compost, marine plastisphere, landfill) are all external. A human gut metagenome is the one that matters most for the therapeutic framing: an enzyme already resident at 37 °C, pH 7.4 and in a proteolytic environment has been selected under something close to the target conditions, rather than being asked to work far from its optimum. **HGMP01** is the concrete starting point: it is named in spec section 1, it is metagenome-derived rather than a variant of a characterised parent, and it is currently the one named enzyme the recall stage is expected to recover from sequence space instead of being seeded with. Done: **12,584,458 gut proteins from five MGnify studies**, registered as `human_gut` and now 71% of the catalogue. **HGMP01 itself could not be seeded**: it returns zero hits in UniProt and in NCBI protein/nuccore, and its paper (PMID 39551294) has no linked sequence records, so the sequence sits in supplementary material. That is not a blocker but an advantage, because the same paper reports HGMP01-like genes as widely distributed across the gut microbiome, so recall finding them **unaided** is a blind test rather than a circular one
 - [x] **Obtained all five HGMP sequences.** No public database holds them (zero hits across UniProt, NCBI protein and nuccore), but the authors deposited them on SciDB. **The paper and the deposit use different numbering**: the paper's HGMP01 to HGMP05 are the deposit's HGMP03, 04, 06, 07 and 08, so matching on name would have mislabelled all five. The mapping is pinned by two independent facts, sequence length (all five distinct, so 1:1) and homologue count (the paper's "697 putative HGMP01-like enzymes" matches the deposit's HGMP03 exactly). **HGMP01 = `GUT_GENOME238302_00589`, 275 aa, optimum 40 °C at near-neutral pH**: the only measured PET hydrolase in this project whose optimum is close to physiological
-- [ ] **Extend curation to rates on PET itself.** The extracted Km values are on soluble ester proxies (pNP esters), not on PET film or powder. Rates on real PET remain locked in paper supplementaries, and spec section 5.4's ordinal-within-paper fallback has not been built
-- [ ] **Resolve the Cut190 strain ambiguity.** `W0TJ64` versus `C7MVE8`, both 304 aa, AHK190 versus type strain P101. Currently flagged in the seed notes and unresolved
+- [x] **Built the ordinal-within-paper fallback, and established why it is the route rather than a fallback.** Before this the database held exactly **one** quantitative value measured on PET; all 21 Km values were on soluble pNP-ester proxies. Attempting the real thing showed why: **PET rates live in figure panels**, not in extractable text or structured deposits, so they cannot be harvested at scale. The brief anticipated this and proposed within-paper ordinal ranking, which now exists as a `parameter_type` with `ordinal_rank_in_paper`, seeded from PMID 39551294 (HGMP01 first of five on PET nanoparticles, the other four recorded as equal-second because the paper does not order them). Assay conditions are attached so the comparison is interpretable
+- [ ] **Populate ordinal rankings across the PAZy literature.** 312 PAZy entries carry DOIs; papers that assay several enzymes under one protocol rank them, and that ranking is extractable by reading where an absolute rate is not. This is the only route to a training signal that does not need a negative class, which the near-miss finding showed is otherwise unavailable
+- [x] **Resolved the Cut190 strain ambiguity.** `W0TJ64`, not `C7MVE8`. Length could never separate them (both 304 aa), but the crystal structures can: **4WFI, 4WFJ, 4WFK, 5ZNO, 5ZRQ and 5ZRR all cross-reference W0TJ64**, and C7MVE8 has no PDB entry at all. Structural evidence beats a name match, and the seed was right by luck rather than by evidence until now
 - [ ] **Confirm the outstanding mutation sets.** DuraPETase, HotPETase, TurboPETase, Z1-PETase and Cut190\*\*SS are recorded without sequences because their complete mutation sets were not confirmed. A partial set yields a wrong sequence, which is worse than an honest gap
 - [x] **Choose and acquire the metagenome collections, size-checked first.** 2,220,462 predicted proteins (858 MB) from landfill, marine plastisphere and compost assemblies. Only assemblies carry proteins: MGnify's largest plastisphere study has 357 samples and no protein sequences at all, being 16S amplicon
 - [x] **Build the recall stage.** One profile HMM per 30% cluster, each anchored on UniProt's own Active site annotation, MMseqs2 prefilter then hmmscan and a triad completeness filter. 128 candidates from 2.2M proteins in 24 minutes, with discard counts reported at every step
@@ -556,11 +557,38 @@ Roadmap for PANTS, roughly in dependency order. Suggestions welcome.
 - [ ] **Deploy to `pants.mdeller.com`.** Mirror AlphaFraud's gunicorn, nginx, systemd and certbot setup on port 8005, then add the entry to the mdeller.com launcher
 - [ ] **Measure real droplet headroom before any v2 inference work.** The memory figures in the plan are estimates, not measurements
 - [ ] **MHETase pipeline (v2).** Its own seed and negatives: MHETase is Tannase family, so a PETase-seeded profile search cannot reach it
-- [ ] **Choose a licence**, and decide whether the candidate catalogue ships as a dataset alongside the application
+- [x] **Published the catalogue as a citable dataset.** Zenodo, CC BY 4.0, concept DOI [10.5281/zenodo.21807353](https://doi.org/10.5281/zenodo.21807353), nine files each size-verified on upload. Code licence still to choose
+
+## 📦 Dataset
+
+The catalogue is deposited on Zenodo under CC BY 4.0: candidates with their retrieval
+scores and active-site geometry, the reference set split by evidence tier, the measured
+activity data with its citations, every pipeline run with its discard counts, and the
+predicted structures.
+
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21807353-1C244B?logo=doi&logoColor=white)](https://doi.org/10.5281/zenodo.21807353)
+
+| | |
+|---|---|
+| Concept DOI (always latest) | [10.5281/zenodo.21807353](https://doi.org/10.5281/zenodo.21807353) |
+| This version (v0.1.0) | [10.5281/zenodo.21807354](https://doi.org/10.5281/zenodo.21807354) |
+
+Every figure in the deposit's description and datasheet was **recomputed from the
+deposited files** by `scripts/build_release.py` rather than copied from this README.
+That is deliberate: on a sibling project six figures reached a Zenodo description by
+being copied from prose describing a checkpoint that was measured but never shipped, and
+a DOI would have made them permanent.
+
+**Cite as:** Deller, M. C. (2026). *PANTS: a triaged catalogue of candidate PET-degrading
+enzymes for therapeutic conditions*. Version 0.1.0. Zenodo. https://doi.org/10.5281/zenodo.21807353
 
 ## 📝 Licence
 
-Not yet chosen. Licensing, and whether the candidate catalogue is released as a dataset alongside the application, is an open project decision.
+**Data:** CC BY 4.0, via the Zenodo deposit above.
+
+**Code:** not yet chosen. Attributing PANTS does not discharge the obligation to the
+sources it derives from: UniProt and UniRef (CC BY 4.0), the PDB (CC0), PAZy, ESTHER and
+MGnify, each of which carries its own terms.
 
 ---
 

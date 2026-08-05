@@ -92,11 +92,13 @@ WILD_TYPES: List[WildType] = [
     ),
     WildType(
         enzyme_id="Cut190", uniprot="W0TJ64", family="cutinase", is_positive=True,
-        notes="Saccharomonospora viridis cutinase, 304 aa. STRAIN CAVEAT: Cut190 is from "
-              "S. viridis AHK190; UniProt also carries C7MVE8 (type strain P101) at the "
-              "same length. Confirm the strain against the Cut190 papers before this seed "
-              "is used for anything load-bearing.",
-        pdb_ids=["4WFI", "4WFJ"],
+        notes="Saccharomonospora viridis AHK190 cutinase, 304 aa. STRAIN AMBIGUITY "
+              "RESOLVED 2026-08-05: UniProt carries two 304 aa entries for this organism, "
+              "W0TJ64 and C7MVE8 (type strain P101), and length alone cannot separate "
+              "them. The Cut190 crystal structures settle it: 4WFI, 4WFJ, 4WFK, 5ZNO, "
+              "5ZRQ and 5ZRR all cross-reference W0TJ64, and C7MVE8 has no PDB entry at "
+              "all. Structural evidence over a name match.",
+        pdb_ids=["4WFI", "4WFJ", "4WFK", "5ZNO", "5ZRQ", "5ZRR"],
     ),
 ]
 
