@@ -91,9 +91,17 @@ def _mean_plddt(pdb_text: str) -> Optional[float]:
 
 
 def _resolution(pdb_text: str) -> Optional[float]:
+    """Resolution in Angstroms from the REMARK 2 record.
+
+    Parsed from the text AFTER "RESOLUTION.", not from the first number on the line: the
+    line reads `REMARK   2 RESOLUTION.    1.44 ANGSTROMS.` and the first float on it is the
+    remark number 2. Taking that gave every experimental structure a resolution of exactly
+    2.0 A, which is plausible enough to pass unnoticed.
+    """
     for line in pdb_text.splitlines():
         if line.startswith("REMARK   2 RESOLUTION."):
-            for tok in line.split():
+            tail = line.split("RESOLUTION.", 1)[1]
+            for tok in tail.split():
                 try:
                     return float(tok)
                 except ValueError:
@@ -169,7 +177,13 @@ def build(only: Optional[List[str]] = None, label: str = "v1") -> Dict[str, obje
             site = geometry.measure(dest)
             n_res = len({l[22:27] for l in dest.read_text().splitlines()
                          if l.startswith("ATOM")})
-            _persist(enzyme_id, source, sid, dest.name, pdb_text, rmsd, site, n_res)
+            offset = sequence_offset(sequence, site)
+            if offset is None and site.ser_resnum is not None:
+                report["skipped"].append(
+                    f"{enzyme_id}: no single offset maps {source} {sid}'s numbering onto "
+                    f"the stored sequence; the sequence panel cannot mark its triad")
+            _persist(enzyme_id, source, sid, dest.name, pdb_text, rmsd, site, n_res,
+                     offset)
             report["built"].append((enzyme_id, source, sid, n_res,
                                     site.cleft_width_A, site.triad_is_connected))
 
@@ -208,26 +222,53 @@ def _esmfold(sequence: str) -> Optional[str]:
         return None
 
 
+def sequence_offset(sequence: Optional[str], site: geometry.ActiveSite) -> Optional[int]:
+    """How the structure's residue numbering relates to the stored sequence.
+
+    `structure_resnum = sequence_position + offset`.
+
+    A deposited construct is numbered by whoever deposited it, and that need not match a
+    UniProt precursor: 7CEF is out by +42 against Cut190, 7QVH by +26 against HotPETase and
+    4CG1 by -40 against TfCut2. Left unreconciled the viewer and the sequence panel
+    disagree about which residues are catalytic, and the sequence panel is the one that is
+    wrong, silently, on a page whose whole point is showing where the chemistry happens.
+
+    Found by asking which single shift puts the MEASURED triad on a Ser, a His and an
+    Asp/Glu in the stored sequence. Three independent positions agreeing pins it; a
+    structure needing an indel rather than a shift returns None rather than a guess.
+    """
+    if not sequence or site.ser_resnum is None:
+        return None
+    for off in sorted(range(-120, 121), key=abs):
+        ps, ph, pa = (site.ser_resnum - off, site.his_resnum - off, site.asp_resnum - off)
+        if not all(0 < p <= len(sequence) for p in (ps, ph, pa)):
+            continue
+        if sequence[ps - 1] == "S" and sequence[ph - 1] == "H" and sequence[pa - 1] in "DE":
+            return off
+    return None
+
+
 def _persist(enzyme_id: str, source: str, source_id: str, coord_name: str,
              raw_text: str, rmsd: Optional[float], site: geometry.ActiveSite,
-             n_res: int) -> None:
+             n_res: int, seq_offset: Optional[int] = None) -> None:
     def _do() -> None:
         with connect() as c:
             c.execute(
                 "INSERT INTO reference_structures (enzyme_id, source, source_id, "
                 " coord_path, plddt_mean, resolution_A, rmsd_ca_to_ispetase_A, "
-                " superposition_reference, n_residues, built_at, model_version) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?) "
+                " superposition_reference, n_residues, built_at, model_version, "
+                " seq_offset) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
                 "ON CONFLICT(enzyme_id) DO UPDATE SET source=excluded.source, "
                 " source_id=excluded.source_id, coord_path=excluded.coord_path, "
                 " plddt_mean=excluded.plddt_mean, resolution_A=excluded.resolution_A, "
                 " rmsd_ca_to_ispetase_A=excluded.rmsd_ca_to_ispetase_A, "
-                " n_residues=excluded.n_residues, built_at=excluded.built_at",
+                " n_residues=excluded.n_residues, built_at=excluded.built_at, "
+                " seq_offset=excluded.seq_offset",
                 (enzyme_id, source, source_id, coord_name,
                  _mean_plddt(raw_text) if source != "pdb" else None,
                  _resolution(raw_text) if source == "pdb" else None,
                  rmsd, config.ISPETASE_REFERENCE_PDB, n_res, now(),
-                 config.ESMFOLD_MODEL if source == "esmfold" else source))
+                 config.ESMFOLD_MODEL if source == "esmfold" else source, seq_offset))
             c.execute(
                 "INSERT INTO reference_geometry (enzyme_id, triad_ser_resnum, "
                 " triad_his_resnum, triad_asp_resnum, ser_og_his_ne2_dist_A, "

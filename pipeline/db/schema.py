@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 SCHEMA = """
 -- ============================================================
@@ -360,4 +360,10 @@ COLUMN_MIGRATIONS = [
     # this project already holds, kept OUT of activity_measurements because most of these
     # describe what an enzyme IS rather than reporting a measured value.
     ("characterised_enzymes", "headline", "TEXT"),
+    # v10: how the structure file's residue numbering relates to the stored sequence.
+    # structure_resnum = sequence_position + seq_offset. A crystallised construct is
+    # numbered by its depositors and need not agree with a precursor sequence: three of
+    # twenty references were already out by +42, +26 and -40, which silently made the
+    # sequence panel mark the wrong residues as catalytic.
+    ("reference_structures", "seq_offset", "INTEGER"),
 ]

@@ -143,7 +143,30 @@ VARIANTS: List[Variant] = [
         enzyme_id="FAST-PETase", parent="IsPETase",
         mutations=["S121E", "D186H", "R224Q", "N233K", "R280A"], mutations_confirmed=True,
         reference="Lu et al. 2022, Nature (MutCompute)",
-        notes="ThermoPETase scaffold plus R224Q/N233K. Machine-learning designed.",
+        notes="ThermoPETase scaffold plus R224Q/N233K. Machine-learning designed. "
+              "HAS an experimental structure, contrary to a first look: 7SH6 appears to "
+              "carry 19 substitutions against IsPETase, but 14 of those are a heterologous "
+              "secretion leader replacing the native signal peptide, and its MATURE chain "
+              "(residue 28 on) is identical to FAST-PETase. 8J45 is the same protein again, "
+              "expressed in Pichia pastoris, differing only by an EF cloning scar where the "
+              "mature sequence begins QT. Comparing whole precursors instead of mature "
+              "chains is what hid this.",
+        pdb_ids=["7SH6", "8J45"],
+    ),
+    Variant(
+        enzyme_id="FAST-PETase-N212A/K233C/S282C", parent="IsPETase",
+        mutations=["S121E", "D186H", "N212A", "R224Q", "N233C", "R280A", "S282C"],
+        mutations_confirmed=True,
+        reference="Lu et al. 2022, Nature (MutCompute)",
+        notes="A disulfide-stabilised FAST-PETase, from PDB 9LMS at 1.71 A. Expressed "
+              "against IsPETase rather than against FAST-PETase, because IsPETase is the "
+              "root of this lineage and every other member is quoted the same way: it is "
+              "FAST-PETase's five with N233K taken on to N233C, plus N212A and S282C. "
+              "C233 and C282 form an engineered disulfide across the SAME residue pair "
+              "Z1-PETase uses, reached independently by a different group. Verified by "
+              "aligning 9LMS's mature chain to FAST-PETase, which differs at exactly the "
+              "three positions its deposit title names.",
+        pdb_ids=["9LMS"],
     ),
     Variant(
         enzyme_id="IsPETase-W159H/S238F", parent="IsPETase",

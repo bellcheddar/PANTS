@@ -241,7 +241,9 @@
 const SELF = {{ e.enzyme_id|tojson }};
 // Positions are in this enzyme's own numbering, the same numbering the
 // structure file uses, so they index the model directly.
-const MUT_POSITIONS = {{ mut_at.keys()|list|tojson }};
+// Structure numbering: the file's residues, not the sequence's.
+const MUT_POSITIONS = {{ viewer_mutations|tojson }};
+const SEQ_OFFSET = {{ seq_offset }};   // structure_resnum = seq_pos + offset
 const OTHERS = {{ others|tojson }};
 const picker = document.getElementById('picker');
 
@@ -289,11 +291,12 @@ function markSequence(resi) {
   const hit = document.querySelector(`.seq-res[data-pos="${resi}"]`);
   if (hit) hit.scrollIntoView({block: 'nearest', inline: 'nearest'});
 }
-PANTSViewer.setResidueClickHandler(markSequence);
+// The viewer reports the file's numbering; the sequence is indexed from 1.
+PANTSViewer.setResidueClickHandler(resi => markSequence(resi - SEQ_OFFSET));
 seqEls.forEach(el => el.addEventListener('click', () => {
   const pos = Number(el.dataset.pos);
   markSequence(pos);
-  PANTSViewer.selectResidue(pos, false);   // false: do not call back into markSequence
+  PANTSViewer.selectResidue(pos + SEQ_OFFSET, false, SELF);
 }));
 
 document.getElementById('reset').addEventListener('click', () => PANTSViewer.reset());

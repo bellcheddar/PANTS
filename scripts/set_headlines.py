@@ -33,6 +33,7 @@ HEADLINES = {
     "HGMP03": "Human gut metagenome polyesterase, assayed on PET nanoparticles",
     "HGMP04": "Human gut metagenome polyesterase, assayed on PET nanoparticles",
     "HGMP05": "Human gut metagenome polyesterase, assayed on PET nanoparticles",
+    "FAST-PETase-N212A/K233C/S282C": "Disulfide-stabilised FAST-PETase; C233-C282 crosslinks the same pair Z1-PETase uses",
 }
 
 if __name__ == "__main__":

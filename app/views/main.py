@@ -248,6 +248,7 @@ def compare():
 
         refs = [dict(r) for r in conn.execute(
             "SELECT rs.enzyme_id AS sid, rs.coord_path, rs.source, rs.plddt_mean, "
+            "       rs.seq_offset, "
             "       ce.sequence, ce.seq_length, ce.lineage_wt_id, "
             "       rg.cleft_width_A, rg.triad_ser_resnum, rg.triad_asp_resnum, "
             "       rg.triad_his_resnum "
@@ -266,16 +267,23 @@ def compare():
             r["label"] = r["sid"]
             m = _mutations_for(r["sid"])
             r["parent"] = (m or {}).get("parent")
-            r["mutations"] = sorted(
+            off = r.get("seq_offset") or 0
+            seq_positions = sorted(
                 int("".join(ch for ch in x if ch.isdigit()))
                 for x in (m or {}).get("mutations", [])
                 if any(ch.isdigit() for ch in x))
+            # mutations -> the STRUCTURE's numbering for the viewer; mut_labels stay in
+            # sequence numbering for the sequence panel.
+            r["mutations"] = [pos + off for pos in seq_positions]
             r["mut_labels"] = {int("".join(ch for ch in x if ch.isdigit())): x
                                for x in (m or {}).get("mutations", [])
                                if any(ch.isdigit() for ch in x)}
 
     for r in cands + refs:
-        r["triad_at"] = {int(r[k]): lab for k, lab in
+        off = r.get("seq_offset") or 0
+        r["seq_offset"] = off
+        # Sequence numbering for the panel; the viewer keeps the structure's own.
+        r["triad_at"] = {int(r[k]) - off: lab for k, lab in
                          (("triad_ser_resnum", "Ser"), ("triad_his_resnum", "His"),
                           ("triad_asp_resnum", "Asp")) if r.get(k)}
         r.setdefault("mutations", [])
@@ -385,7 +393,7 @@ def _named_enzyme_rows() -> List[Dict[str, Any]]:
                        AND a.parameter_type='performance_claim' LIMIT 1) AS performance,
                    rs.source AS struct_source, rs.source_id AS struct_source_id,
                    rs.coord_path, rs.plddt_mean, rs.resolution_A,
-                   rs.rmsd_ca_to_ispetase_A, rs.n_residues,
+                   rs.rmsd_ca_to_ispetase_A, rs.n_residues, rs.seq_offset,
                    rg.cleft_width_A, rg.cleft_depth_A, rg.n_cleft_residues,
                    rg.triad_ser_resnum, rg.triad_asp_resnum, rg.triad_his_resnum,
                    rg.ser_og_his_ne2_dist_A, rg.his_nd1_asp_od_dist_A,
@@ -582,16 +590,25 @@ def enzyme(enzyme_id: str):
             if digits:
                 mut_at[int(digits)] = label
 
-    # Triad positions, so the sequence can mark them in the viewer's own yellow.
+    # Triad positions for the SEQUENCE panel, converted out of the structure's own
+    # numbering. A deposited construct is numbered by its depositors: 7CEF is +42 against
+    # Cut190 and 4CG1 is -40 against TfCut2, and marking the structure's numbers directly
+    # on the sequence highlighted three residues that are not the catalytic ones.
+    off = row.get("seq_offset") or 0
     triad_at: Dict[int, str] = {}
     for key, label in (("triad_ser_resnum", "Ser"), ("triad_his_resnum", "His"),
                        ("triad_asp_resnum", "Asp")):
         if row.get(key):
-            triad_at[int(row[key])] = label
+            pos = int(row[key]) - off
+            if seq and 0 < pos <= len(seq[0]):
+                triad_at[pos] = label
+
+    # Mutations are stated in sequence numbering; the viewer needs the structure's.
+    viewer_mutations = sorted(pos + off for pos in mut_at)
 
     return render_template(
         "enzyme.html", active="home", e=row, seq=seq[0] if seq else None,
-        triad_at=triad_at,
+        triad_at=triad_at, seq_offset=off, viewer_mutations=viewer_mutations,
         mut=mut, measurements=measurements, children=children, nearest=nearest,
         n_nearest=n_nearest, others=others, links=_links_for(row, mut),
         mut_at=mut_at,

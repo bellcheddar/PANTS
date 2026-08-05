@@ -97,7 +97,7 @@ function addSequence(sid) {
   block.querySelectorAll('.seq-res').forEach(el => el.addEventListener('click', () => {
     const pos = Number(el.dataset.pos);
     markSequence(pos, sid);
-    PANTSViewer.selectResidue(pos, false, sid);
+    PANTSViewer.selectResidue(pos + (rec.seq_offset || 0), false, sid);
   }));
   empty.style.display = 'none';
 }
@@ -116,7 +116,10 @@ function markSequence(resi, sid) {
   const hit = document.querySelector(`${scope}.seq-res[data-pos="${resi}"]`);
   if (hit) { hit.classList.add('picked'); hit.scrollIntoView({block: 'nearest', inline: 'nearest'}); }
 }
-PANTSViewer.setResidueClickHandler(markSequence);
+PANTSViewer.setResidueClickHandler((resi, sid) => {
+  const rec = ALL[sid] || {};
+  markSequence(resi - (rec.seq_offset || 0), sid);
+});
 
 /* ---------- pickers ---------- */
 function buildPicker(el, rows, offset) {
