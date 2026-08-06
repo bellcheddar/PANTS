@@ -554,3 +554,15 @@ table.data.enzymes .qualified sup { color: var(--md-accent-amber); font-size: 9p
 .ov-dist{margin-top:6px !important;color:var(--pv-text)}
 .ov-dist.close{color:#ff2ec4}
 .ov-pick{margin-top:6px !important;color:var(--md-accent-amber) !important}
+
+/* ---------- reference set page ---------- */
+.ref-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.ref-tiers{display:flex;gap:6px;flex-wrap:wrap}
+.ref-tiers a{font-size:12px;padding:5px 12px;border:1px solid var(--pv-border);
+  border-radius:20px;color:var(--pv-dim);text-decoration:none;white-space:nowrap}
+.ref-tiers a.on{color:var(--pv-accent);border-color:var(--pv-accent);
+  background:rgba(143,180,255,.10)}
+.ref-bar input[type="search"]{flex:1;min-width:180px;max-width:320px;
+  background:var(--pv-panel);border:1px solid var(--pv-border);border-radius:20px;
+  padding:6px 14px;color:var(--pv-text);font-size:12px}
+.ref-bar input[type="search"]:focus{outline:none;border-color:var(--pv-accent)}

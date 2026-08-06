@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Reference set{% endblock %}
+{% block content %}
+<div class="md-card">
+  <h2>The whole reference set</h2>
+  <p class="muted">The Home page lists 23 enzymes with a name, a lineage and a structure. That
+  is the curated subset, not the reference set: the measured set is an order of magnitude
+  larger, almost all of it from <a href="https://pazy.eu" target="_blank" rel="noopener noreferrer">PAZy</a>,
+  and it is what the activity head is trained and evaluated on. This is that set.</p>
+
+  <form method="get" class="ref-bar">
+    <div class="ref-tiers">
+      <a href="?tier=measured{% if q %}&q={{ q }}{% endif %}" class="{{ 'on' if tier == 'measured' }}">
+        Measured <span class="muted">{{ counts.measured }}</span></a>
+      <a href="?tier=annotated{% if q %}&q={{ q }}{% endif %}" class="{{ 'on' if tier == 'annotated' }}">
+        Annotated only <span class="muted">{{ counts.annotated }}</span></a>
+      <a href="?tier=negative{% if q %}&q={{ q }}{% endif %}" class="{{ 'on' if tier == 'negative' }}">
+        Negatives <span class="muted">{{ counts.negative }}</span></a>
+    </div>
+    <input type="hidden" name="tier" value="{{ tier }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="name, accession or organism"
+           aria-label="Search the reference set">
+    <button type="submit">Search</button>
+    {% if q %}<a class="chip" href="?tier={{ tier }}">clear</a>{% endif %}
+  </form>
+
+  <p class="muted" style="font-size:11.5px;margin-top:10px">
+    <strong>Measured</strong> means a published experiment stands behind the label — PAZy lists an
+    enzyme because activity on a plastic was measured, with the DOI attached.
+    <strong>Annotated only</strong> means the label was assigned by sequence similarity and nobody
+    measured anything; a model trained on those is largely rediscovering the rule that produced
+    them, which is why the two are counted separately everywhere on this site.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
+  <h2>{{ rows|length }} shown{% if q %} for “{{ q }}”{% endif %}</h2>
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table class="data">
+    <thead><tr><th>Name</th><th>Identifier</th><th>Organism</th><th class="num">Length</th>
+      <th>Substrates measured</th><th>Provenance</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{% if r.has_page %}<a href="{{ url_for('main.enzyme', enzyme_id=r.enzyme_id) }}"><strong>{{ r.common_name or r.enzyme_id }}</strong></a>
+            {%- else %}{{ r.common_name or '—' }}{% endif %}</td>
+        <td class="mono" style="font-size:11px">{{ r.enzyme_id }}
+          {%- if r.uniprot %}<br><a href="https://www.uniprot.org/uniprotkb/{{ r.uniprot }}"
+            target="_blank" rel="noopener noreferrer">{{ r.uniprot }}</a>{% endif %}</td>
+        <td style="font-size:12px">{{ r.organism or '—' }}</td>
+        <td class="num">{{ r.seq_length }}</td>
+        <td style="font-size:11.5px">{{ r.substrates or '—' }}</td>
+        <td style="font-size:11px">{{ r.source_ref }}
+          {%- if r.within_family_basis %}<br><span class="muted">within-family negative
+            ({{ r.within_family_basis }})</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if rows|length >= 1200 %}
+  <p class="muted" style="font-size:11px;margin-top:8px">Showing the first 1200. Narrow with a
+  search, or take the whole set from the deposited dataset.</p>
+  {% endif %}
+</div>
+{% endblock %}

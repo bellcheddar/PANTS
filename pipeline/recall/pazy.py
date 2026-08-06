@@ -282,10 +282,11 @@ def load(substrate: str = "PET", label: str = "v1") -> Dict[str, object]:
                     "INSERT INTO characterised_enzymes "
                     "(enzyme_id, uniprot, organism, family, sequence, seq_length, "
                     " is_positive, is_negative, is_near_miss, taxonomy_lineage, "
-                    " activity_substrate_notes, source_ref, added_at) "
-                    "VALUES (?,?,?,?,?,?,1,0,0,?,?,?,?) "
+                    " activity_substrate_notes, source_ref, added_at, common_name) "
+                    "VALUES (?,?,?,?,?,?,1,0,0,?,?,?,?,?) "
                     "ON CONFLICT(enzyme_id) DO UPDATE SET sequence=excluded.sequence, "
                     " seq_length=excluded.seq_length, "
+                    " common_name=excluded.common_name, "
                     " activity_substrate_notes=excluded.activity_substrate_notes",
                     (eid, acc, org, "petase_like", seq, len(seq),
                      (p.get("organism") or {}).get("phylum"),
@@ -294,7 +295,7 @@ def load(substrate: str = "PET", label: str = "v1") -> Dict[str, object]:
                       f"of sequence similarity. "
                       + (f"Primary reference doi:{doi}. " if doi else "")
                       + f"Curated set: {CITATION}."),
-                     "PAZy-measured", now()),
+                     "PAZy-measured", now(), p.get("name") or None),
                 )
                 report["updated" if already else "added"] += 1
 

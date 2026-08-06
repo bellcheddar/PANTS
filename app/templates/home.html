@@ -46,8 +46,15 @@
 {% include "_figures.html" %}
 
 <div class="md-card" style="margin-top:16px">
-  <h2>Known and characterised enzymes</h2>
-  <p class="muted">Every named PETase and polyesterase in the reference set, grouped by lineage with
+  <h2>Named enzymes and their lineages
+    <span class="muted" style="font-size:12px;font-weight:400">{{ known|length }} of
+      {{ counts.evidenced }} measured</span></h2>
+  <p class="caveat" style="font-size:12.5px;margin-bottom:12px">This is the <strong>curated
+    subset</strong>: the enzymes with a name, a known lineage and a structure. It is not the whole
+    reference set. {{ counts.evidenced }} enzymes carry a published measurement, almost all from
+    PAZy, and those are what the activity head is trained and evaluated on —
+    <a href="{{ url_for('main.reference_set') }}">see all of them</a>.</p>
+  <p class="muted">Grouped by lineage with
   each wild type heading the variants built on it. Read down the T<sub>opt</sub> column within a
   lineage and the pattern is the one that motivates this project: engineering runs <em>away</em> from
   <span class="mono" style="font-size:11px">37 °C</span>, the therapeutic target, which is marked on

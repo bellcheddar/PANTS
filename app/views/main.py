@@ -323,6 +323,64 @@ def compare():
                            env_label=ENV_LABEL)
 
 
+@bp.route("/reference")
+def reference_set():
+    """Every characterised enzyme, not only the named lineages.
+
+    The Home table shows 23 curated enzymes and reads, fairly, as though that is the whole
+    reference set. It is not: it is the subset with a name, a lineage and a structure. The
+    measured set is an order of magnitude larger, almost all of it from PAZy, and it is what
+    the activity head is actually trained and evaluated on -- so it needs somewhere to be
+    seen rather than only somewhere to be counted.
+    """
+    tier = request.args.get("tier") or ""
+    q = (request.args.get("q") or "").strip()
+
+    marks = ",".join("?" * len(config.MEASURED_TIERS))
+    sql = ("SELECT enzyme_id, common_name, uniprot, organism, seq_length, source_ref, "
+           "       activity_substrate_notes, is_positive, is_near_miss, within_family_basis "
+           "FROM characterised_enzymes WHERE sequence IS NOT NULL ")
+    params: List[Any] = []
+    if tier == "measured":
+        sql += f"AND is_positive=1 AND source_ref IN ({marks}) "
+        params += list(config.MEASURED_TIERS)
+    elif tier == "annotated":
+        sql += f"AND is_positive=1 AND source_ref NOT IN ({marks}) "
+        params += list(config.MEASURED_TIERS)
+    elif tier == "negative":
+        sql += "AND (is_negative=1 OR is_near_miss=1) "
+    else:
+        sql += "AND is_positive=1 "
+    if q:
+        sql += ("AND (enzyme_id LIKE ? OR common_name LIKE ? OR uniprot LIKE ? "
+                "OR organism LIKE ?) ")
+        params += [f"%{q}%"] * 4
+    sql += "ORDER BY (common_name IS NULL), common_name, enzyme_id LIMIT 1200"
+
+    with connect() as conn:
+        rows = [dict(r) for r in conn.execute(sql, params)]
+        counts = {
+            "measured": conn.execute(
+                f"SELECT COUNT(*) FROM characterised_enzymes WHERE is_positive=1 "
+                f"AND source_ref IN ({marks})", config.MEASURED_TIERS).fetchone()[0],
+            "annotated": conn.execute(
+                f"SELECT COUNT(*) FROM characterised_enzymes WHERE is_positive=1 "
+                f"AND source_ref NOT IN ({marks})", config.MEASURED_TIERS).fetchone()[0],
+            "negative": conn.execute(
+                "SELECT COUNT(*) FROM characterised_enzymes "
+                "WHERE is_negative=1 OR is_near_miss=1").fetchone()[0],
+        }
+    named = {r["enzyme_id"] for r in _named_enzyme_rows()}
+    for r in rows:
+        r["has_page"] = r["enzyme_id"] in named
+        # The substrate list is the useful part of a long provenance note.
+        note = r.get("activity_substrate_notes") or ""
+        r["substrates"] = (note.split("measured activity on", 1)[1].split(".", 1)[0].strip()
+                           if "measured activity on" in note else "")
+    return render_template("reference.html", active="reference", rows=rows, counts=counts,
+                           tier=tier or "measured", q=q, env_label=ENV_LABEL)
+
+
 @bp.route("/overlay")
 def overlay():
     """Small multiples of one lineage, sharing a camera and a coordinate frame.

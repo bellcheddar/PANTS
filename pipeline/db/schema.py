@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 
 SCHEMA = """
 -- ============================================================
@@ -360,6 +360,9 @@ COLUMN_MIGRATIONS = [
     # this project already holds, kept OUT of activity_measurements because most of these
     # describe what an enzyme IS rather than reporting a measured value.
     ("characterised_enzymes", "headline", "TEXT"),
+    # v13: the name the literature uses. The bulk sets are keyed by accession -- PAZy:1,
+    # ESTHER:C9ZCR8 -- which is stable and unreadable. PAZy:1 is IsPETase.
+    ("characterised_enzymes", "common_name", "TEXT"),
     # v10: how the structure file's residue numbering relates to the stored sequence.
     # structure_resnum = sequence_position + seq_offset. A crystallised construct is
     # numbered by its depositors and need not agree with a precursor sequence: three of
