@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 SCHEMA = """
 -- ============================================================
@@ -376,4 +376,10 @@ COLUMN_MIGRATIONS = [
     # v12: catalytic residues the deposit has lost. Non-empty means the coordinates are an
     # INACTIVATED crystallisation construct rather than the working enzyme.
     ("reference_structures", "catalytic_knockout_json", "TEXT"),
+    # v14: the date UniProt first made the entry public. The prospective holdout in the
+    # evaluation protocol needs a "what was known when" axis, and `pdb_release_date` is
+    # empty for the whole catalogue because most of these enzymes have no deposit. The
+    # UniProt date is the earliest defensible proxy for when the sequence entered the
+    # public record, and it exists for anything with an accession.
+    ("characterised_enzymes", "uniprot_first_public", "TEXT"),
 ]
