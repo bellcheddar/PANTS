@@ -566,3 +566,51 @@ table.data.enzymes .qualified sup { color: var(--md-accent-amber); font-size: 9p
   background:var(--pv-panel);border:1px solid var(--pv-border);border-radius:20px;
   padding:6px 14px;color:var(--pv-text);font-size:12px}
 .ref-bar input[type="search"]:focus{outline:none;border-color:var(--pv-accent)}
+
+/* ---------- stats page ----------
+   The page's job is to look alive without being noisy: one pulse, and a flash on the
+   individual figures that moved rather than a repaint of the whole grid. */
+.stat-live{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;
+  font-size:12px;color:var(--pv-dim)}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--md-accent-green);
+  flex-shrink:0;box-shadow:0 0 0 0 rgba(0,208,132,.55);animation:pulse 2.4s ease-out infinite}
+.pulse.stale{background:var(--md-accent-orange);animation:none;
+  box-shadow:0 0 0 3px rgba(255,105,0,.18)}
+@keyframes pulse{
+  0%  {box-shadow:0 0 0 0   rgba(0,208,132,.55)}
+  70% {box-shadow:0 0 0 7px rgba(0,208,132,0)}
+  100%{box-shadow:0 0 0 0   rgba(0,208,132,0)}}
+@media (prefers-reduced-motion: reduce){.pulse{animation:none}}
+
+/* A changed figure lights up briefly. Colour, not movement: numbers that jump position
+   are harder to read than numbers that flash. */
+.bumped{animation:bump 1.6s ease-out 1}
+@keyframes bump{
+  0%  {color:var(--md-accent-amber)}
+  15% {color:var(--md-accent-amber)}
+  100%{color:inherit}}
+@media (prefers-reduced-motion: reduce){.bumped{animation:none}}
+
+/* The funnel is a definition list so the label/value pairing survives with CSS off. */
+.funnel{display:grid;gap:10px;margin:14px 0 0;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.funnel > div{background:var(--pv-panel);border:1px solid var(--pv-border);
+  border-radius:var(--md-radius);padding:12px 14px;border-left:3px solid var(--pv-accent)}
+.funnel dt{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--pv-dim)}
+.funnel dd{margin:2px 0 0;font-size:26px;font-weight:700;color:var(--pv-accent);
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.funnel dd.muted{font-size:11.5px;font-weight:400;line-height:1.45;margin-top:5px}
+
+.stat-box{background:var(--pv-panel);border:1px solid var(--pv-border);
+  border-radius:var(--md-radius);padding:14px 16px}
+.stat-box .big{font-size:28px;font-weight:700;color:var(--pv-accent);line-height:1.1;
+  font-variant-numeric:tabular-nums}
+.stat-box .lbl{font-size:12px;color:var(--pv-text);margin-top:1px}
+.stat-box p{margin:8px 0 0;font-size:11.5px;line-height:1.5}
+/* Green marks the one category that carries experimental evidence, matching the
+   .ev.measured pill used in the tables so the two read as the same claim. */
+.stat-box.good{border-left:3px solid var(--md-accent-green)}
+.stat-box.good .big{color:var(--md-accent-green)}
+
+.md-card h3.sub{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--pv-dim);font-weight:600}

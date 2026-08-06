@@ -12,3 +12,5 @@ from flask import Flask
 def register_views(app: Flask) -> None:
     from .main import bp
     app.register_blueprint(bp)
+    from .stats import bp as stats_bp
+    app.register_blueprint(stats_bp)

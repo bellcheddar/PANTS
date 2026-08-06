@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% block title %}Stats{% endblock %}
+{% block content %}
+
+<div class="md-card">
+  <h2 class="lead-title"><strong>Live instrumentation.</strong> Everything this project has
+    read, produced and is running on, recomputed on every request.</h2>
+  <p class="lede">Nothing here is cached or written by hand. Each figure is a query against the
+  database or a reading from the machine, taken when the page loads and refreshed every fifteen
+  seconds. A number that stops moving has stopped because the pipeline stopped — which is the
+  point of the page, since it is the one place a claim about this project can be checked against
+  the thing itself.</p>
+  <p class="stat-live"><span class="pulse" id="pulse"></span>
+    <span id="tick">updated {{ stats.generated_at }}</span>
+    <span class="muted">· refreshing every 15 s · database written
+      <span data-stat="host.database_age_min">{{ stats.host.database_age_min }}</span> min ago</span></p>
+</div>
+
+<!-- ============================ headline ============================ -->
+<div class="md-grid kpis" style="margin-top:16px">
+  <div class="md-card"><div class="kpi" data-stat="sequences_scanned" data-fmt="comma">{{ '{:,}'.format(stats.sequences_scanned) }}</div>
+    <div class="kpi-label">protein sequences read</div></div>
+  <div class="md-card"><div class="kpi" data-stat="candidates">{{ stats.candidates }}</div>
+    <div class="kpi-label">candidates recovered</div></div>
+  <div class="md-card"><div class="kpi" data-stat="reference_structures">{{ stats.reference_structures }}</div>
+    <div class="kpi-label">reference structures</div></div>
+  <div class="md-card"><div class="kpi" data-stat="candidates_folded">{{ stats.candidates_folded }}</div>
+    <div class="kpi-label">candidate structures</div></div>
+  <div class="md-card"><div class="kpi" data-stat="measured">{{ stats.measured }}</div>
+    <div class="kpi-label">measured positives</div></div>
+  <div class="md-card"><div class="kpi" data-stat="measurements">{{ stats.measurements }}</div>
+    <div class="kpi-label">activity measurements</div></div>
+</div>
+
+<!-- ============================ sequence space ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>Where the sequences came from</h2>
+  <p class="muted">Metagenomics reads the DNA of a whole microbial community straight from the
+  environment, without culturing anything. Each row is one such environment, chosen because it has
+  had decades of plastic exposure and every reason to have evolved a use for it. <strong>Yield per
+  million</strong> is the comparable figure: raw candidate counts only tell you which environment
+  was sequenced most deeply.</p>
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table class="data" id="env-table">
+    <thead><tr><th>Environment</th><th class="num">Sequences read</th><th class="num">Candidates</th>
+      <th class="num">Per million</th><th class="num">Scan runs</th></tr></thead>
+    <tbody>
+      {% for e in stats.environments %}
+      <tr><td>{{ env_label.get(e.env, e.env or 'unspecified') }}</td>
+        <td class="num">{{ '{:,}'.format(e.scanned) }}</td>
+        <td class="num">{{ e.candidates }}</td>
+        <td class="num">{{ e.per_million if e.per_million is not none else '—' }}</td>
+        <td class="num">{{ e.runs }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ============================ the funnel ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>The funnel</h2>
+  <p class="muted">How {{ '{:,}'.format(stats.sequences_scanned) }} sequences become a shortlist.
+  Each step is a filter, and the last one is the one that matters: three catalytic residues can be
+  present in a sequence and still not touch each other in the folded protein, and only a structure
+  can tell you which.</p>
+  <dl class="funnel">
+    <div><dt>Sequences read</dt><dd data-stat="sequences_scanned" data-fmt="comma">{{ '{:,}'.format(stats.sequences_scanned) }}</dd>
+      <dd class="muted">every predicted protein in the assemblies</dd></div>
+    <div><dt>Survived recall</dt><dd data-stat="candidates">{{ stats.candidates }}</dd>
+      <dd class="muted">matched a polyesterase profile and carry a complete triad</dd></div>
+    <div><dt>Given a structure</dt><dd data-stat="candidates_folded">{{ stats.candidates_folded }}</dd>
+      <dd class="muted">folded with ESMFold, superposed onto IsPETase</dd></div>
+    <div><dt>Triad confirmed in 3D</dt><dd data-stat="candidate_geometry">{{ stats.candidate_geometry }}</dd>
+      <dd class="muted">the three residues actually meet in space</dd></div>
+    <div><dt>Too long to fold</dt><dd data-stat="candidates_deferred">{{ stats.candidates_deferred }}</dd>
+      <dd class="muted">over 450 residues; deferred, not discarded</dd></div>
+  </dl>
+</div>
+
+<!-- ============================ structures ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>Protein structures</h2>
+  <p class="muted">A structure is either <strong>measured</strong> or <strong>predicted</strong>,
+  and the difference matters more than any single number on this page. An X-ray crystal structure
+  is experimental evidence. AlphaFold and ESMFold produce a hypothesis — usually a good one for the
+  fold, least reliable exactly where this project looks, in the flexible loops that gate the active
+  site.</p>
+  <div class="md-grid" style="margin-top:12px">
+    <div class="stat-box"><div class="big" data-stat="reference_by_source.pdb">{{ stats.reference_by_source.get('pdb', 0) }}</div>
+      <div class="lbl">X-ray crystal structures</div>
+      <p class="muted">Deposited experimental structures. Best resolution here:
+        <strong data-stat="best_resolution">{{ stats.best_resolution }}</strong> Å — lower is
+        sharper, and below 1 Å individual atoms are resolved.</p></div>
+    <div class="stat-box"><div class="big" data-stat="reference_by_source.alphafold">{{ stats.reference_by_source.get('alphafold', 0) }}</div>
+      <div class="lbl">AlphaFold models</div>
+      <p class="muted">Predicted from an alignment of related sequences. Downloaded where a UniProt
+        accession exists.</p></div>
+    <div class="stat-box"><div class="big" data-stat="reference_by_source.esmfold">{{ stats.reference_by_source.get('esmfold', 0) }}</div>
+      <div class="lbl">ESMFold predictions</div>
+      <p class="muted">Folded here, from sequence alone, for everything with no deposit and no
+        accession. Mean confidence
+        <strong data-stat="mean_plddt_predicted">{{ stats.mean_plddt_predicted }}</strong> pLDDT
+        (0–100; above 90 the fold is reliable).</p></div>
+    <div class="stat-box"><div class="big" data-stat="reference_with_triad">{{ stats.reference_with_triad }}</div>
+      <div class="lbl">with a measured catalytic triad</div>
+      <p class="muted">Ser, His and Asp found close enough to pass charge between them.
+        <strong data-stat="reference_knockouts">{{ stats.reference_knockouts }}</strong> deposits
+        were caught as catalytic knockouts: inactivated constructs crystallographers make to trap
+        substrate, which carry the right name and the wrong chemistry.</p></div>
+  </div>
+</div>
+
+<!-- ============================ reference set ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>What the model learns from</h2>
+  <p class="muted">The distinction this whole project turns on. <strong>Measured</strong> means a
+  published experiment stands behind the label — someone ran the assay. <strong>Annotated
+  only</strong> means a computer assigned it from sequence similarity and nobody measured anything;
+  a model trained on those is largely rediscovering the rule that produced them, which is why the
+  two are never pooled here.</p>
+  <div class="md-grid" style="margin-top:12px">
+    <div class="stat-box good"><div class="big" data-stat="measured">{{ stats.measured }}</div>
+      <div class="lbl">measured positives</div>
+      <p class="muted">Mostly from PAZy, which lists an enzyme because activity on a plastic was
+        measured and published, with the DOI attached.</p></div>
+    <div class="stat-box"><div class="big" data-stat="annotated_only">{{ stats.annotated_only }}</div>
+      <div class="lbl">annotated only</div>
+      <p class="muted">Labelled by similarity. Counted, reported, and kept out of any headline
+        claim.</p></div>
+    <div class="stat-box"><div class="big" data-stat="negatives">{{ stats.negatives }}</div>
+      <div class="lbl">hard negatives</div>
+      <p class="muted">Other α/β-hydrolases: the same fold, no PET activity.</p></div>
+    <div class="stat-box"><div class="big" data-stat="within_family_negatives">{{ stats.within_family_negatives }}</div>
+      <div class="lbl">within-family negatives</div>
+      <p class="muted">Polyesterases measured on a <em>different</em> plastic. The scarcest and most
+        valuable class here, and the reason the hardest evaluation is still underpowered.</p></div>
+  </div>
+  <div class="tbl-wrap" style="margin-top:14px">
+  <table class="data" id="tier-table">
+    <thead><tr><th>Provenance of every positive</th><th class="num">Count</th><th>Evidence</th></tr></thead>
+    <tbody>
+      {% for t in stats.tiers %}
+      <tr><td style="font-size:12px">{{ t.tier }}</td><td class="num">{{ t.n }}</td>
+        <td>{% if t.tier in measured_tiers %}<span class="ev measured">measured</span>
+            {%- else %}<span class="ev inferred">inferred</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ============================ evidence ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>Evidence and citations</h2>
+  <p class="muted">Every measured value in this database points at the paper that reported it.
+  <strong data-stat="measurements_cited">{{ stats.measurements_cited }}</strong> of
+  <strong data-stat="measurements">{{ stats.measurements }}</strong> measurements carry a DOI or
+  PubMed identifier, drawn from
+  <strong data-stat="distinct_papers">{{ stats.distinct_papers }}</strong> distinct sources.</p>
+  <div class="md-grid" style="margin-top:10px">
+    <div>
+      <h3 class="sub">What was measured</h3>
+      <table class="data" id="kind-table">
+        <thead><tr><th>Quantity</th><th class="num">Values</th></tr></thead><tbody>
+        {% for k in stats.measurement_kinds %}
+        {% set lab = kind_label.get(k.kind) %}
+        <tr><td>{{ (lab[0] if lab else k.kind.replace('_', ' '))|safe }}
+          {%- if lab %}<br><span class="muted" style="font-size:11px">{{ lab[1] }}</span>{% endif %}</td>
+          <td class="num">{{ k.n }}</td></tr>
+        {% endfor %}
+      </tbody></table>
+    </div>
+    <div>
+      <h3 class="sub">Strength of evidence</h3>
+      <table class="data" id="code-table">
+        <thead><tr><th>Evidence code</th><th class="num">Values</th></tr></thead><tbody>
+        {% for e in stats.evidence_codes %}
+        <tr><td>{% if e.code == 'ECO:0000269' %}Experimental, from a publication
+              {%- else %}Inferred by a curator{% endif %}
+            <span class="mono muted" style="font-size:10px">{{ e.code }}</span></td>
+          <td class="num">{{ e.n }}</td></tr>
+        {% endfor %}
+      </tbody></table>
+      <p class="muted" style="font-size:11px;margin-top:6px">Evidence Ontology codes. The first
+      means somebody ran the assay; the second that a curator collated it from a review.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ models and tools ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>Models and software</h2>
+  <p class="muted">Recorded per pipeline run rather than declared here, so this is what actually
+  produced the data rather than what a README says it did.</p>
+  <div class="md-grid" style="margin-top:10px">
+    <div>
+      <h3 class="sub">Machine-learning models</h3>
+      <table class="data"><tbody>
+        <tr><td><strong>ESM-2 t12-35M</strong><br><span class="muted">a protein language model.
+          Turns a sequence into 480 numbers capturing what it has learned about proteins; frozen,
+          never fine-tuned here</span></td><td class="num">embedding</td></tr>
+        <tr><td><strong>ESMFold v1</strong><br><span class="muted">predicts a 3D structure from
+          sequence alone, no alignment needed. 8.4 GB of weights, run on CPU</span></td>
+          <td class="num">folding</td></tr>
+        <tr><td><strong>AlphaFold DB</strong><br><span class="muted">precomputed structures, fetched
+          rather than run</span></td><td class="num">folding</td></tr>
+      </tbody></table>
+      <p class="muted" style="font-size:11px;margin-top:6px">No large language model is involved in
+      producing any number on this site.</p>
+    </div>
+    <div>
+      <h3 class="sub">Tool versions in use</h3>
+      <table class="data" id="tools-table"><tbody>
+        {% for name, ver in stats.tools.items() %}
+        <tr><td>{{ name }}</td><td class="mono" style="font-size:11px">{{ ver[:44] }}</td></tr>
+        {% endfor %}
+      </tbody></table>
+      <p class="muted" style="font-size:11px;margin-top:6px">Schema v<span data-stat="schema_version">{{ stats.schema_version }}</span>
+      · code at commit <span class="mono" data-stat="git_commit">{{ stats.git_commit }}</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ data sources ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>External databases</h2>
+  <p class="muted">Public resources this project reads from, with the date each was last retrieved.
+  Nothing is scraped continuously: a source is pulled when a stage runs, and the date below is when
+  that last happened.</p>
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table class="data" id="src-table">
+    <thead><tr><th>Source</th><th>What it provides</th><th class="num">Records</th>
+      <th>Retrieved</th><th>Licence</th></tr></thead>
+    <tbody>
+      {% for s in stats.sources %}
+      <tr><td><strong>{{ s.name }}</strong></td>
+        <td style="font-size:12px">{{ source_blurb.get(s.name, s.version or '—') }}</td>
+        <td class="num">{{ s.n_records }}</td>
+        <td style="font-size:12px">{{ (s.retrieved_at or '')[:10] }}</td>
+        <td style="font-size:11px">{{ s.license or '—' }}</td></tr>
+      {% endfor %}
+      <tr><td><strong>RCSB PDB</strong></td><td style="font-size:12px">experimental crystal
+        structures and their metadata</td><td class="num" data-stat="reference_by_source.pdb">{{ stats.reference_by_source.get('pdb', 0) }}</td>
+        <td style="font-size:12px">per structure build</td><td style="font-size:11px">CC0</td></tr>
+      <tr><td><strong>AlphaFold DB</strong></td><td style="font-size:12px">predicted structures by
+        UniProt accession</td><td class="num" data-stat="reference_by_source.alphafold">{{ stats.reference_by_source.get('alphafold', 0) }}</td>
+        <td style="font-size:12px">per structure build</td><td style="font-size:11px">CC BY 4.0</td></tr>
+      <tr><td><strong>Crossref</strong></td><td style="font-size:12px">DOI verification — every
+        citation on this site was resolved and its title, journal and year checked</td>
+        <td class="num" data-stat="distinct_papers">{{ stats.distinct_papers }}</td>
+        <td style="font-size:12px">on curation</td><td style="font-size:11px">open</td></tr>
+      <tr><td><strong>MGnify</strong></td><td style="font-size:12px">metagenomic assemblies: the raw
+        sequence space searched, counted here as environments rather than records</td><td class="num">{{ stats.environments|length }}</td>
+        <td style="font-size:12px">per scan</td><td style="font-size:11px">open</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ============================ pipeline ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>Pipeline activity</h2>
+  <p class="muted">Every stage writes a record of what went in, what came out, which tool versions
+  ran and how long it took. <strong data-stat="runs_total">{{ stats.runs_total }}</strong> runs and
+  <strong data-stat="manifests">{{ stats.manifests }}</strong> manifests so far, totalling
+  <strong data-stat="wall_time_h">{{ stats.wall_time_h }}</strong> hours of recorded compute.</p>
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table class="data" id="stage-table">
+    <thead><tr><th>Stage</th><th>What it does</th><th class="num">Runs</th><th class="num">In</th>
+      <th class="num">Out</th><th>Last run</th></tr></thead>
+    <tbody>
+      {% for s in stats.stages %}
+      <tr><td class="mono" style="font-size:12px">{{ s.stage }}</td>
+        <td style="font-size:12px">{{ stage_blurb.get(s.stage, '—') }}</td>
+        <td class="num">{{ s.runs }}</td><td class="num">{{ '{:,}'.format(s.input) }}</td>
+        <td class="num">{{ '{:,}'.format(s.output) }}</td>
+        <td style="font-size:11px">{{ (s.last or '')[:16].replace('T', ' ') }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ============================ model performance ============================ -->
+{% if stats.training %}
+<div class="md-card" style="margin-top:16px">
+  <h2>Model evaluations</h2>
+  <p class="muted">Every training run ever recorded, including the ones that failed. AUC is the
+  chance the model ranks a true PET enzyme above a non-enzyme: 1.0 is perfect, 0.5 is a coin flip.
+  The <strong>composition baseline</strong> beside it is what you get from amino-acid counts alone —
+  a score only means something if it clears that.</p>
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table class="data">
+    <thead><tr><th>Trained on</th><th class="num">Positives</th><th class="num">Negatives</th>
+      <th class="num">Clusters</th><th class="num">AUC</th><th class="num">Baseline</th><th>Reading</th></tr></thead>
+    <tbody>
+      {% for t in stats.training %}
+      <tr><td style="font-size:12px">{{ t.evidence_level }}
+          <br><span class="muted mono" style="font-size:10px">{{ t.head_name }} · {{ (t.trained_at or '')[:10] }}</span></td>
+        <td class="num">{{ t.n_positives }}</td><td class="num">{{ t.n_negatives }}</td>
+        <td class="num">{{ t.n_positive_clusters or '—' }}</td>
+        <td class="num">{{ '%.3f'|format(t.auc) if t.auc else '—' }}</td>
+        <td class="num">{{ '%.3f'|format(t.composition_baseline_auc) if t.composition_baseline_auc else '—' }}</td>
+        <td style="font-size:11px">{{ training_note(t) }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ============================ machine ============================ -->
+<div class="md-card" style="margin-top:16px">
+  <h2>The machine this runs on</h2>
+  <p class="muted">A single DigitalOcean droplet shared with five other applications, which is why
+  the web layer carries no scientific libraries at all: every structure and every measurement was
+  computed offline and is served here as a precomputed file.</p>
+  <div class="md-grid" style="margin-top:12px">
+    <div class="stat-box"><div class="big"><span data-stat="host.disk.used_pct">{{ stats.host.disk.used_pct if stats.host.disk else '—' }}</span>%</div>
+      <div class="lbl">disk used</div>
+      <p class="muted"><span data-stat="host.disk.free_gb">{{ stats.host.disk.free_gb if stats.host.disk else '—' }}</span> GB free of
+        <span data-stat="host.disk.total_gb">{{ stats.host.disk.total_gb if stats.host.disk else '—' }}</span> GB</p></div>
+    {% if stats.host.memory %}
+    <div class="stat-box"><div class="big"><span data-stat="host.memory.used_pct">{{ stats.host.memory.used_pct }}</span>%</div>
+      <div class="lbl">memory used</div>
+      <p class="muted"><span data-stat="host.memory.available_gb">{{ stats.host.memory.available_gb }}</span> GB
+        available of <span data-stat="host.memory.total_gb">{{ stats.host.memory.total_gb }}</span> GB.
+        Memory is the binding constraint here, not disk or speed.</p></div>
+    {% else %}
+    <div class="stat-box"><div class="big">n/a</div>
+      <div class="lbl">memory used</div>
+      <p class="muted">Read from <span class="mono">/proc/meminfo</span>, which the live server has and
+        this development machine does not. Shown rather than estimated from a different source that
+        would not mean the same thing.</p></div>
+    {% endif %}
+    <div class="stat-box"><div class="big"><span data-stat="host.load.1m">{{ stats.host.load['1m'] if stats.host.load else '—' }}</span></div>
+      <div class="lbl">load average</div>
+      <p class="muted">across <span data-stat="host.load.cpus">{{ stats.host.load.cpus if stats.host.load else '—' }}</span>
+        cores. Above the core count means work is queueing.</p></div>
+    <div class="stat-box"><div class="big"><span data-stat="host.database_mb">{{ stats.host.database_mb }}</span> MB</div>
+      <div class="lbl">database</div>
+      <p class="muted">SQLite, one file, everything in it.
+        <span data-stat="host.structures_files">{{ stats.host.structures_files }}</span> candidate and
+        <span data-stat="host.reference_structures_files">{{ stats.host.reference_structures_files }}</span>
+        reference structure files alongside it, totalling
+        <span data-stat="host.structures_mb">{{ stats.host.structures_mb }}</span> +
+        <span data-stat="host.reference_structures_mb">{{ stats.host.reference_structures_mb }}</span> MB.</p></div>
+  </div>
+  <p class="muted" style="font-size:11px;margin-top:12px">
+    {{ stats.host.platform }} · Python {{ stats.host.python }} · web process up
+    <span data-stat="host.process_uptime_h">{{ stats.host.process_uptime_h }}</span> h
+    {%- if stats.host.host_uptime_h %} · host up <span data-stat="host.host_uptime_h">{{ stats.host.host_uptime_h }}</span> h{% endif %}
+    · data version {{ stats.data_version }}</p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Live refresh.
+ *
+ * Server-rendered first so the page is complete without JavaScript and there is no flash of
+ * empty values, then every element carrying data-stat is updated in place from the same
+ * payload. Elements are addressed by dotted key path, so the template declares what it
+ * wants and this stays a dozen lines rather than a template-specific updater.
+ */
+const PULSE = document.getElementById('pulse');
+const TICK = document.getElementById('tick');
+
+function dig(obj, path) {
+  return path.split('.').reduce((o, k) => (o === null || o === undefined) ? undefined : o[k], obj);
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/api/stats', {cache: 'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const s = await r.json();
+    document.querySelectorAll('[data-stat]').forEach(el => {
+      const v = dig(s, el.dataset.stat);
+      if (v === undefined || v === null) return;
+      const txt = el.dataset.fmt === 'comma' ? Number(v).toLocaleString() : String(v);
+      if (el.textContent !== txt) {
+        el.textContent = txt;
+        // Flash only what actually moved, so the eye is drawn to change rather than to
+        // the whole page repainting.
+        el.classList.remove('bumped');
+        void el.offsetWidth;
+        el.classList.add('bumped');
+      }
+    });
+    TICK.textContent = 'updated ' + s.generated_at;
+    PULSE.classList.remove('stale');
+  } catch (e) {
+    // Say so rather than showing numbers that quietly stopped being current.
+    PULSE.classList.add('stale');
+    TICK.textContent = 'not updating — ' + e.message;
+  }
+}
+setInterval(refresh, 15000);
+</script>
+{% endblock %}
