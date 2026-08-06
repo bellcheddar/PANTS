@@ -212,13 +212,15 @@ def _db_stats() -> Dict[str, Any]:
 
             # ---- evidence --------------------------------------------------------------
             "measurements": _one(c, "SELECT COUNT(*) FROM activity_measurements"),
-            "measurements_cited": _one(c, "SELECT COUNT(*) FROM activity_measurements WHERE source_doi IS NOT NULL"),
+            "measurements_cited": _one(c, "SELECT COUNT(*) FROM activity_measurements "
+                                          "WHERE source_doi IS NOT NULL AND TRIM(source_doi) != ''"),
             "measurement_kinds": _rows(c, """SELECT parameter_type kind, COUNT(*) n
                                              FROM activity_measurements GROUP BY 1 ORDER BY n DESC"""),
             "evidence_codes": _rows(c, """SELECT evidence_code code, COUNT(*) n
                                           FROM activity_measurements WHERE evidence_code IS NOT NULL
                                           GROUP BY 1 ORDER BY n DESC"""),
-            "distinct_papers": _one(c, "SELECT COUNT(DISTINCT source_doi) FROM activity_measurements WHERE source_doi IS NOT NULL"),
+            "distinct_papers": _one(c, "SELECT COUNT(DISTINCT source_doi) FROM activity_measurements "
+                                       "WHERE source_doi IS NOT NULL AND TRIM(source_doi) != ''"),
 
             # ---- provenance ------------------------------------------------------------
             "stages": _rows(c, """SELECT stage, COUNT(*) runs, COALESCE(SUM(n_input),0) input,
