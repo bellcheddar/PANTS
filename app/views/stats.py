@@ -205,7 +205,14 @@ def _db_stats() -> Dict[str, Any]:
             "annotated_only": _one(c, f"SELECT COUNT(*) FROM characterised_enzymes WHERE is_positive=1 AND source_ref NOT IN ({marks})", tiers),
             "negatives": _one(c, "SELECT COUNT(*) FROM characterised_enzymes WHERE is_negative=1"),
             "near_misses": _one(c, "SELECT COUNT(*) FROM characterised_enzymes WHERE is_near_miss=1"),
-            "within_family_negatives": _one(c, "SELECT COUNT(*) FROM characterised_enzymes WHERE source_ref='PAZy-nonPET'"),
+            # Keyed on the BASIS, not on the source that first supplied them: the class now
+            # comes from three ingests and counting one of them was under-reporting it by
+            # a factor of six. Split by strength of evidence, because "expressed, assayed,
+            # no product" and "not reported active" are different claims.
+            "within_family_negatives": _one(c, "SELECT COUNT(*) FROM characterised_enzymes "
+                                               "WHERE within_family_basis IS NOT NULL"),
+            "within_family_measured": _one(c, "SELECT COUNT(*) FROM characterised_enzymes "
+                                              "WHERE within_family_basis='measured-inactive'"),
             "named_enzymes": _one(c, "SELECT COUNT(*) FROM characterised_enzymes WHERE enzyme_id NOT LIKE '%:%' AND is_positive=1"),
             "tiers": _rows(c, """SELECT source_ref tier, COUNT(*) n FROM characterised_enzymes
                                  WHERE is_positive=1 GROUP BY 1 ORDER BY n DESC"""),
