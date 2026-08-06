@@ -7,9 +7,16 @@ Resumable by construction: anything already in reference_structures is skipped, 
 interrupted run continues where it stopped rather than starting over. That matters because
 the work is hours long and the machine it runs on is also somebody's laptop.
 
-AlphaFold is tried before ESMFold wherever a UniProt accession exists, which is most of
-them -- a download is seconds against roughly ninety for a fold, and a model built by
-AlphaFold from an MSA is generally the better structure anyway.
+AlphaFold is tried before ESMFold wherever a UniProt accession exists -- a download is
+seconds against roughly three minutes for a fold, and a model built from an MSA is
+generally the better structure anyway.
+
+**Accession-backed entries are processed FIRST**, which is worth the two lines it costs.
+Ordered by id, the fast downloads were scattered among the slow folds, so useful coverage
+arrived at the average rate rather than the fast one. Measured on the first 74 minutes: 8
+downloads and 15 folds interleaved, 193 s per structure overall. Front-loading the
+downloads gets roughly a third of the set finished in minutes instead of hours, and the
+folds then grind on behind them without holding anything up.
 """
 
 from __future__ import annotations
@@ -34,7 +41,7 @@ def pending() -> list:
             "  AND ce.seq_length <= ? "
             "  AND NOT EXISTS (SELECT 1 FROM reference_structures rs "
             "                  WHERE rs.enzyme_id = ce.enzyme_id) "
-            "ORDER BY ce.enzyme_id", (fold.MAX_FOLD_LENGTH,))]
+            "ORDER BY (ce.uniprot IS NULL), ce.enzyme_id", (fold.MAX_FOLD_LENGTH,))]
 
 
 if __name__ == "__main__":
