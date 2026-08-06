@@ -13,7 +13,13 @@ hours the bulk fold took: no ESMFold call is made for an enzyme whose deposit an
 from __future__ import annotations
 
 import json
+import pathlib
 import sys
+
+# Python puts the SCRIPT's directory on sys.path, not the working directory, so `import
+# pipeline` fails from scripts/ however you cd first. Every other script here carries the
+# same line; an editable install would be the tidier fix and does not work on this machine.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from pipeline.db import connect
 from pipeline.structure import reference
