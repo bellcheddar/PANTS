@@ -28,6 +28,11 @@ echo "==> preflight"
 [ -f deploy/gunicorn.conf.py ] || fail "deploy/gunicorn.conf.py missing"
 [ -f requirements-web.txt ] || fail "requirements-web.txt missing"
 
+for f in release/evaluation_protocol.json release/structure_source_confound.json; do
+    [ -f "$f" ] || fail "$f missing -- the Methods page reads its figures from it and \
+renders an empty section without it. Run scripts/run_evaluation_protocol.py."
+done
+
 if [ "$WITH_DATA" = 1 ]; then
     [ -f pants.db ] || fail "pants.db missing (use --no-data to deploy code only)"
     [ -d app/static/structures ] || fail "app/static/structures missing"
@@ -60,6 +65,12 @@ rsync -az --delete \
 rsync -az --exclude '__pycache__' --exclude '*.pyc' pipeline/ "$DROPLET:$ROOT/pipeline/"
 rsync -az deploy/ "$DROPLET:$ROOT/deploy/"
 rsync -az wsgi.py requirements-web.txt "$DROPLET:$ROOT/"
+
+# The small analysis artefacts the pages READ FROM rather than restate. A few kB, and
+# they ship with the code because they are what the prose used to be: the Methods page
+# reads its AUCs from evaluation_protocol.json, and without the file the paragraph
+# renders as nothing at all -- worse than the stale numbers it replaced.
+rsync -az --include '*.json' --exclude '*' release/ "$DROPLET:$ROOT/release/"
 
 if [ "$WITH_DATA" = 1 ]; then
     echo "==> pushing data (database + structures)"
