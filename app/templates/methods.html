@@ -88,6 +88,57 @@
   catalogue sits between 50 and 78 °C; the therapeutic target is 37 °C, so a screen that reports
   what happens near body temperature is worth more here than its enzyme count suggests.</p>
 
+
+  <h3 class="sub" style="margin-top:16px">What 123 more negatives actually bought</h3>
+  <p class="muted">Not what was expected, and the disappointment is the finding. The
+  within-family contrast — measured PET-active against measured PET-<em>inactive</em>, both
+  polyesterases — now runs on <strong>149</strong> negatives instead of 26. The number that
+  governs whether it can be evaluated barely moved: clusters holding <em>both</em> an active and
+  an inactive enzyme went from <strong>7 to 8</strong>. The constraint was never how many
+  negatives exist. It is how many independent lineages anyone has measured on both sides, and
+  five times the data bought one more.</p>
+
+  <div class="tbl-wrap" style="margin-top:10px">
+  <table class="data">
+    <thead><tr><th>Contrast</th><th class="num">Pos</th><th class="num">Neg</th>
+      <th class="num">Shared clusters</th><th class="num">Head AUC</th>
+      <th class="num">Composition</th></tr></thead>
+    <tbody>
+      <tr><td>Out of family <span class="muted">— other α/β-hydrolase folds</span></td>
+        <td class="num">308</td><td class="num">108</td><td class="num">2</td>
+        <td class="num">0.989</td><td class="num">0.919</td></tr>
+      <tr><td>Near miss <span class="muted">— esterases on soluble substrates</span></td>
+        <td class="num">308</td><td class="num">251</td><td class="num">9</td>
+        <td class="num">0.769</td><td class="num">0.693</td></tr>
+      <tr><td>Within family, <em>inferred</em> negatives
+          <span class="muted">— PAZy "not reported active"</span></td>
+        <td class="num">308</td><td class="num">26</td><td class="num">7</td>
+        <td class="num">0.808</td><td class="num">0.547</td></tr>
+      <tr class="therapeutic"><td><strong>Within family, MEASURED negatives</strong>
+          <span class="muted">— expressed, assayed, no product</span></td>
+        <td class="num">308</td><td class="num">149</td><td class="num">8</td>
+        <td class="num"><strong>0.648</strong></td><td class="num">0.644</td></tr>
+      <tr><td>Within family, MEASURED, mixed clusters only
+          <span class="muted">— the hardest honest test</span></td>
+        <td class="num">250</td><td class="num">149</td><td class="num">8</td>
+        <td class="num"><strong>0.625</strong></td><td class="num">0.519</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="muted" style="margin-top:10px">Two readings, and both matter. On the full measured
+  contrast the head scores <strong>0.648</strong> and amino-acid composition scores
+  <strong>0.644</strong> — no advantage at all over counting residues. Restricted to the clusters
+  that contain both classes, the head reaches 0.625 against composition's 0.519, which is a real
+  margin.</p>
+
+  <p class="muted">The clearest gain is in the error bars. That hardest test previously read
+  <strong>0.435 ± 0.301</strong>, an interval so wide it excluded nothing; it now reads
+  <strong>0.625 ± 0.081</strong>. The model did not get better. The <em>experiment</em> got
+  powered enough to give a stable answer, and the stable answer is a modest signal that is not
+  composition. That is a smaller claim than "we solved it" and the first one here that survives
+  its own error bar.</p>
+
   <p class="muted">A protein is only labelled from a condition it was actually assayed under. An
   enzyme absent from a condition is not a zero in it, so <code>comparable_group_id</code> keys on
   substrate, temperature and pH together and a crystalline-powder result at 60 °C is never pooled

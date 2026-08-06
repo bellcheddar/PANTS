@@ -67,6 +67,14 @@ def fetch():
         within = list(c.execute(
             "SELECT enzyme_id, sequence FROM characterised_enzymes "
             "WHERE source_ref='PAZy-nonPET' AND sequence IS NOT NULL"))
+        # The strongest negatives available: expressed, assayed under a published protocol,
+        # and no product released. Kept as their OWN contrast rather than merged into the
+        # PAZy set, because "measured inactive" and "not reported active" are different
+        # claims and pooling them would let the weaker one ride on the stronger.
+        measured_inactive = list(c.execute(
+            "SELECT enzyme_id, sequence FROM characterised_enzymes "
+            "WHERE within_family_basis='measured-inactive' AND excluded_from_training=0 "
+            "AND sequence IS NOT NULL"))
         # Same negatives, sliced by which family definition admitted them. The conclusion
         # should not depend on that choice; if it does, that is worth knowing.
         by_basis = {}
@@ -78,7 +86,8 @@ def fetch():
                     "within_family_basis='both'"))
             by_basis[b] = [tuple(r) for r in c.execute(q)]
     return ([tuple(r) for r in pos], [tuple(r) for r in out_of_family],
-            [tuple(r) for r in near_miss], [tuple(r) for r in within], by_basis)
+            [tuple(r) for r in near_miss], [tuple(r) for r in within], by_basis,
+            [tuple(r) for r in measured_inactive])
 
 
 def evaluate(name, pos, neg, X_by_id, restrict_to_mixed=False):
@@ -128,11 +137,13 @@ def evaluate(name, pos, neg, X_by_id, restrict_to_mixed=False):
 
 if __name__ == "__main__":
     dataset.apply_filters()
-    pos, out_of_family, near_miss, within, by_basis = fetch()
-    print(f"measured positives      {len(pos)}")
-    print(f"out-of-family negatives {len(out_of_family)}")
-    print(f"near-miss negatives     {len(near_miss)}")
-    print(f"within-family negatives {len(within)}\n", flush=True)
+    pos, out_of_family, near_miss, within, by_basis, measured_inactive = fetch()
+    print(f"measured positives        {len(pos)}")
+    print(f"out-of-family negatives   {len(out_of_family)}")
+    print(f"near-miss negatives       {len(near_miss)}")
+    print(f"within-family, inferred   {len(within)}   (PAZy 'not reported active on PET')")
+    print(f"within-family, MEASURED   {len(measured_inactive)}   "
+          f"(expressed, assayed, no product released)\n", flush=True)
 
     ids, X = esm.load(config.PROCESSED_DIR / "embeddings.npz")
     X_by_id = {i: X[k] for k, i in enumerate(ids)}
@@ -141,6 +152,8 @@ if __name__ == "__main__":
         ("out-of-family", out_of_family, False),
         ("near-miss", near_miss, False),
         ("within-family", within, False),
+        ("within-family[MEASURED inactive]", measured_inactive, False),
+        ("within-family[MEASURED, mixed clusters only]", measured_inactive, True),
         ("within-family-mixed-clusters-only", within, True),
         ("within-family[cluster-defined]", by_basis["cluster"], True),
         ("within-family[profile-defined]", by_basis["profile"], True),
@@ -149,7 +162,14 @@ if __name__ == "__main__":
     results = []
     for name, neg, restrict in regimes:
         print(f"--- {name} ---", flush=True)
-        r = evaluate(name, pos, neg, X_by_id, restrict_to_mixed=restrict)
+        try:
+            r = evaluate(name, pos, neg, X_by_id, restrict_to_mixed=restrict)
+        except ValueError as exc:
+            # Restricting to mixed clusters can leave a fold with one class in it. That is
+            # a statement about how few clusters hold both, which is the finding this whole
+            # script exists to measure -- so it is reported, not raised.
+            print(json.dumps({"regime": name, "not_evaluable": str(exc)}, indent=2), flush=True)
+            continue
         results.append(r)
         print(json.dumps(r, indent=2), flush=True)
 
