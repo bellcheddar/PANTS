@@ -1,9 +1,9 @@
-TopPDBLX crystallisation condition database
+PANTS: PETase ANnotation and Triage System
 Copyright (c) 2026 Marc C. Deller, D.Phil.
 
 SPDX-License-Identifier: CC-BY-4.0
 
-The DATA in this repository and in the released database files is licensed under the
+The DATA in this repository and in the released files is licensed under the
 Creative Commons Attribution 4.0 International licence (CC BY 4.0).
 
     Human-readable summary: https://creativecommons.org/licenses/by/4.0/
@@ -14,41 +14,53 @@ you give appropriate credit, link to the licence, and indicate if changes were m
 
 WHAT THIS COVERS
 ----------------
-  data/processed/toppdblx-conditions-*.jsonl.gz
-  data/processed/toppdblx-conditions-*.parquet
-  data/processed/toppdblx-components-*.parquet
-  data/processed/toppdblx-components-*.csv.gz
-  data/processed/toppdblx.duckdb
-  ontology/synonyms.yaml
-  DATASHEET.md
+  release/candidates.csv               metagenome candidates with recall and geometry
+  release/characterised_enzymes.csv    the reference set and its exclusion decisions
+  release/activity_measurements.csv    published measurements, each with its DOI
+  release/runs.csv                     every pipeline run and its counts
+  release/training_runs.csv            every model evaluation, including the failures
+  release/data_sources.csv             sources and retrieval dates
+  app/static/structures/               predicted candidate structures
+  app/static/reference_structures/     reference structures, superposed onto IsPETase
 
 The SOURCE CODE is licensed separately under the MIT licence: see LICENSE.
 
 ATTRIBUTION
 -----------
-Deller, M. C. (2026). TopPDBLX: a parsed, normalised and sequence-linked database of
-crystallisation conditions from the Protein Data Bank. Version 0.1.0.
+Deller, M. C. (2026). PANTS: PETase ANnotation and Triage System, a search for
+PET-degrading enzymes that work at body temperature rather than in an industrial reactor.
 
 UPSTREAM SOURCES AND THEIR OWN TERMS
 ------------------------------------
-This database is derived from public sources, each of which carries its own terms. Attributing
-TopPDBLX does not discharge any obligation to those sources.
+This dataset is derived from public sources, each of which carries its own terms.
+Attributing PANTS does not discharge any obligation to those sources.
 
-  Protein Data Bank (RCSB)   The primary source of every condition string and sequence. PDB
-                             data are released to the public domain (CC0 1.0). Please cite
-                             the PDB alongside this work.
-  SIFTS (EMBL-EBI)           PDB to UniProt residue mapping, CC BY 4.0.
-  UniProt                    Reference sequences, CC BY 4.0.
-  TargetTrack (Zenodo)       Archived PSI target status, acquired but not used in Phase 0.
+  UniProt                    Reference sequences, annotations and catalytic-site positions,
+                             CC BY 4.0.
+  Protein Data Bank (RCSB)   Every experimental structure and its metadata. PDB data are
+                             released to the public domain (CC0 1.0). Please cite the PDB
+                             alongside this work.
+  AlphaFold DB (EMBL-EBI)    Predicted structures fetched by accession, CC BY 4.0. Please
+                             cite Jumper et al. 2021 and Varadi et al. 2024.
+  PAZy                       The plastics-active enzyme database. An enzyme is listed there
+                             because activity on a plastic was measured and published;
+                             cite the primary paper, which this release carries as a DOI on
+                             every measurement, and PAZy itself.
+  ESTHER                     Alpha/beta-hydrolase family assignments, used to select the
+                             hard negatives.
+  MGnify (EMBL-EBI)          Metagenomic assemblies: the sequence space searched.
+  HGMP-SciDB                 Human gut metagenome polyesterases, from the deposit
+                             accompanying the paper; see its own terms.
 
-COMMERCIAL SCREEN FORMULATIONS
-------------------------------
-`ontology/screens/` is a transcription of crystallisation screen formulations published by
-their vendors, principally Hampton Research, extracted from the vendors' own publicly
-available support materials. Formulations are published facts and citing the originator is
-normal scholarly practice, but that directory is deliberately kept structurally separable:
-it can be removed without breaking the rest of the release, and nothing else in the pipeline
-fails if it is absent.
+STRUCTURES
+----------
+Structures under `app/static/` are of three kinds and the distinction is recorded per file
+in the database, never inferred from the filename. Experimental structures are redistributed
+from the PDB under CC0 and remain citable to their depositors. AlphaFold models are
+redistributed under CC BY 4.0. ESMFold predictions were computed here and are covered by
+this licence.
 
-Screen names and product codes are trademarks of their respective owners. Their use here is
-nominative, to identify the formulation being referred to, and implies no endorsement.
+A prediction is a hypothesis, not a measurement. The oxyanion hole in a predicted structure
+differs systematically from the same protein's crystal structure (paired, n=51, p 1.1e-06),
+so predicted and experimental coordinates should not be pooled in a geometric analysis
+without accounting for it. The `source` column exists to make that possible.
