@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 
 SCHEMA = """
 -- ============================================================
@@ -382,4 +382,10 @@ COLUMN_MIGRATIONS = [
     # UniProt date is the earliest defensible proxy for when the sequence entered the
     # public record, and it exists for anything with an accession.
     ("characterised_enzymes", "uniprot_first_public", "TEXT"),
+    # v15: the paper an enzyme's activity was reported in, as a column rather than as
+    # free text. The PAZy import wrote "Primary reference doi:..." into
+    # activity_substrate_notes, which preserved the citation but made it unqueryable --
+    # and the whole ordinal-ranking route depends on GROUPING enzymes by paper, since a
+    # ranking only exists where one protocol assayed several enzymes.
+    ("characterised_enzymes", "primary_doi", "TEXT"),
 ]
