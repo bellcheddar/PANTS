@@ -17,18 +17,22 @@
 
   <div class="lineage-tabs">
     {% for k in order %}
-    <a href="{{ url_for('main.overlay') }}?lineage={{ k }}"
-       class="{{ 'on' if k == chosen }}">{{ k }}
+    <a href="{{ url_for('main.overlay', lineage=(k if k is not none else '_none')) }}"
+       class="{{ 'on' if k == chosen }}">{{ k if k is not none else 'No assigned lineage' }}
        <span class="muted">{{ lineages[k]|length }}</span></a>
     {% endfor %}
   </div>
 </div>
 
-{% if chosen %}
-{% set fam = lineages[chosen] %}
+{% if fam %}
 <div class="md-card" style="margin-top:16px">
   <div class="ov-head">
-    <h2 style="margin:0">{{ chosen }} lineage</h2>
+    <h2 style="margin:0">
+      {%- if chosen is not none %}{{ chosen }} lineage
+      {%- else %}Structures with no assigned lineage{% endif %}
+      {%- if n_pages > 1 %}<span class="muted" style="font-weight:400;font-size:13px">
+        · {{ (page - 1) * page_size + 1 }}–{{ (page - 1) * page_size + fam|length }}
+        of {{ total_in_group }}</span>{% endif %}</h2>
     <div class="ov-controls">
       <label><input type="checkbox" id="t-triad" checked>
         <span class="swatch" style="background:#eaff00"></span> triad</label>
@@ -40,10 +44,31 @@
     </div>
   </div>
 
-  <div id="ov-grid" class="ov-grid" style="--cols: {{ 3 if fam|length > 4 else fam|length }}; --rows: {{ ((fam|length / (3 if fam|length > 4 else fam|length)) | round(0, 'ceil')) | int }}"></div>
+  {% set cols = 3 if fam|length > 4 else fam|length %}
+  {% set rows = ((fam|length / cols) | round(0, 'ceil')) | int %}
+  <div class="ov-stage" style="--cols: {{ cols }}; --rows: {{ rows }}">
+    <div id="ov-grid" class="ov-grid"></div>
+    {# One canvas is subdivided by 3Dmol, so a per-panel caption cannot live inside a
+       panel. This grid mirrors the same rows and columns on top of it and is
+       pointer-events:none, so it labels without intercepting a drag. #}
+    <div class="ov-labels" aria-hidden="true">
+      {% for e in fam %}
+      <span>{{ e.enzyme_id }}{% if e.is_root %} · wild type{% endif %}</span>
+      {% endfor %}
+    </div>
+  </div>
   <div id="ov-err" class="caveat" style="display:none"></div>
 
-  <div class="ov-legend">
+  {% if n_pages > 1 %}
+  <div class="ov-pager">
+    {% for pnum in range(1, n_pages + 1) %}
+    <a href="{{ url_for('main.overlay', lineage=(chosen if chosen is not none else '_none'), page=pnum) }}"
+       class="{{ 'on' if pnum == page }}">{{ pnum }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="ov-legend" style="--cols: {{ cols }}">
     {% for e in fam %}
     <div class="ov-card" data-id="{{ e.enzyme_id }}">
       <h3><a href="{{ url_for('main.enzyme', enzyme_id=e.enzyme_id) }}">{{ e.enzyme_id }}</a>
@@ -106,11 +131,11 @@
 {% endblock %}
 
 {% block scripts %}
-{% if chosen %}
+{% if fam %}
 <script src="{{ url_for('static', filename='js/3Dmol-min.js') }}?v={{ asset('js/3Dmol-min.js') }}"></script>
 <script>
-const FAM = {{ lineages[chosen]|tojson }};
-const COLS = Number(getComputedStyle(document.getElementById('ov-grid'))
+const FAM = {{ fam|tojson }};
+const COLS = Number(getComputedStyle(document.querySelector('.ov-stage'))
   .getPropertyValue('--cols')) || 3;
 const ROWS = Math.ceil(FAM.length / COLS);
 const TRIAD_C = '#eaff00', MUT_C = '#ff2ec4';

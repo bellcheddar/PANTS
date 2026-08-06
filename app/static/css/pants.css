@@ -215,12 +215,30 @@ footer.md-footer { border-top-color: var(--pv-border); color: var(--pv-dim); }
   font-size: 11.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap;
 }
 .md-credit > a:hover { color: var(--pv-accent); }
-/* The amber dot is the one colour constant across every app: enough to
-   signal authorship without dictating a palette. */
+/* The dot is a liveness indicator, not decoration. Green and breathing means the server
+   answered /healthz within the last few seconds; red and still means it did not. It starts
+   green because the page you are reading was served by the process being checked -- an
+   amber "unknown" state would be a lie about something already proven. */
 .md-logo-dot {
   width: 9px; height: 9px; border-radius: 50%;
-  background: var(--md-accent-amber); box-shadow: 0 0 8px rgba(252,185,0,.55);
+  background: var(--md-accent-green); box-shadow: 0 0 0 0 rgba(0,208,132,.6);
   flex-shrink: 0;
+  animation: md-alive 2.6s ease-out infinite;
+}
+@keyframes md-alive {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0   rgba(0,208,132,.60); }
+  55%  { transform: scale(1.45); box-shadow: 0 0 0 7px rgba(0,208,132,0);   }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0   rgba(0,208,132,0);   }
+}
+/* Stops moving as well as changing colour: on a header this small, motion reads before
+   hue does, and a dead site should not look like a healthy one to anyone glancing past. */
+.md-logo-dot.down {
+  background: #e5195f; box-shadow: 0 0 0 3px rgba(229,25,95,.22);
+  animation: none; transform: scale(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .md-logo-dot { animation: none; }
+  .md-logo-dot.down { box-shadow: 0 0 0 3px rgba(229,25,95,.30); }
 }
 .md-credit-links { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .md-credit-links a {
@@ -540,13 +558,39 @@ table.data.enzymes .qualified sup { color: var(--md-accent-amber); font-size: 9p
 /* One canvas covers the whole grid, so the container is sized and 3Dmol subdivides it.
    Height scales with the row count rather than being fixed, or a lineage of nine would
    render nine letterbox slivers. */
-.ov-grid{position:relative;width:100%;
+/* The stage carries the row/column count; the canvas and the caption layer both read it,
+   so a caption cannot drift away from the panel it names. */
+.ov-stage{position:relative;
   /* Height follows the row count: three rows in a 540px box gives 180px slivers. */
-  height:clamp(320px, calc(var(--rows,2) * 230px), 78vh);
+  height:clamp(320px, calc(var(--rows,2) * 230px), 78vh)}
+.ov-grid{position:relative;width:100%;height:100%;
   border:1px solid var(--pv-border);border-radius:var(--md-radius);overflow:hidden;
   background:#0d1120}
+/* pointer-events:none is load-bearing, not decoration: without it the caption layer eats
+   the drag that rotates every panel at once. */
+.ov-labels{position:absolute;inset:0;display:grid;pointer-events:none;
+  grid-template-columns:repeat(var(--cols,3),1fr);
+  grid-auto-rows:1fr;border-radius:var(--md-radius);overflow:hidden}
+.ov-labels span{align-self:start;justify-self:start;margin:8px 0 0 10px;
+  font-size:11px;letter-spacing:.02em;color:var(--pv-text);opacity:.62;
+  font-family:'Roboto Mono',monospace;
+  /* Legible over both a pale surface and the dark background, without a filled chip. */
+  text-shadow:0 1px 3px rgba(0,0,0,.95), 0 0 8px rgba(0,0,0,.7)}
+
+/* Description cards sit under the panels they describe, on the same columns. Below the
+   grid's own breakpoint they fall back to whatever fits. */
 .ov-legend{display:grid;gap:12px;margin-top:14px;
   grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+@media (min-width:760px){
+  .ov-legend{grid-template-columns:repeat(var(--cols,3),1fr)}}
+
+.ov-pager{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;justify-content:center}
+.ov-pager a{font-size:12px;min-width:30px;text-align:center;padding:4px 8px;
+  border:1px solid var(--pv-border);border-radius:6px;color:var(--pv-dim);
+  text-decoration:none;font-variant-numeric:tabular-nums}
+.ov-pager a.on{color:var(--pv-accent);border-color:var(--pv-accent);
+  background:rgba(143,180,255,.10)}
+.ov-pager a:hover{color:var(--pv-accent)}
 .ov-card{background:var(--pv-panel);border:1px solid var(--pv-border);border-radius:6px;
   padding:12px 14px}
 .ov-card h3{margin:0 0 3px;font-size:14px}

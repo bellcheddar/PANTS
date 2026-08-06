@@ -23,6 +23,10 @@ bp = Blueprint("main", __name__)
 # than a single structure.
 DEFAULT_COMPARE = ["IsPETase", "FAST-PETase"]
 
+# Twelve panels is four rows of three: enough to compare, few enough that one WebGL canvas
+# subdivided that many ways still draws at a usable size.
+OVERLAY_PAGE_SIZE = 12
+
 ENV_LABEL = {
     "compost": "Compost",
     "marine_plastisphere": "Marine plastisphere",
@@ -424,11 +428,38 @@ def overlay():
                 for k, v in lineages.items() if len(v) > 1}
 
     order = [k for k in ("IsPETase", "LCC", "BhrPETase", "Cut190") if k in lineages]
-    order += [k for k in lineages if k not in order]
+    # Everything else after the named lineages, and the unassigned group last of all: it is
+    # 331 structures that share no wild type, so it is a bucket rather than a lineage.
+    order += sorted(k for k in lineages if k not in order and k is not None)
+    if None in lineages:
+        order.append(None)
+
+    # `request.args.get` returns Python None when the parameter is absent, and None is a
+    # REAL KEY here -- the enzymes with no assigned wild type. So `want in lineages` was
+    # true for a bare /overlay and the page opened on the 331-member bucket instead of
+    # IsPETase. The absence of a parameter has to be distinguished from its value.
     want = request.args.get("lineage")
-    active = want if want in lineages else (order[0] if order else None)
+    if want is None:
+        active = order[0] if order else None
+    elif want == "_none":
+        active = None if None in lineages else (order[0] if order else None)
+    else:
+        active = want if want in lineages else (order[0] if order else None)
+
+    # A grid of 331 panels is one WebGL canvas asked to draw 331 viewports; it does not
+    # render, it hangs. Paginate any group past a full grid rather than refusing to show it.
+    fam = lineages.get(active, [])
+    page = max(1, request.args.get("page", type=int) or 1)
+    n_pages = max(1, -(-len(fam) // OVERLAY_PAGE_SIZE))
+    page = min(page, n_pages)
+    if len(fam) > OVERLAY_PAGE_SIZE:
+        fam = fam[(page - 1) * OVERLAY_PAGE_SIZE: page * OVERLAY_PAGE_SIZE]
+
     return render_template("overlay.html", active="overlay", lineages=lineages,
-                           order=order, chosen=active, env_label=ENV_LABEL)
+                           order=order, chosen=active, fam=fam, page=page,
+                           n_pages=n_pages, page_size=OVERLAY_PAGE_SIZE,
+                           total_in_group=len(lineages.get(active, [])),
+                           env_label=ENV_LABEL)
 
 
 @bp.route("/api/structures")

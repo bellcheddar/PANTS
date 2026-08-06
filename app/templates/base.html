@@ -35,7 +35,7 @@
 
     <div class="md-credit">
       <a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">
-        <span class="md-logo-dot"></span>
+        <span class="md-logo-dot" id="md-pulse" title="Server responding"></span>
         <span class="md-logo-text">Marc C. Deller, D.Phil.</span>
       </a>
       <div class="md-credit-links">
@@ -117,6 +117,44 @@
   · <a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a><br>
   <span class="muted">data version {{ data_version }} · schema v{{ schema_version }} · {{ n_structures }} structures</span>
 </footer>
+<script>
+/* The header dot reports whether the server is still answering.
+ *
+ * It polls /healthz, which touches no table and returns a fixed dict, so the check costs
+ * the droplet essentially nothing -- and it is a real check: it goes over the network to
+ * the process, rather than asserting health from the fact that a page once loaded.
+ *
+ * Thirty seconds, and nothing at all while the tab is hidden, with an immediate check when
+ * it comes back. A backgrounded tab quietly pinging a shared 4 GB droplet forever is the
+ * failure mode worth designing out; being right the moment somebody looks is what matters.
+ */
+(function () {
+  const dot = document.getElementById('md-pulse');
+  if (!dot) return;
+  let timer = null;
+
+  async function check() {
+    try {
+      const r = await fetch('{{ url_for("main.healthz") }}', {cache: 'no-store'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      dot.classList.remove('down');
+      dot.title = 'Server responding';
+    } catch (e) {
+      dot.classList.add('down');
+      dot.title = 'Server not responding — ' + e.message;
+    }
+    schedule();
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (!document.hidden) timer = setTimeout(check, 30000);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearTimeout(timer); else check();
+  });
+  schedule();
+})();
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
