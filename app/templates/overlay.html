@@ -123,6 +123,20 @@
   crystal structures beside them; a distance measured on one is weaker evidence than the same
   distance measured on the other.{% endif %}</p>
 </div>
+
+{# Same panel as the Superpose and enzyme pages: same classes, same colours, same
+   click-through in both directions. Stacked in the panel order above, so the nth
+   sequence is the nth structure. #}
+<div class="md-card" style="margin-top:16px">
+  <h2>Sequences <span class="muted" style="font-size:12px;font-weight:400">one per panel
+    above, in the same order</span></h2>
+  <p class="muted" style="font-size:12px">
+    <span class="seq-key triad"></span> catalytic triad &nbsp;
+    <span class="seq-key mut"></span> substitution against the lineage wild type
+    &nbsp;· triad positions are labelled; hover any residue for its number. Click one to
+    select it in its panel above, or click a residue in a panel to find it here.</p>
+  <div id="seq-panels"></div>
+</div>
 {% else %}
 <div class="md-card" style="margin-top:16px">
   <p class="muted">No lineage has more than one solved member yet.</p>
@@ -231,6 +245,81 @@ function focusSite() {
 
 function zoomAll() { frameOn(() => null, null); }
 
+/* ---------- sequence panels ----------
+ *
+ * Deliberately the same markup, classes and rules as the Superpose and enzyme pages: only
+ * the triad carries a printed number, because a twenty-one-substitution variant labelled
+ * inline is unreadable, and everything else relies on the tooltip.
+ *
+ * The one difference is where a click goes. Those pages drive a single shared viewer
+ * through PANTSViewer; here each sequence belongs to its own panel, so a click has to
+ * reach that panel's viewer and no other -- and "residue 160" is ambiguous across twelve
+ * structures until you know whose. */
+const panels = document.getElementById('seq-panels');
+const picks = [];   // per-panel highlight, so selecting in one clears only its own
+
+function residueSpan(ch, pos, rec) {
+  const triad = rec.triad_at && rec.triad_at[pos];
+  const mut = rec.mut_labels && rec.mut_labels[pos];
+  const cls = triad ? 'seq-res triad' : (mut ? 'seq-res mut' : 'seq-res');
+  const title = triad ? `${ch}${pos} — catalytic ${triad}`
+              : mut   ? `${ch}${pos} — substitution ${mut}`
+                      : `${ch}${pos}`;
+  const num = triad ? `<span class="seq-num">${pos}</span>` : '';
+  return `<span class="${cls}" data-pos="${pos}" title="${title}">${num}${ch}</span>`;
+}
+
+function markSequence(seqPos, i) {
+  document.querySelectorAll('.seq-res.picked').forEach(el => el.classList.remove('picked'));
+  const hit = document.querySelector(
+    `.seq-block[data-i="${i}"] .seq-res[data-pos="${seqPos}"]`);
+  if (hit) { hit.classList.add('picked'); hit.scrollIntoView({block: 'nearest', inline: 'nearest'}); }
+}
+
+/* Highlight one residue in one panel, the same way viewer.js does it on the other pages:
+   a translucent surface in the same pick colour, removed before the next one is added.
+   Not setStyle -- a style change has to be reverted to be undone, and the residue it was
+   applied to has to be remembered to revert it; a surface has an id and simply goes away.
+   The camera is deliberately NOT moved: these panels share one view, so zooming to a
+   residue in one would swing all twelve. */
+const PICK_COLOUR = '#ffffff';   // the same pick colour viewer.js uses
+function pickInViewer(i, structResi) {
+  const v = viewerAt(i);
+  if (picks[i] !== null && picks[i] !== undefined) {
+    try { v.removeSurface(picks[i]); } catch (ex) { /* already gone */ }
+    picks[i] = null;
+  }
+  const sel = {resi: [structResi]};
+  try {
+    const out = v.addSurface($3Dmol.SurfaceType.VDW, {opacity: 0.85, color: PICK_COLOUR}, sel, sel);
+    if (out && typeof out.then === 'function') {
+      out.then(res => { picks[i] = (res && res.surfid !== undefined) ? res.surfid : res; v.render(); });
+    } else { picks[i] = out; v.render(); }
+  } catch (ex) { /* the marker is an enhancement, not the point of the page */ }
+  v.render();
+}
+
+FAM.forEach((rec, i) => {
+  if (!rec.sequence) return;
+  const block = document.createElement('div');
+  block.className = 'seq-block';
+  block.dataset.i = i;
+  const nmut = Object.keys(rec.mut_labels || {}).length;
+  block.innerHTML =
+    `<div class="seq-label">${rec.enzyme_id}` +
+    `<span class="muted" style="font-weight:400"> · ${rec.sequence.length} aa` +
+    (nmut ? ` · ${nmut} substitution${nmut === 1 ? '' : 's'}` +
+            (rec.parent ? ` vs ${rec.parent}` : '') : '') + `</span></div>` +
+    `<div class="seq">` +
+    [...rec.sequence].map((ch, k) => residueSpan(ch, k + 1, rec)).join('') + `</div>`;
+  panels.appendChild(block);
+  block.querySelectorAll('.seq-res').forEach(el => el.addEventListener('click', () => {
+    const pos = Number(el.dataset.pos);
+    markSequence(pos, i);
+    pickInViewer(i, pos + (rec.seq_offset || 0));
+  }));
+});
+
 (async () => {
   if (!grid) return;
   for (let i = 0; i < FAM.length; i++) {
@@ -240,6 +329,9 @@ function zoomAll() { frameOn(() => null, null); }
       const model = v.addModel(text, 'pdb');
       // Clicking a substituted residue reports how close it sits to the chemistry.
       model.setClickable({resi: e.mutations || []}, true, atom => {
+        // The panel and the sequence are in different numbering frames; seq_offset is what
+        // reconciles them, and it is the reason a deposit's own numbering can be kept.
+        markSequence(atom.resi - (e.seq_offset || 0), i);
         const g = (e.mutation_geometry_json ? JSON.parse(e.mutation_geometry_json) : {})[atom.resi];
         const card = document.querySelector(`.ov-card[data-id="${CSS.escape(e.enzyme_id)}"]`);
         if (card && g) {

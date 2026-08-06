@@ -416,6 +416,7 @@ def overlay():
             "SELECT rs.enzyme_id, rs.coord_path, rs.source, rs.source_id, rs.plddt_mean, "
             "       rs.resolution_A, rs.seq_offset, rs.mutation_geometry_json, "
             "       rs.catalytic_knockout_json, "
+            "       ce.sequence, "
             "       ce.lineage_wt_id, ce.identity_to_lineage_wt, ce.seq_length, "
             "       rg.triad_ser_resnum, rg.triad_his_resnum, rg.triad_asp_resnum, "
             "       rg.cleft_width_A "
@@ -428,6 +429,8 @@ def overlay():
         r["coord_url"] = coord_url("reference_structures", r["coord_path"])
         m = _mutations_for(r["enzyme_id"])
         off = r.get("seq_offset") or 0
+        r["seq_offset"] = off
+        r["parent"] = (m or {}).get("parent")
         r["derived_from"] = (m or {}).get("derived_from")
         r["n_mutations"] = (len((m or {}).get("mutations") or [])
                             or (m or {}).get("n_substitutions"))
@@ -435,6 +438,14 @@ def overlay():
         r["mutations"] = sorted(
             int("".join(c for c in x if c.isdigit())) + off
             for x in (m or {}).get("mutations", []) if any(c.isdigit() for c in x))
+        # Sequence numbering for the sequence panel, which is a different frame from the
+        # viewer's: the same two keys the compare page uses, so both pages mark up a
+        # sequence identically rather than each inventing its own convention.
+        r["mut_labels"] = {int("".join(c for c in x if c.isdigit())): x
+                           for x in (m or {}).get("mutations", []) if any(c.isdigit() for c in x)}
+        r["triad_at"] = {int(r[k]) - off: lab for k, lab in
+                         (("triad_ser_resnum", "Ser"), ("triad_his_resnum", "His"),
+                          ("triad_asp_resnum", "Asp")) if r.get(k)}
         r["mut_geom"] = json.loads(r.get("mutation_geometry_json") or "{}")
         r["knockout"] = json.loads(r.get("catalytic_knockout_json") or "null")
         r["is_root"] = r["enzyme_id"] == r["lineage_wt_id"]
