@@ -1,0 +1,54 @@
+TopPDBLX crystallisation condition database
+Copyright (c) 2026 Marc C. Deller, D.Phil.
+
+SPDX-License-Identifier: CC-BY-4.0
+
+The DATA in this repository and in the released database files is licensed under the
+Creative Commons Attribution 4.0 International licence (CC BY 4.0).
+
+    Human-readable summary: https://creativecommons.org/licenses/by/4.0/
+    Full legal code:        https://creativecommons.org/licenses/by/4.0/legalcode
+
+You are free to share and adapt the data for any purpose, including commercially, provided
+you give appropriate credit, link to the licence, and indicate if changes were made.
+
+WHAT THIS COVERS
+----------------
+  data/processed/toppdblx-conditions-*.jsonl.gz
+  data/processed/toppdblx-conditions-*.parquet
+  data/processed/toppdblx-components-*.parquet
+  data/processed/toppdblx-components-*.csv.gz
+  data/processed/toppdblx.duckdb
+  ontology/synonyms.yaml
+  DATASHEET.md
+
+The SOURCE CODE is licensed separately under the MIT licence: see LICENSE.
+
+ATTRIBUTION
+-----------
+Deller, M. C. (2026). TopPDBLX: a parsed, normalised and sequence-linked database of
+crystallisation conditions from the Protein Data Bank. Version 0.1.0.
+
+UPSTREAM SOURCES AND THEIR OWN TERMS
+------------------------------------
+This database is derived from public sources, each of which carries its own terms. Attributing
+TopPDBLX does not discharge any obligation to those sources.
+
+  Protein Data Bank (RCSB)   The primary source of every condition string and sequence. PDB
+                             data are released to the public domain (CC0 1.0). Please cite
+                             the PDB alongside this work.
+  SIFTS (EMBL-EBI)           PDB to UniProt residue mapping, CC BY 4.0.
+  UniProt                    Reference sequences, CC BY 4.0.
+  TargetTrack (Zenodo)       Archived PSI target status, acquired but not used in Phase 0.
+
+COMMERCIAL SCREEN FORMULATIONS
+------------------------------
+`ontology/screens/` is a transcription of crystallisation screen formulations published by
+their vendors, principally Hampton Research, extracted from the vendors' own publicly
+available support materials. Formulations are published facts and citing the originator is
+normal scholarly practice, but that directory is deliberately kept structurally separable:
+it can be removed without breaking the rest of the release, and nothing else in the pipeline
+fails if it is absent.
+
+Screen names and product codes are trademarks of their respective owners. Their use here is
+nominative, to identify the formulation being referred to, and implies no endorsement.

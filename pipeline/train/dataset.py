@@ -11,6 +11,12 @@ Two filters, both anchored to evidence rather than intuition:
   Fragments come from UniProt's own `fragment:true` flag, not a length threshold. A short
   sequence is not necessarily a fragment and a fragment is not necessarily short.
 
+  That flag is now asked for EVERY accession in the catalogue. It used to be asked only of
+  `ec:3.1.1.101`, which is the PET hydrolase EC number, so a fragment arriving through PAZy
+  or ESTHER under any other EC was invisible unless it also happened to fall outside the
+  length window -- caught by the right rule for the wrong reason, and not caught at all if
+  it was fragmentary but of ordinary length.
+
   The length window is derived from the EXPERIMENTALLY EVIDENCED positives (262 to 319 aa
   for the PET hydrolases, excluding MHETase which is a different fold entirely), padded
   generously. The EC-auto-annotated set stretches 63 to 835 aa, which drags in fragments
@@ -33,10 +39,34 @@ LENGTH_MAX = 450
 
 FRAGMENT_QUERY = "ec:3.1.1.101 AND fragment:true"
 
+# UniProt rejects a query string past a few kB, so accessions go up in batches.
+_ACCESSION_BATCH = 80
 
-def fetch_fragment_accessions() -> Set[str]:
-    """Accessions UniProt itself flags as fragments."""
-    return {e.accession for e in uniprot.search(FRAGMENT_QUERY, max_results=2000)}
+
+def catalogue_accessions() -> List[str]:
+    with connect() as conn:
+        return [r[0].split("-")[0] for r in conn.execute(
+            "SELECT DISTINCT uniprot FROM characterised_enzymes "
+            "WHERE uniprot IS NOT NULL AND uniprot != ''")]
+
+
+def fetch_fragment_accessions(accessions: Optional[List[str]] = None) -> Set[str]:
+    """Accessions UniProt itself flags as fragments.
+
+    Asks about the accessions actually in the catalogue rather than about an EC number.
+    `fragment:true` is UniProt's own filter, so this stays their definition and not a
+    length heuristic wearing their name; combining it with the accession list just narrows
+    who is asked about.
+    """
+    accs = accessions if accessions is not None else catalogue_accessions()
+    if not accs:
+        return set()
+    found: Set[str] = set()
+    for i in range(0, len(accs), _ACCESSION_BATCH):
+        chunk = accs[i:i + _ACCESSION_BATCH]
+        q = "(" + " OR ".join(f"accession:{a}" for a in chunk) + ") AND fragment:true"
+        found.update(e.accession for e in uniprot.search(q, max_results=len(chunk)))
+    return found
 
 
 def apply_filters(length_min: int = LENGTH_MIN, length_max: int = LENGTH_MAX

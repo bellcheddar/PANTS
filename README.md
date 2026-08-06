@@ -758,11 +758,14 @@ enzymes for therapeutic conditions*. Version 0.1.0. Zenodo. https://doi.org/10.5
 
 ## 📝 Licence
 
-**Data:** CC BY 4.0, via the Zenodo deposit above.
+**Data:** Creative Commons Attribution 4.0 International, see [`LICENSE-DATA`](LICENSE-DATA),
+and via the Zenodo deposit above.
 
-**Code:** not yet chosen. Attributing PANTS does not discharge the obligation to the
-sources it derives from: UniProt and UniRef (CC BY 4.0), the PDB (CC0), PAZy, ESTHER and
-MGnify, each of which carries its own terms.
+**Code:** MIT, see [`LICENSE`](LICENSE).
+
+Attributing PANTS does not discharge the obligation to the sources it derives from: UniProt
+and UniRef (CC BY 4.0), the PDB (CC0), AlphaFold DB (CC BY 4.0), PAZy, ESTHER and MGnify,
+each of which carries its own terms.
 
 ---
 
