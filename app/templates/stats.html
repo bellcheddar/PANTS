@@ -16,20 +16,36 @@
       <span data-stat="host.database_age_min">{{ stats.host.database_age_min }}</span> min ago</span></p>
 </div>
 
-<!-- ============================ headline ============================ -->
-<div class="md-grid kpis" style="margin-top:16px">
-  <div class="md-card"><div class="kpi" data-stat="sequences_scanned" data-fmt="comma">{{ '{:,}'.format(stats.sequences_scanned) }}</div>
-    <div class="kpi-label">protein sequences read</div></div>
-  <div class="md-card"><div class="kpi" data-stat="candidates">{{ stats.candidates }}</div>
-    <div class="kpi-label">candidates recovered</div></div>
-  <div class="md-card"><div class="kpi" data-stat="reference_structures">{{ stats.reference_structures }}</div>
-    <div class="kpi-label">reference structures</div></div>
-  <div class="md-card"><div class="kpi" data-stat="candidates_folded">{{ stats.candidates_folded }}</div>
-    <div class="kpi-label">candidate structures</div></div>
-  <div class="md-card"><div class="kpi" data-stat="measured">{{ stats.measured }}</div>
-    <div class="kpi-label">measured positives</div></div>
-  <div class="md-card"><div class="kpi" data-stat="measurements">{{ stats.measurements }}</div>
-    <div class="kpi-label">activity measurements</div></div>
+<!-- ================== the funnel, with the headline figures folded in ==================
+     One panel rather than a KPI strip above a funnel. Three of the six headline figures
+     were already funnel steps under another name, and a number printed twice on one page
+     invites the reader to work out whether the two are the same thing. The three that
+     were NOT steps -- the reference set, which is the yardstick rather than the catch --
+     are kept and marked as such. -->
+<div class="md-card" style="margin-top:16px">
+  <h2>The funnel</h2>
+  <p class="muted">How {{ '{:,}'.format(stats.sequences_scanned) }} sequences become a shortlist,
+  and what that shortlist is judged against. Each of the first steps is a filter, and the one that
+  matters most is the last of them: three catalytic residues can be present in a sequence and still
+  not touch each other in the folded protein, and only a structure can tell you which.</p>
+  <dl class="funnel">
+    <div><dt>Sequences read</dt><dd data-stat="sequences_scanned" data-fmt="comma">{{ '{:,}'.format(stats.sequences_scanned) }}</dd>
+      <dd class="muted">every predicted protein in the assemblies</dd></div>
+    <div><dt>Survived recall</dt><dd data-stat="candidates">{{ stats.candidates }}</dd>
+      <dd class="muted">matched a polyesterase profile and carry a complete triad</dd></div>
+    <div><dt>Given a structure</dt><dd data-stat="candidates_folded">{{ stats.candidates_folded }}</dd>
+      <dd class="muted">folded with ESMFold, superposed onto IsPETase</dd></div>
+    <div><dt>Triad confirmed in 3D</dt><dd data-stat="candidate_geometry">{{ stats.candidate_geometry }}</dd>
+      <dd class="muted">the three residues actually meet in space</dd></div>
+    <div><dt>Too long to fold</dt><dd data-stat="candidates_deferred">{{ stats.candidates_deferred }}</dd>
+      <dd class="muted">over 450 residues; deferred, not discarded</dd></div>
+    <div class="yardstick"><dt>Reference structures</dt><dd data-stat="reference_structures">{{ stats.reference_structures }}</dd>
+      <dd class="muted">the known enzymes a candidate is compared against, not part of the catch</dd></div>
+    <div class="yardstick"><dt>Measured positives</dt><dd data-stat="measured">{{ stats.measured }}</dd>
+      <dd class="muted">reference enzymes whose activity someone actually assayed and published</dd></div>
+    <div class="yardstick"><dt>Activity measurements</dt><dd data-stat="measurements">{{ stats.measurements }}</dd>
+      <dd class="muted">individual published values behind those enzymes, each with its citation</dd></div>
+  </dl>
 </div>
 
 <!-- ============================ sequence space ============================ -->
@@ -55,27 +71,6 @@
     </tbody>
   </table>
   </div>
-</div>
-
-<!-- ============================ the funnel ============================ -->
-<div class="md-card" style="margin-top:16px">
-  <h2>The funnel</h2>
-  <p class="muted">How {{ '{:,}'.format(stats.sequences_scanned) }} sequences become a shortlist.
-  Each step is a filter, and the last one is the one that matters: three catalytic residues can be
-  present in a sequence and still not touch each other in the folded protein, and only a structure
-  can tell you which.</p>
-  <dl class="funnel">
-    <div><dt>Sequences read</dt><dd data-stat="sequences_scanned" data-fmt="comma">{{ '{:,}'.format(stats.sequences_scanned) }}</dd>
-      <dd class="muted">every predicted protein in the assemblies</dd></div>
-    <div><dt>Survived recall</dt><dd data-stat="candidates">{{ stats.candidates }}</dd>
-      <dd class="muted">matched a polyesterase profile and carry a complete triad</dd></div>
-    <div><dt>Given a structure</dt><dd data-stat="candidates_folded">{{ stats.candidates_folded }}</dd>
-      <dd class="muted">folded with ESMFold, superposed onto IsPETase</dd></div>
-    <div><dt>Triad confirmed in 3D</dt><dd data-stat="candidate_geometry">{{ stats.candidate_geometry }}</dd>
-      <dd class="muted">the three residues actually meet in space</dd></div>
-    <div><dt>Too long to fold</dt><dd data-stat="candidates_deferred">{{ stats.candidates_deferred }}</dd>
-      <dd class="muted">over 450 residues; deferred, not discarded</dd></div>
-  </dl>
 </div>
 
 <!-- ============================ structures ============================ -->
