@@ -450,14 +450,31 @@ def overlay():
         r["knockout"] = json.loads(r.get("catalytic_knockout_json") or "null")
         r["is_root"] = r["enzyme_id"] == r["lineage_wt_id"]
 
-    # Only lineages with more than one member: a grid of one panel compares nothing.
-    lineages: Dict[str, List[Dict[str, Any]]] = {}
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
     for r in rows:
-        lineages.setdefault(r["lineage_wt_id"], []).append(r)
+        grouped.setdefault(r["lineage_wt_id"], []).append(r)
+
+    # A lineage of one compares nothing, which is why single-member lineages used to be
+    # dropped entirely. That left the page disagreeing with the named-enzyme table: nine of
+    # its thirteen lineages -- TfCut2, MHETase, the five HGMP enzymes, and now Micpa-PETase
+    # and Kutbu-PETase -- are wild types nobody has engineered a variant from, so they
+    # vanished from the one page that shows a structure beside its triad.
+    #
+    # Collected into a single group instead of dropped. Nine unrelated natural PETases from
+    # nine organisms, already superposed into a common frame, is a better comparison than
+    # any of them alone and arguably the most interesting grid here: it shows how much the
+    # fold varies across the family before anyone engineers it.
+    WILD_TYPES = "Wild types (no variants)"
+    singles = [v[0] for k, v in grouped.items()
+               if k is not None and len(v) == 1 and ":" not in k]
     lineages = {k: sorted(v, key=lambda x: (not x["is_root"], x["n_mutations"] or 0))
-                for k, v in lineages.items() if len(v) > 1}
+                for k, v in grouped.items() if len(v) > 1}
+    if len(singles) > 1:
+        lineages[WILD_TYPES] = sorted(singles, key=lambda x: x["enzyme_id"])
 
     order = [k for k in ("IsPETase", "LCC", "BhrPETase", "Cut190") if k in lineages]
+    if WILD_TYPES in lineages:
+        order.append(WILD_TYPES)
     # Everything else after the named lineages, and the unassigned group last of all: it is
     # 331 structures that share no wild type, so it is a bucket rather than a lineage.
     order += sorted(k for k in lineages if k not in order and k is not None)

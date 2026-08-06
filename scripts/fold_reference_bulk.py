@@ -34,14 +34,33 @@ BATCH = 25
 
 
 def pending() -> list:
+    """Everything in the reference set that still lacks a structure and can be folded.
+
+    Was restricted to `PAZy:%`, which was the only bulk source when it was written. The
+    screen ingests added two more, and a hardcoded prefix would silently have folded none
+    of them -- the same denylist-versus-property mistake the named-enzyme filter made.
+    Any enzyme with a sequence, no structure and a foldable length now qualifies.
+
+    Scoped to enzymes carrying a MEASURED activity label, which is 206 rather than the 908
+    that "anything without a structure" returns. The extra 700 are annotation-only entries
+    whose structures would take a further thirty-five hours and could not answer the
+    question this run exists to answer, because a geometry comparison needs labels somebody
+    measured on both sides.
+
+    MEASURED-INACTIVE FIRST. Those are the reason for the run: every geometry evaluation so
+    far has used labels inferred from a database that records only what worked. If the run
+    is interrupted, the half that matters is already done.
+    """
     with connect() as c:
         return [r[0] for r in c.execute(
             "SELECT enzyme_id FROM characterised_enzymes ce "
-            "WHERE ce.enzyme_id LIKE 'PAZy:%' AND ce.sequence IS NOT NULL "
-            "  AND ce.seq_length <= ? "
+            "WHERE ce.sequence IS NOT NULL AND ce.seq_length <= ? "
+            "  AND (ce.within_family_basis = 'measured-inactive' "
+            "       OR ce.source_ref IN ('ACS-screen-measured', 'Science-landscape-measured')) "
             "  AND NOT EXISTS (SELECT 1 FROM reference_structures rs "
             "                  WHERE rs.enzyme_id = ce.enzyme_id) "
-            "ORDER BY (ce.uniprot IS NULL), ce.enzyme_id", (fold.MAX_FOLD_LENGTH,))]
+            "ORDER BY (ce.within_family_basis IS NOT 'measured-inactive'), "
+            "         (ce.uniprot IS NULL), ce.enzyme_id", (fold.MAX_FOLD_LENGTH,))]
 
 
 if __name__ == "__main__":

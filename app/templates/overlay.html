@@ -13,7 +13,9 @@
   <p class="muted">The question this asks, which the catalogue cannot: <strong>do stabilising
   mutations keep clear of the catalytic machinery, or do some crowd it?</strong> Every substituted
   residue carries its side-chain distance to the nearest triad side chain, measured once from these
-  coordinates.</p>
+  coordinates. The <strong>wild types</strong> group asks a different question with the same
+  machinery: those are natural enzymes from unrelated organisms that nobody has engineered, so what
+  varies between them is what evolution did rather than what a protein engineer did.</p>
 
   <div class="lineage-tabs">
     {% for k in order %}
@@ -28,8 +30,9 @@
 <div class="md-card" style="margin-top:16px">
   <div class="ov-head">
     <h2 style="margin:0">
-      {%- if chosen is not none %}{{ chosen }} lineage
-      {%- else %}Structures with no assigned lineage{% endif %}
+      {%- if chosen is none %}Structures with no assigned lineage
+      {%- elif chosen.startswith('Wild types') %}Wild types with no engineered variants
+      {%- else %}{{ chosen }} lineage{% endif %}
       {%- if n_pages > 1 %}<span class="muted" style="font-weight:400;font-size:13px">
         · {{ (page - 1) * page_size + 1 }}–{{ (page - 1) * page_size + fam|length }}
         of {{ total_in_group }}</span>{% endif %}</h2>
