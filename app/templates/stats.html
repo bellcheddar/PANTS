@@ -6,14 +6,10 @@
   <h2 class="lead-title"><strong>Live instrumentation.</strong> Everything this project has
     read, produced and is running on, read straight from the database and the machine.</h2>
   <p class="lede">Nothing here is written by hand. Each figure is a query or a reading, and the
-  page refreshes as fast as the data actually changes: every fifteen seconds while the pipeline is
-  writing, backing off to five minutes once it goes quiet, and not at all while this tab sits in the
-  background. A number that stops moving has stopped because the pipeline stopped — which is the
-  point of the page, since it is the one place a claim about this project can be checked against
-  the thing itself.</p>
+  page refreshes when the data actually changes.</p>
   <p class="stat-live"><span class="pulse" id="pulse"></span>
     <span id="tick">updated {{ stats.generated_at }}</span>
-    <span class="muted">· refreshes when the database is written · last written
+    <span class="muted">· database last written
       <span data-stat="host.database_age_min">{{ stats.host.database_age_min }}</span> min ago</span></p>
 </div>
 
