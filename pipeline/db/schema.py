@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 
 SCHEMA = """
 -- ============================================================
@@ -388,4 +388,45 @@ COLUMN_MIGRATIONS = [
     # and the whole ordinal-ranking route depends on GROUPING enzymes by paper, since a
     # ranking only exists where one protocol assayed several enzymes.
     ("characterised_enzymes", "primary_doi", "TEXT"),
+    # v16: the sequence cluster an enzyme belongs to in its source paper's own framework,
+    # which is what the paper's ecological metadata is keyed on.
+    ("characterised_enzymes", "science_cluster", "INTEGER"),
 ]
+
+# Tables added after the original schema. Same reason as COLUMN_MIGRATIONS: the CREATE
+# statements above are skipped wholesale on an existing database.
+LATE_TABLES = """
+-- Ecological context for a cluster of related sequences, as reported by the paper that
+-- defined the cluster. Kept at CLUSTER level because that is the level it was reported at:
+-- attaching an isolation temperature to an individual enzyme would invent a precision the
+-- source does not have.
+CREATE TABLE IF NOT EXISTS sequence_clusters (
+    source              TEXT NOT NULL,
+    cluster_id          TEXT NOT NULL,
+    n_members           INTEGER,
+    isolation_sources_json TEXT,
+    biomes_json         TEXT,
+    habitats_json       TEXT,
+    locations_json      TEXT,
+    temperatures_json   TEXT,   -- raw strings, kept verbatim: "4,0 degree of C", "65 degrees F"
+    temperature_median_c REAL,  -- parsed where parseable, NULL where not
+    added_at            TEXT,
+    PRIMARY KEY (source, cluster_id)
+);
+
+-- Sequences with no activity label at all. Deliberately NOT in characterised_enzymes:
+-- nothing here has been characterised, and letting 23,000 unlabelled homologues into a
+-- table whose counts are quoted as evidence would corrupt every total on the site.
+CREATE TABLE IF NOT EXISTS unlabelled_sequences (
+    seq_id        TEXT PRIMARY KEY,
+    accession     TEXT,
+    description   TEXT,
+    organism      TEXT,
+    sequence      TEXT NOT NULL,
+    seq_length    INTEGER,
+    source_ref    TEXT,
+    source_doi    TEXT,
+    added_at      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_unlabelled_len ON unlabelled_sequences(seq_length);
+"""

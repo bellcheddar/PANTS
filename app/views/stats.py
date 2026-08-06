@@ -213,6 +213,11 @@ def _db_stats() -> Dict[str, Any]:
                                                "WHERE within_family_basis IS NOT NULL"),
             "within_family_measured": _one(c, "SELECT COUNT(*) FROM characterised_enzymes "
                                               "WHERE within_family_basis='measured-inactive'"),
+            # Sequences with no activity label, deliberately outside characterised_enzymes.
+            "unlabelled_sequences": _one(c, "SELECT COUNT(*) FROM unlabelled_sequences"),
+            "sequence_clusters": _one(c, "SELECT COUNT(*) FROM sequence_clusters"),
+            "clusters_with_temperature": _one(c, "SELECT COUNT(*) FROM sequence_clusters "
+                                                 "WHERE temperature_median_c IS NOT NULL"),
             "named_enzymes": _one(c, "SELECT COUNT(*) FROM characterised_enzymes WHERE enzyme_id NOT LIKE '%:%' AND is_positive=1"),
             "tiers": _rows(c, """SELECT source_ref tier, COUNT(*) n FROM characterised_enzymes
                                  WHERE is_positive=1 GROUP BY 1 ORDER BY n DESC"""),

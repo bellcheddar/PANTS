@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Iterator, Optional
 
 from .. import config
-from .schema import COLUMN_MIGRATIONS, SCHEMA, SCHEMA_VERSION
+from .schema import COLUMN_MIGRATIONS, LATE_TABLES, SCHEMA, SCHEMA_VERSION
 
 __all__ = [
     "connect", "init_schema", "retry_write", "now",
@@ -54,6 +54,7 @@ def init_schema() -> None:
     with connect() as conn:
         conn.execute("PRAGMA journal_mode=WAL")   # persisted in the DB header; set once
         conn.executescript(SCHEMA)
+        conn.executescript(LATE_TABLES)
         _apply_column_migrations(conn)
         conn.execute(
             "INSERT INTO app_state(key, value) VALUES ('schema_version', ?) "

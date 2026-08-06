@@ -89,6 +89,41 @@
   what happens near body temperature is worth more here than its enzyme count suggests.</p>
 
 
+
+  <h3 class="sub" style="margin-top:16px">What the rest of that supplement held</h3>
+  <p class="muted">The Science paper ships seven data files. Only two of the remaining three
+  were worth ingesting, and saying which is part of the point.</p>
+  <div class="tbl-wrap">
+  <table class="data">
+    <thead><tr><th>File</th><th class="num">Records</th><th>Disposition</th></tr></thead>
+    <tbody>
+      <tr><td><strong>S2</strong> — library sequences</td><td class="num">2,064</td>
+        <td style="font-size:12px"><strong>Skipped.</strong> Every accession and every sequence
+          is byte-identical to the column already ingested from S3. Checked rather than assumed —
+          all 2,064 matched — because ingesting it would have created nothing and risked
+          duplicating rows whose counts this project quotes as evidence.</td></tr>
+      <tr><td><strong>S1</strong> — homologue search space</td><td class="num">25,041</td>
+        <td style="font-size:12px">Sequences with <em>no activity measured on any of them</em>.
+          Held in a separate table, deliberately outside the catalogue: nothing here has been
+          characterised, and 25,000 unlabelled homologues inside the table whose totals are
+          quoted would corrupt every count on the site. Useful as an unlabelled pool; it cannot
+          add a measured negative, which is the thing that binds.</td></tr>
+      <tr><td><strong>S7</strong> — ecology per cluster</td><td class="num">170</td>
+        <td style="font-size:12px">Isolation source, biome, habitat, geography and the
+          temperature the <em>source organism</em> was isolated at — not the enzyme's optimum,
+          and stored under a name that says so. Kept at cluster level because that is the level
+          the paper reports it at; attaching a temperature to one enzyme would invent a
+          precision the source does not have. 354 catalogued enzymes are linked to their
+          cluster.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="muted" style="margin-top:10px">One result falls out of S7 directly. Under the paper's
+  own sequence-cluster framework, <strong>14 clusters contain both a PET-active and a
+  measured-inactive enzyme</strong>, against 8 under the 30% identity clustering used for the
+  splits here. The shortage of lineages measured on both sides is real under either definition,
+  and slightly less severe under theirs.</p>
+
   <h3 class="sub" style="margin-top:16px">What 123 more negatives actually bought</h3>
   <p class="muted">Not what was expected, and the disappointment is the finding. The
   within-family contrast — measured PET-active against measured PET-<em>inactive</em>, both

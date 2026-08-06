@@ -42,6 +42,9 @@
       <dd class="muted">reference enzymes whose activity someone actually assayed and published</dd></div>
     <div class="yardstick"><dt>Activity measurements</dt><dd data-stat="measurements">{{ stats.measurements }}</dd>
       <dd class="muted">individual published values behind those enzymes, each with its citation</dd></div>
+    <div class="yardstick"><dt>Unlabelled sequences</dt><dd data-stat="unlabelled_sequences" data-fmt="comma">{{ '{:,}'.format(stats.unlabelled_sequences or 0) }}</dd>
+      <dd class="muted">homologues nobody has assayed, held apart from the catalogue on purpose
+        so they cannot inflate a count that is quoted as evidence</dd></div>
   </dl>
 </div>
 
