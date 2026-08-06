@@ -45,6 +45,12 @@
     <div class="yardstick"><dt>Unlabelled sequences</dt><dd data-stat="unlabelled_sequences" data-fmt="comma">{{ '{:,}'.format(stats.unlabelled_sequences or 0) }}</dd>
       <dd class="muted">homologues nobody has assayed, held apart from the catalogue on purpose
         so they cannot inflate a count that is quoted as evidence</dd></div>
+    <div class="yardstick"><dt>Sequence clusters</dt><dd data-stat="sequence_clusters">{{ stats.sequence_clusters or 0 }}</dd>
+      <dd class="muted">groups of related sequences carrying their own ecology — where the source
+        organism was found, and at what temperature</dd></div>
+    <div class="yardstick"><dt>Registered sources</dt><dd data-stat="n_sources">{{ stats.sources|length }}</dd>
+      <dd class="muted">public databases and published screens this catalogue is built from, each
+        with its retrieval date and licence</dd></div>
   </dl>
 </div>
 

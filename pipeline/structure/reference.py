@@ -143,8 +143,9 @@ def build(only: Optional[List[str]] = None, label: str = "v1") -> Dict[str, obje
                 rows = c.execute(
                     "SELECT enzyme_id, uniprot, pdb_ids_json, sequence, seq_length "
                     "FROM characterised_enzymes "
-                    "WHERE enzyme_id NOT LIKE 'PAZy:%' AND enzyme_id NOT LIKE 'ESTHER:%' "
-                    "  AND enzyme_id NOT LIKE 'EC:%' AND enzyme_id NOT LIKE 'PLC:%' "
+                    # Curated names only; every bulk identifier is namespaced with a
+                    # colon, which is the one property that stays true as sources are added.
+                    "WHERE enzyme_id NOT LIKE '%:%' "
                     "  AND is_positive=1 AND sequence IS NOT NULL "
                     "ORDER BY enzyme_id").fetchall()
 

@@ -216,6 +216,9 @@ def _db_stats() -> Dict[str, Any]:
             # Sequences with no activity label, deliberately outside characterised_enzymes.
             "unlabelled_sequences": _one(c, "SELECT COUNT(*) FROM unlabelled_sequences"),
             "sequence_clusters": _one(c, "SELECT COUNT(*) FROM sequence_clusters"),
+            # Counted rather than taken from len(sources) so the live poller can update it:
+            # the JSON payload carries the list, but the funnel cell wants one number.
+            "n_sources": _one(c, "SELECT COUNT(*) FROM data_sources"),
             "clusters_with_temperature": _one(c, "SELECT COUNT(*) FROM sequence_clusters "
                                                  "WHERE temperature_median_c IS NOT NULL"),
             "named_enzymes": _one(c, "SELECT COUNT(*) FROM characterised_enzymes WHERE enzyme_id NOT LIKE '%:%' AND is_positive=1"),

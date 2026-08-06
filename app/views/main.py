@@ -578,15 +578,18 @@ def healthz():
 # external identifier for a named enzyme sit together.
 # ======================================================================================
 
-# Enzymes curated by name, as opposed to the bulk sets keyed by accession (PAZy:n,
-# ESTHER:x, EC:x, PLC:x). Those are real data and are counted everywhere, but they are not
-# what anyone means by "the known PETases".
-# Qualified with the ce. alias: three joined tables carry an enzyme_id column and an
-# unqualified reference is ambiguous.
-NAMED_ENZYME_FILTER = (
-    "ce.enzyme_id NOT LIKE 'PAZy:%' AND ce.enzyme_id NOT LIKE 'ESTHER:%' "
-    "AND ce.enzyme_id NOT LIKE 'EC:%' AND ce.enzyme_id NOT LIKE 'PLC:%'"
-)
+# Enzymes curated by NAME, as opposed to the bulk sets keyed by accession or sequence
+# hash. The bulk entries are real data and are counted everywhere; they are simply not what
+# anyone means by "the known PETases", and a table of 25 named enzymes is destroyed by 200
+# rows called ACS:0a514d39db with a dash in every column.
+#
+# This was a denylist of prefixes -- PAZy:, ESTHER:, EC:, PLC: -- which is a rule that has
+# to be updated every time a bulk source is added, and the first time that was tested it
+# failed: the ACS and Science screen ingests introduced ACS: and SCI: and flooded the table.
+# Inverted to the property that actually distinguishes them. Every bulk identifier is
+# namespaced with a colon and no curated name contains one, so a new bulk source is excluded
+# by construction rather than by remembering to come back here.
+NAMED_ENZYME_FILTER = "ce.enzyme_id NOT LIKE '%:%'"
 
 # Experimental evidence outranks a review. Both are kept (UniProt curates IsPETase at
 # 40 degC, the review gives 30-35, measured on different substrates), so the display has to
