@@ -528,7 +528,24 @@ def methods():
             "FROM manifests ORDER BY id DESC LIMIT 12")]
     return render_template("methods.html", active="methods", runs=runs, tiers=tiers,
                            training=training, sources=sources, manifests=manifests,
-                           counts=_counts())
+                           counts=_counts(), protocol=_protocol())
+
+
+def _protocol() -> Dict[str, Any]:
+    """The evaluation protocol's own output, read rather than transcribed.
+
+    The Methods page quoted AUC 0.976 against a composition baseline of 0.829 for weeks
+    after the protocol had been re-run and returned different numbers, because those
+    figures were prose. Prose does not get recomputed. Reading the artefact means the page
+    is either current or visibly missing, never confidently stale.
+    """
+    for path in (config.ROOT_DIR / "release" / "evaluation_protocol.json",
+                 config.INTERIM_DIR / "evaluation_protocol.json"):
+        try:
+            return json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+    return {}
 
 
 @bp.route("/healthz")

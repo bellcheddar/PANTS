@@ -15,14 +15,31 @@
     mostly from PAZy, whose criterion for inclusion is that activity was measured on a plastic and
     published.
   </div>
-  <p>Trained on the measured set alone, the activity head reaches <strong>AUC 0.976</strong>
-  (&plusmn; 0.021) across <strong>45 independent sequence clusters</strong>, with average precision
-  0.987 and a Brier score of 0.052, against <strong>0.829</strong> for a classifier using
-  amino-acid composition and length only. That is the first defensible activity signal in this
-  project: experimental labels, a split by cluster rather than by sequence, and a real margin over
-  the composition baseline instead of a tie.</p>
-  <p class="muted">Until PAZy was loaded the measured positives numbered 17 across 5 clusters, too
-  few for the protocol below to run. The head was not scoring badly; it could not be scored.</p>
+{% set c30 = protocol.get('cluster_30', {}) %}
+{% if c30.get('measured-only') %}
+  <p>Trained on the measured set alone, the activity head reaches
+  <strong>AUC {{ '%.3f'|format(c30['measured-only'].auc) }}</strong>
+  (&plusmn; {{ '%.3f'|format(c30['measured-only'].auc_std) }}) across
+  <strong>{{ c30._n_clusters }} independent sequence clusters</strong> at 30% identity, against
+  <strong>{{ '%.3f'|format(protocol.composition_baseline.auc) }}</strong> for a classifier using
+  amino-acid composition alone. It clears that baseline by a real margin.</p>
+
+  <p>It does not clear the one that matters. <strong>Retrieval</strong> &mdash; scoring a sequence
+  by its similarity to the nearest enzyme already known to degrade PET, outside its own cluster
+  &mdash; reaches <strong>{{ '%.3f'|format(protocol.retrieval_baseline.auc) }}</strong>. The
+  learned head trained on measured labels comes in
+  {{ '%.3f'|format(c30['measured-only'].auc - protocol.retrieval_baseline.auc) }} against it.
+  <strong>On labels somebody actually measured, the model does not beat looking the answer
+  up.</strong> Trained on the annotated set instead it reaches
+  {{ '%.3f'|format(c30['all-annotated'].auc) }} and clears retrieval by
+  {{ '%+.3f'|format(c30['all-annotated'].auc - protocol.retrieval_baseline.auc) }} &mdash; on
+  labels a computer assigned by similarity, which is the rule retrieval already encodes.</p>
+
+  <p class="muted">These figures are read from the evaluation run's own output rather than written
+  here, because this paragraph previously quoted an AUC of 0.976 against a composition baseline of
+  0.829 for some time after the protocol had been re-run and returned different numbers. Prose does
+  not get recomputed.</p>
+{% endif %}
 </div>
 
 <div class="md-card" style="margin-top:16px">
@@ -79,7 +96,19 @@
     <li>Published activity data is not harmonised across assay formats. Absolute rate predictions should not be trusted.</li>
     <li>Crystalline PET degradation at 37 °C by any known enzyme is slow. PANTS ranks relative promise, not therapeutic viability.</li>
     <li>Predicted structures are predictions. Cleft geometry on a metagenomic sequence with no close homologue carries real uncertainty, and a brittle version of that measurement scored IsPETase's own prediction at half its crystal value before being fixed.</li>
-      <li>AUC 0.976 is measured against hard negatives from other &alpha;/&beta;-hydrolase families.
+    <li><strong>Predicted and experimental coordinates are not interchangeable.</strong> Measured
+    on the same protein both ways (51 enzymes with a crystal structure and an AlphaFold model), the
+    oxyanion hole differs systematically: the second donor's angle is 23.6&deg; in the crystal
+    against 15.6&deg; in the model, p&nbsp;1.1&times;10<sup>&minus;6</sup>. Predictions build a
+    tighter, more idealised active site than the protein has. Cleft depth is the one geometric
+    feature that survives the comparison, and it is also the strongest activity feature. Pooling
+    sources without accounting for this dropped a geometry model from 0.749 to 0.553, which is why
+    every structure here records where its coordinates came from.</li>
+    <li><strong>Leave-one-family-out cannot be run at all.</strong> All 13 ESTHER families in this
+    catalogue are wholly positive or wholly negative, so holding one out removes an entire class.
+    That is not a gap in the protocol; it is the clearest statement of the problem, which is that
+    in this dataset the label <em>is</em> family membership.</li>
+      <li>That AUC is measured against hard negatives from other &alpha;/&beta;-hydrolase families.
       Tested against the near misses instead it reaches 1.000, which is a warning rather than a
       result: every near miss is a single ESTHER family (Cutinase), and one homogeneous family
       separates as a block (composition alone scores 0.910). Neither contrast shows that the head
