@@ -26,6 +26,7 @@ Two filters, both anchored to evidence rather than intuition:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -39,15 +40,32 @@ LENGTH_MAX = 450
 
 FRAGMENT_QUERY = "ec:3.1.1.101 AND fragment:true"
 
+# The exclusions apply_filters is responsible for, and therefore the only ones it may
+# clear. Anything else on the row was put there by a stage that knows something this
+# function does not.
+_OWNED_REASONS = (
+    "UniProt Fragment flag",
+    "length outside {length_min}-{length_max} aa",
+    "no sequence (mutation set unconfirmed)",
+)
+
 # UniProt rejects a query string past a few kB, so accessions go up in batches.
 _ACCESSION_BATCH = 80
 
 
+# Screen ingests bring in NCBI and MGnify identifiers alongside UniProt ones. Sending
+# `accession:WP_103564314.1` to UniProt does not return nothing -- it makes the whole
+# batched query a 400, so one foreign identifier loses the answer for the other seventy-nine.
+UNIPROT_ACCESSION = re.compile(
+    r"^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$")
+
+
 def catalogue_accessions() -> List[str]:
     with connect() as conn:
-        return [r[0].split("-")[0] for r in conn.execute(
+        raw = [r[0].split("-")[0] for r in conn.execute(
             "SELECT DISTINCT uniprot FROM characterised_enzymes "
             "WHERE uniprot IS NOT NULL AND uniprot != ''")]
+    return [a for a in raw if UNIPROT_ACCESSION.match(a)]
 
 
 def fetch_fragment_accessions(accessions: Optional[List[str]] = None) -> Set[str]:
@@ -76,8 +94,18 @@ def apply_filters(length_min: int = LENGTH_MIN, length_max: int = LENGTH_MAX
     counts: Dict[str, int] = {}
 
     with connect() as conn:
+        # Clear only the exclusions THIS function computes. It used to reset every row, on
+        # the reasonable assumption that it was the only thing setting the flag -- which
+        # stopped being true when the Science landscape ingest began excluding entries
+        # whose activity sits within two standard deviations of zero. A blanket reset
+        # would have re-admitted them to training as ordinary positives, silently, with
+        # the count going up and nothing to notice.
         conn.execute(
-            "UPDATE characterised_enzymes SET excluded_from_training=0, exclusion_reason=NULL")
+            "UPDATE characterised_enzymes SET excluded_from_training=0, exclusion_reason=NULL "
+            "WHERE exclusion_reason IS NULL OR exclusion_reason IN "
+            f"  ({','.join('?' * len(_OWNED_REASONS))})",
+            tuple(r.format(length_min=length_min, length_max=length_max)
+                  for r in _OWNED_REASONS))
 
         # UniProt's own fragment flag.
         if fragments:

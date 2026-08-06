@@ -528,7 +528,22 @@ def methods():
             "FROM manifests ORDER BY id DESC LIMIT 12")]
     return render_template("methods.html", active="methods", runs=runs, tiers=tiers,
                            training=training, sources=sources, manifests=manifests,
-                           counts=_counts(), protocol=_protocol())
+                           counts={**_counts(), **_negative_counts()},
+                           protocol=_protocol())
+
+
+def _negative_counts() -> Dict[str, int]:
+    """How the within-family negative class breaks down by the strength of its evidence."""
+    with connect() as c:
+        return {
+            "wfn_measured": c.execute(
+                "SELECT COUNT(*) FROM characterised_enzymes "
+                "WHERE within_family_basis='measured-inactive'").fetchone()[0],
+            "wfn_inferred": c.execute(
+                "SELECT COUNT(*) FROM characterised_enzymes "
+                "WHERE within_family_basis IS NOT NULL "
+                "  AND within_family_basis!='measured-inactive'").fetchone()[0],
+        }
 
 
 def _protocol() -> Dict[str, Any]:

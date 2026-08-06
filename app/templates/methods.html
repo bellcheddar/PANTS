@@ -43,6 +43,58 @@
 </div>
 
 <div class="md-card" style="margin-top:16px">
+  <h2>Measured negatives, and why they changed everything</h2>
+  <p class="muted">The hardest question in this project is not "is this a polyesterase" — that
+  separates at AUC 0.975 — but "does this polyesterase degrade PET". Answering it needs enzymes
+  that were <em>tested and found not to</em>, and for most of this project's life there were
+  {{ counts.get('wfn_inferred', 29) }} of those, all on the weakest possible basis: PAZy records
+  only positive substrate associations, so an enzyme missing from its PET list might have been
+  assayed and failed, or might never have been assayed at all. Those two are not the same claim
+  and the database cannot tell them apart.</p>
+
+  <p class="muted">Two 2025 papers screened panels under a single protocol and, crucially,
+  <strong>reported what did not work</strong>. Both deposited their source data openly. Ingesting
+  them takes the measured negative class from nothing to
+  <strong>{{ counts.get('wfn_measured', 0) }}</strong>.</p>
+
+  <div class="tbl-wrap" style="margin-top:12px">
+  <table class="data">
+    <thead><tr><th>Screen</th><th class="num">Assayed</th><th class="num">Active</th>
+      <th class="num">Measured inactive</th><th>How the line was drawn</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://doi.org/10.1021/acscatal.5c03460" target="_blank"
+            rel="noopener noreferrer">ACS Catalysis 2025</a><br>
+          <span class="muted">Machine Learning-Guided Identification of PET Hydrolases from
+          Natural Diversity</span></td>
+        <td class="num">216</td><td class="num">126</td><td class="num">88</td>
+        <td style="font-size:12px">Percent depolymerisation at a stated 0.1% floor, not a
+          per-milligram rate: dividing by a tiny enzyme loading turns noise into a large
+          normalised number.</td></tr>
+      <tr><td><a href="https://doi.org/10.1126/science.adp5637" target="_blank"
+            rel="noopener noreferrer">Science 2025</a><br>
+          <span class="muted">Landscape profiling of PET depolymerases using a natural sequence
+          cluster framework</span></td>
+        <td class="num">183</td><td class="num">102</td><td class="num">69</td>
+        <td style="font-size:12px">Against each entry's <em>own</em> replicate standard
+          deviation — active above 2 SD, inactive at or below 1 SD. The 12 in between are
+          labelled neither way and excluded from training, because they are exactly the
+          enzymes a threshold would be tuned on.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="muted" style="margin-top:10px">Both screens also measured melting temperatures, and
+  the ACS screen assayed at <strong>40 °C</strong> as well as 60 °C. Almost every optimum in this
+  catalogue sits between 50 and 78 °C; the therapeutic target is 37 °C, so a screen that reports
+  what happens near body temperature is worth more here than its enzyme count suggests.</p>
+
+  <p class="muted">A protein is only labelled from a condition it was actually assayed under. An
+  enzyme absent from a condition is not a zero in it, so <code>comparable_group_id</code> keys on
+  substrate, temperature and pH together and a crystalline-powder result at 60 °C is never pooled
+  with an amorphous-film result at 40 °C.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
   <h2>Positives by evidence tier</h2>
   <div class="tbl-wrap"><table class="data">
     <thead><tr><th>Tier</th><th class="num">n</th></tr></thead>
