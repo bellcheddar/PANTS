@@ -172,27 +172,39 @@ function paint() {
   });
 }
 
-/* Framed per viewer rather than once with control_all left to propagate.
+/* ONE camera, copied to every panel.
  *
- * control_all links INTERACTION -- dragging one panel turns them all -- but it did not
- * carry a programmatic zoomTo, so the grid opened on whole molecules and the triad and
- * substitution surfaces were a few pixels each. Each panel is framed on its OWN triad,
- * which is also more correct: the structures are superposed but not identical in length,
- * and several ESMFold models carry long disordered termini that would drag a shared frame
- * far off the fold. */
-function focusSite() {
-  FAM.forEach((e, i) => {
-    const v = viewerAt(i);
-    const t = [e.triad_ser_resnum, e.triad_his_resnum, e.triad_asp_resnum]
-      .filter(Number.isFinite);
-    if (t.length) { v.zoomTo({resi: t}); v.zoom(0.42); } else v.zoomTo();
-    v.render();
-  });
+ * These structures were superposed into a common frame when they were written, so the
+ * active site sits at the same coordinates in all of them and a single view is correct
+ * everywhere. Copying it also makes the comparison honest: panels framed individually
+ * come out at different magnifications, and a protein that merely rendered smaller looks
+ * like a smaller protein. LCC-ICCG showed this plainly -- it has no measurable triad, fell
+ * back to fitting the whole molecule, and appeared half the size of the LCC beside it.
+ *
+ * The reference view is taken from the first panel that HAS a triad, so a knockout deposit
+ * inherits a correctly framed active site rather than dictating the frame for everyone.
+ */
+function applyView(view) {
+  FAM.forEach((_, i) => { const v = viewerAt(i); v.setView(view); v.render(); });
 }
 
-function zoomAll() {
-  FAM.forEach((_, i) => { const v = viewerAt(i); v.zoomTo(); v.render(); });
+function frameOn(selector, pull) {
+  const idx = FAM.findIndex(e => Number.isFinite(e.triad_ser_resnum));
+  const ref = viewerAt(idx >= 0 ? idx : 0);
+  const e = FAM[idx >= 0 ? idx : 0];
+  const sel = selector(e);
+  if (sel) { ref.zoomTo(sel); if (pull) ref.zoom(pull); } else ref.zoomTo();
+  applyView(ref.getView());
 }
+
+function focusSite() {
+  frameOn(e => {
+    const t = [e.triad_ser_resnum, e.triad_his_resnum, e.triad_asp_resnum].filter(Number.isFinite);
+    return t.length ? {resi: t} : null;
+  }, 0.42);
+}
+
+function zoomAll() { frameOn(() => null, null); }
 
 (async () => {
   if (!grid) return;

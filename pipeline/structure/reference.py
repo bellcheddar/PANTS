@@ -128,16 +128,27 @@ def build(only: Optional[List[str]] = None, label: str = "v1") -> Dict[str, obje
     report: Dict[str, object] = {"built": [], "skipped": [], "failed": []}
 
     with stage_manifest(STAGE, label=label) as m:
+        # Without an explicit list this builds the CURATED set only -- the named lineages.
+        # With one, any characterised enzyme is fair game, which is how the bulk PAZy set
+        # gets structures without making them the default 300-fold job.
         with connect() as c:
-            rows = c.execute(
-                "SELECT enzyme_id, uniprot, pdb_ids_json, sequence, seq_length "
-                "FROM characterised_enzymes "
-                "WHERE enzyme_id NOT LIKE 'PAZy:%' AND enzyme_id NOT LIKE 'ESTHER:%' "
-                "  AND enzyme_id NOT LIKE 'EC:%' AND enzyme_id NOT LIKE 'PLC:%' "
-                "  AND is_positive=1 AND sequence IS NOT NULL "
-                "ORDER BY enzyme_id").fetchall()
+            if only:
+                marks = ",".join("?" * len(only))
+                rows = c.execute(
+                    f"SELECT enzyme_id, uniprot, pdb_ids_json, sequence, seq_length "
+                    f"FROM characterised_enzymes "
+                    f"WHERE enzyme_id IN ({marks}) AND sequence IS NOT NULL "
+                    f"ORDER BY enzyme_id", list(only)).fetchall()
+            else:
+                rows = c.execute(
+                    "SELECT enzyme_id, uniprot, pdb_ids_json, sequence, seq_length "
+                    "FROM characterised_enzymes "
+                    "WHERE enzyme_id NOT LIKE 'PAZy:%' AND enzyme_id NOT LIKE 'ESTHER:%' "
+                    "  AND enzyme_id NOT LIKE 'EC:%' AND enzyme_id NOT LIKE 'PLC:%' "
+                    "  AND is_positive=1 AND sequence IS NOT NULL "
+                    "ORDER BY enzyme_id").fetchall()
 
-        targets = [r for r in rows if not only or r[0] in only]
+        targets = list(rows)
 
         # Catalytic positions in each enzyme's OWN sequence numbering. Taken from its
         # lineage wild type, whose triad is measured, because a variant that has lost its
@@ -181,6 +192,9 @@ def build(only: Optional[List[str]] = None, label: str = "v1") -> Dict[str, obje
                 report["failed"].append(f"{enzyme_id}: no coordinates from any source")
                 continue
             source, sid, pdb_text = got
+            # One chain, before anything downstream sees it: superposition, geometry and
+            # the viewer then all describe the same molecule.
+            pdb_text = keep_first_polymer_chain(pdb_text)
 
             cif, rmsd, _frac = fold.superpose_onto_reference(pdb_text, ref_cif)
             if cif is None:
@@ -262,6 +276,32 @@ def _esmfold(sequence: str) -> Optional[str]:
 # Residues that can occupy each role in a Ser-His-Asp charge relay. Anything else at one
 # of these positions means the deposit is not the enzyme it is named after.
 _CATALYTIC_OK = {"ser": {"S"}, "his": {"H"}, "asp": {"D", "E"}}
+
+
+def keep_first_polymer_chain(pdb_text: str) -> str:
+    """Reduce a deposit to the single chain that gets superposed.
+
+    A crystal's asymmetric unit is a crystallographic fact, not a biological one: HotPETase
+    is deposited with three copies, MHETase with six, Cut190**SS with two. Superposition
+    already aligns only the first chain, so the extra copies were never in the common frame
+    -- they simply rode along into the viewer file and rendered as unaligned duplicates
+    beside the molecule being compared.
+
+    Only the polymer is kept. Waters and ligands go with the other chains, which is what the
+    viewer wants: this is a fold comparison, not a deposition.
+    """
+    import gemmi
+    st = gemmi.read_structure_string(pdb_text, format=gemmi.CoorFormat.Pdb)
+    st.setup_entities()
+    st.remove_ligands_and_waters()
+    if not len(st) or len(st[0]) <= 1:
+        return pdb_text
+    keep = st[0][0].name
+    for model in st:
+        for ch in [c.name for c in model if c.name != keep]:
+            model.remove_chain(ch)
+    st.setup_entities()
+    return st.make_pdb_string()
 
 
 def sequence_from_structure(path) -> str:
