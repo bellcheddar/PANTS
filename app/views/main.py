@@ -91,6 +91,24 @@ def asset(filename: str) -> str:
         return config.DATA_VERSION
 
 
+def coord_url(subdir: str, filename: str) -> str:
+    """Versioned URL for a coordinate file.
+
+    The same trap `asset()` was written for, one directory along and missed at the time.
+    nginx serves the whole of /static/ as `max-age=31536000, immutable`, and `immutable` is
+    a promise that the body at this URL will never differ, so the browser does not
+    revalidate -- not on reload, not for a year. Coordinate URLs carried no version, so a
+    browser that fetched a structure before it was rewritten kept the old one indefinitely:
+    when the reference structures were reduced to a single chain, anyone who had already
+    loaded a multi-chain deposit went on seeing the multimer, with the server serving the
+    monomer correctly the whole time and nothing anywhere reporting a difference.
+
+    Only a NEW URL clears a cache entry that has already been stored as immutable, which is
+    why this is keyed on the file's mtime rather than fixed by relaxing the header.
+    """
+    return f"/static/{subdir}/{filename}?v={asset(f'{subdir}/{filename}')}"
+
+
 @bp.app_context_processor
 def inject_globals() -> Dict[str, Any]:
     with connect() as conn:
@@ -99,7 +117,7 @@ def inject_globals() -> Dict[str, Any]:
         except Exception:
             n_struct = 0
     return {"data_version": config.DATA_VERSION, "schema_version": SCHEMA_VERSION,
-            "n_structures": n_struct, "asset": asset,
+            "n_structures": n_struct, "asset": asset, "coord_url": coord_url,
             "citation_links": citation_links}
 
 
@@ -272,7 +290,7 @@ def compare():
             "ORDER BY s.plddt_mean DESC")]
         for r in cands:
             r["kind"] = "candidate"
-            r["url"] = f"/static/structures/{r['sid']}.pdb"
+            r["url"] = coord_url("structures", f"{r['sid']}.pdb")
             r["label"] = r["sid"].replace("PANTS-", "")
 
         refs = [dict(r) for r in conn.execute(
@@ -292,7 +310,7 @@ def compare():
                                  r["sid"]))
         for r in refs:
             r["kind"] = "reference"
-            r["url"] = f"/static/reference_structures/{r['coord_path']}"
+            r["url"] = coord_url("reference_structures", r["coord_path"])
             r["label"] = r["sid"]
             m = _mutations_for(r["sid"])
             r["parent"] = (m or {}).get("parent")
@@ -407,6 +425,7 @@ def overlay():
             "WHERE rs.coord_path IS NOT NULL ORDER BY ce.lineage_wt_id, ce.enzyme_id")]
 
     for r in rows:
+        r["coord_url"] = coord_url("reference_structures", r["coord_path"])
         m = _mutations_for(r["enzyme_id"])
         off = r.get("seq_offset") or 0
         r["derived_from"] = (m or {}).get("derived_from")
@@ -803,6 +822,8 @@ def enzyme(enzyme_id: str):
             "LEFT JOIN reference_geometry rg ON rg.enzyme_id=rs.enzyme_id "
             "WHERE rs.enzyme_id != ? AND rs.coord_path IS NOT NULL "
             "ORDER BY rs.enzyme_id", (enzyme_id,))]
+        for o in others:
+            o["coord_url"] = coord_url("reference_structures", o["coord_path"])
 
     mut = _mutations_for(enzyme_id)
     row = dict(row)

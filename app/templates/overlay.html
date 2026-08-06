@@ -236,7 +236,7 @@ function zoomAll() { frameOn(() => null, null); }
   for (let i = 0; i < FAM.length; i++) {
     const e = FAM[i], v = viewerAt(i);
     try {
-      const text = await (await fetch('/static/reference_structures/' + e.coord_path)).text();
+      const text = await (await fetch(e.coord_url)).text();
       const model = v.addModel(text, 'pdb');
       // Clicking a substituted residue reports how close it sits to the chemistry.
       model.setClickable({resi: e.mutations || []}, true, atom => {

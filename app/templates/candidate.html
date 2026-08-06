@@ -87,7 +87,7 @@
   await PANTSViewer.init('viewer');
   await PANTSViewer.add('reference', '/static/reference/6EQE.pdb', {isReference: true,
     triad: {ser:160, asp:206, his:237}});
-  await PANTSViewer.add('{{ c.candidate_id }}', '/static/structures/{{ c.candidate_id }}.pdb', {
+  await PANTSViewer.add('{{ c.candidate_id }}', '{{ coord_url("structures", c.candidate_id ~ ".pdb") }}', {
     colour: '#1e73be',
     triad: {ser: {{ g.triad_ser_resnum or 'null' }}, asp: {{ g.triad_asp_resnum or 'null' }}, his: {{ g.triad_his_resnum or 'null' }}}
   });

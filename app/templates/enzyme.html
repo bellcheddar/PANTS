@@ -261,7 +261,7 @@ OTHERS.forEach((o, i) => {
   picker.appendChild(lab);
   lab.querySelector('input').addEventListener('change', async (ev) => {
     if (ev.target.checked) {
-      await PANTSViewer.add(o.enzyme_id, `/static/reference_structures/${o.coord_path}`, {
+      await PANTSViewer.add(o.enzyme_id, o.coord_url, {
         colour, triad: {ser: o.triad_ser_resnum, asp: o.triad_asp_resnum, his: o.triad_his_resnum}
       });
     } else {
@@ -274,7 +274,7 @@ OTHERS.forEach((o, i) => {
   await PANTSViewer.init('viewer');
   await PANTSViewer.add('reference', '/static/reference/6EQE.pdb',
     {isReference: true, triad: {ser: 160, asp: 206, his: 237}});
-  await PANTSViewer.add(SELF, '/static/reference_structures/{{ e.coord_path }}', {
+  await PANTSViewer.add(SELF, '{{ coord_url("reference_structures", e.coord_path) }}', {
     colour: '#1e73be',
     triad: {ser: {{ e.triad_ser_resnum or 'null' }}, asp: {{ e.triad_asp_resnum or 'null' }}, his: {{ e.triad_his_resnum or 'null' }}},
     mutations: MUT_POSITIONS
@@ -318,7 +318,7 @@ document.getElementById('dl-pdb').addEventListener('click', () => {
   // The coordinates the page already fetched, superposed on IsPETase, not the original
   // deposit: what is downloaded is what is being looked at.
   const a = document.createElement('a');
-  a.href = '/static/reference_structures/{{ e.coord_path }}';
+  a.href = '{{ coord_url("reference_structures", e.coord_path) }}';
   a.download = '{{ e.enzyme_id }}_superposed.pdb';
   document.body.appendChild(a); a.click(); a.remove();
 });
