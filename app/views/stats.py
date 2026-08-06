@@ -17,6 +17,7 @@ import os
 import platform
 import shutil
 import sqlite3
+import threading
 import time
 from typing import Any, Dict, List, Optional
 
@@ -106,18 +107,59 @@ def host_health() -> Dict[str, Any]:
         out["database_age_min"] = round((time.time() - db.stat().st_mtime) / 60, 1)
     except OSError:
         pass
-    for label, path in (("structures", config.STATIC_DIR / "structures"),
-                        ("reference_structures", config.STATIC_DIR / "reference_structures")):
-        try:
-            files = list(path.iterdir())
-            out[f"{label}_files"] = len(files)
-            out[f"{label}_mb"] = round(sum(f.stat().st_size for f in files) / 1e6, 1)
-        except OSError:
-            pass
+    out.update(_structure_dir_sizes())
     return out
 
 
-def gather() -> Dict[str, Any]:
+_DIR_CACHE: Dict[str, Any] = {}
+
+
+def _structure_dir_sizes() -> Dict[str, Any]:
+    """File count and total size for the two structure directories.
+
+    Stat'ing 1,100 files was the largest remaining cost of a poll once the queries were
+    cached, and the answer only changes when a structure is written. The directory's own
+    mtime moves on any create or delete, so it is enough of a key -- a file edited in place
+    without changing the listing would be missed, which cannot happen here because these
+    files are only ever written whole.
+    """
+    out: Dict[str, Any] = {}
+    for label, path in (("structures", config.STATIC_DIR / "structures"),
+                        ("reference_structures", config.STATIC_DIR / "reference_structures")):
+        try:
+            mtime = path.stat().st_mtime_ns
+        except OSError:
+            continue
+        hit = _DIR_CACHE.get(label)
+        if not hit or hit[0] != mtime:
+            try:
+                files = list(path.iterdir())
+                hit = (mtime, len(files), round(sum(f.stat().st_size for f in files) / 1e6, 1))
+            except OSError:
+                continue
+            _DIR_CACHE[label] = hit
+        out[f"{label}_files"], out[f"{label}_mb"] = hit[1], hit[2]
+    return out
+
+
+def _db_signature() -> tuple:
+    """What changes when, and only when, the pipeline writes.
+
+    SQLite in WAL mode leaves the main file's mtime alone between checkpoints, so the WAL
+    is stat'd too. Missing files count as zeros rather than raising: the signature only has
+    to differ across a write, not describe the database.
+    """
+    sig = []
+    for name in ("pants.db", "pants.db-wal"):
+        try:
+            st = (config.ROOT_DIR / name).stat()
+            sig.append((st.st_mtime_ns, st.st_size))
+        except OSError:
+            sig.append((0, 0))
+    return tuple(sig)
+
+
+def _db_stats() -> Dict[str, Any]:
     marks = ",".join("?" * len(config.MEASURED_TIERS))
     tiers = list(config.MEASURED_TIERS)
 
@@ -210,9 +252,37 @@ def gather() -> Dict[str, Any]:
             c, "SELECT DISTINCT model_version FROM manifests WHERE model_version IS NOT NULL")]
         stats["git_commit"] = _one(c, "SELECT git_commit FROM manifests WHERE git_commit IS NOT NULL ORDER BY id DESC LIMIT 1")
 
+    return stats
+
+
+_CACHE: Dict[str, Any] = {"signature": None, "stats": None}
+_CACHE_LOCK = threading.Lock()
+
+
+def gather() -> Dict[str, Any]:
+    """The whole payload.
+
+    Forty-odd queries cost about 17 ms, which is nothing once but is paid on every poll by
+    every open tab, and between pipeline runs every one of those polls returns exactly what
+    the last did. So the database half is recomputed only when the database has actually
+    been written, keyed on its mtime and size; an idle poll then costs a couple of stat
+    calls. Host metrics are read every time regardless -- they are a few /proc reads, and
+    they are the half that genuinely does change between requests.
+
+    Not a time-based cache on purpose: a TTL would either lag a run that just finished or
+    expire for nothing while the pipeline is idle, and the file already says which it is.
+    """
+    sig = _db_signature()
+    with _CACHE_LOCK:
+        cached = _CACHE["stats"] if _CACHE["signature"] == sig else None
+        if cached is None:
+            cached = _db_stats()
+            _CACHE["signature"], _CACHE["stats"] = sig, cached
+    stats = dict(cached)
     stats["host"] = host_health()
     stats["generated_at"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + " UTC"
     stats["generated_epoch"] = int(time.time())
+    stats["data_changed_epoch"] = int(max(s[0] for s in sig) / 1e9)
     return stats
 
 

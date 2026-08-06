@@ -4,15 +4,16 @@
 
 <div class="md-card">
   <h2 class="lead-title"><strong>Live instrumentation.</strong> Everything this project has
-    read, produced and is running on, recomputed on every request.</h2>
-  <p class="lede">Nothing here is cached or written by hand. Each figure is a query against the
-  database or a reading from the machine, taken when the page loads and refreshed every fifteen
-  seconds. A number that stops moving has stopped because the pipeline stopped — which is the
+    read, produced and is running on, read straight from the database and the machine.</h2>
+  <p class="lede">Nothing here is written by hand. Each figure is a query or a reading, and the
+  page refreshes as fast as the data actually changes: every fifteen seconds while the pipeline is
+  writing, backing off to five minutes once it goes quiet, and not at all while this tab sits in the
+  background. A number that stops moving has stopped because the pipeline stopped — which is the
   point of the page, since it is the one place a claim about this project can be checked against
   the thing itself.</p>
   <p class="stat-live"><span class="pulse" id="pulse"></span>
     <span id="tick">updated {{ stats.generated_at }}</span>
-    <span class="muted">· refreshing every 15 s · database written
+    <span class="muted">· refreshes when the database is written · last written
       <span data-stat="host.database_age_min">{{ stats.host.database_age_min }}</span> min ago</span></p>
 </div>
 
@@ -363,8 +364,29 @@
 const PULSE = document.getElementById('pulse');
 const TICK = document.getElementById('tick');
 
+/* Polling cadence.
+ *
+ * A fixed fifteen seconds is right while the pipeline is writing and pure waste when it is
+ * not: between runs every poll returns exactly what the last one did, and a tab left open
+ * overnight would ask 5,760 times for the same answer. A fixed hour would fix that and
+ * break the page, which claims to be live and is worth watching during a run.
+ *
+ * So the interval follows the data instead of a constant. Fifteen seconds after anything
+ * moves, doubling while nothing does, capped at five minutes; and nothing at all while the
+ * tab is hidden, with an immediate refresh when it comes back, so the numbers are never
+ * stale at the moment somebody is actually looking at them.
+ */
+const FAST = 15000, SLOW = 300000;
+let delay = FAST, timer = null;
+
 function dig(obj, path) {
   return path.split('.').reduce((o, k) => (o === null || o === undefined) ? undefined : o[k], obj);
+}
+
+function schedule() {
+  clearTimeout(timer);
+  if (document.hidden) return;
+  timer = setTimeout(refresh, delay);
 }
 
 async function refresh() {
@@ -372,12 +394,14 @@ async function refresh() {
     const r = await fetch('/api/stats', {cache: 'no-store'});
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const s = await r.json();
+    let moved = false;
     document.querySelectorAll('[data-stat]').forEach(el => {
       const v = dig(s, el.dataset.stat);
       if (v === undefined || v === null) return;
       const txt = el.dataset.fmt === 'comma' ? Number(v).toLocaleString() : String(v);
       if (el.textContent !== txt) {
         el.textContent = txt;
+        moved = true;
         // Flash only what actually moved, so the eye is drawn to change rather than to
         // the whole page repainting.
         el.classList.remove('bumped');
@@ -385,14 +409,27 @@ async function refresh() {
         el.classList.add('bumped');
       }
     });
+    // Host readings drift every second, so they are not the signal: back off on whether
+    // the DATABASE was written, which is what the panels are actually reporting.
+    if (moved || s.data_changed_epoch !== LAST_WRITE) delay = FAST;
+    else delay = Math.min(delay * 2, SLOW);
+    LAST_WRITE = s.data_changed_epoch;
     TICK.textContent = 'updated ' + s.generated_at;
     PULSE.classList.remove('stale');
   } catch (e) {
     // Say so rather than showing numbers that quietly stopped being current.
     PULSE.classList.add('stale');
     TICK.textContent = 'not updating — ' + e.message;
+    delay = Math.min(delay * 2, SLOW);
   }
+  schedule();
 }
-setInterval(refresh, 15000);
+
+let LAST_WRITE = {{ stats.data_changed_epoch }};
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearTimeout(timer);
+  else { delay = FAST; refresh(); }
+});
+schedule();
 </script>
 {% endblock %}
