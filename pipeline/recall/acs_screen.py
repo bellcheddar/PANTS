@@ -182,7 +182,21 @@ def ingest(path: pathlib.Path, label: str = "v1", active_pct: float = ACTIVE_PCT
                     " activity_substrate_notes, source_ref, primary_doi, added_at) "
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) "
                     "ON CONFLICT(enzyme_id) DO UPDATE SET "
-                    " activity_substrate_notes=excluded.activity_substrate_notes, "
+                    # APPEND, never replace. Overwriting this column destroyed the
+                    # provenance of 189 existing rows on the first run -- an entry saying
+                    # "PAZy 409: measured activity on PET, doi:..." was reduced to the
+                    # screen result alone, and the earlier evidence was not contradicted,
+                    # it was deleted. Recovered from the published Zenodo deposit; the
+                    # clause below is why it cannot happen again. Guarded with instr() so a
+                    # re-run does not append the same sentence twice.
+                    " activity_substrate_notes = "
+                    "   CASE WHEN characterised_enzymes.activity_substrate_notes IS NULL "
+                    "        OR instr(characterised_enzymes.activity_substrate_notes, "
+                    "                 excluded.activity_substrate_notes) > 0 "
+                    "     THEN excluded.activity_substrate_notes "
+                    "     ELSE characterised_enzymes.activity_substrate_notes "
+                    "          || ' SUBSEQUENTLY SCREENED: ' || excluded.activity_substrate_notes "
+                    "   END, "
                     " primary_doi=COALESCE(characterised_enzymes.primary_doi, excluded.primary_doi), "
                     " within_family_basis=COALESCE(characterised_enzymes.within_family_basis, "
                     "                              excluded.within_family_basis)",
