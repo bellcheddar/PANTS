@@ -546,7 +546,7 @@ def methods():
     return render_template("methods.html", active="methods", runs=runs, tiers=tiers,
                            training=training, sources=sources, manifests=manifests,
                            counts={**_counts(), **_negative_counts()},
-                           protocol=_protocol())
+                           protocol=_protocol(), geom=_geometry_measured())
 
 
 def _negative_counts() -> Dict[str, int]:
@@ -561,6 +561,17 @@ def _negative_counts() -> Dict[str, int]:
                 "WHERE within_family_basis IS NOT NULL "
                 "  AND within_family_basis!='measured-inactive'").fetchone()[0],
         }
+
+
+def _geometry_measured() -> Dict[str, Any]:
+    """The geometry test run against labels somebody measured, read from its own output."""
+    for path in (config.ROOT_DIR / "release" / "geometry_measured_labels.json",
+                 config.INTERIM_DIR / "geometry_measured_labels.json"):
+        try:
+            return json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+    return {}
 
 
 def _protocol() -> Dict[str, Any]:

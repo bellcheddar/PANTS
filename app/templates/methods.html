@@ -90,6 +90,39 @@
 
 
 
+
+  <h3 class="sub" style="margin-top:16px">And the same question asked of geometry</h3>
+{% if geom.get('grouped_auc_mean') %}
+  <p class="muted">Active-site geometry was the one signal here measured off coordinates
+  rather than inherited from somebody's annotation, so it was the obvious thing to re-test
+  once real labels existed. On the <em>inferred</em> negatives it looked convincing: cleft
+  depth separated PET-active from PET-inactive at <strong>AUC 0.808, p 1.7&times;10<sup>&minus;7</sup></strong>,
+  falling to 0.534 under cluster-grouped splitting — which was read as an underpowered
+  evaluation waiting for more data.</p>
+
+  <p class="muted">Asked of <strong>{{ geom.n_positive }} PET-active against
+  {{ geom.n_negative }} measured-inactive</strong> enzymes, all ESMFold on both sides so no
+  coordinate-source confound is in play, the answer is
+  <strong>AUC {{ '%.3f'|format(geom.grouped_auc_mean) }}</strong>
+  ({{ '%.3f'|format(geom.grouped_auc_min) }}–{{ '%.3f'|format(geom.grouped_auc_max) }} across
+  {{ geom.seeds }} random splits). A coin flip, and this time with an interval tight enough to
+  exclude something.</p>
+
+  <p class="muted">The raw features are where it is clearest. Not one of the nine survives at
+  p&nbsp;&lt;&nbsp;0.01, and cleft depth — the 0.808 above — comes in at
+  <strong>{{ '%.3f'|format(geom.per_feature.cleft_depth_A.auc) }}, p {{ '%.2g'|format(geom.per_feature.cleft_depth_A.p) }}</strong>.
+  <strong>That signal was never measuring PET activity.</strong> It was measuring whatever
+  separates the enzymes a database happens to list from the ones it does not, and it
+  disappeared the moment the labels came from somebody running the assay.</p>
+
+  <p class="muted">Two limits worth stating with it. Only {{ geom.n_shared_clusters }} clusters
+  contain both classes, so the grouped estimate rests on few independent lineages — though its
+  stability across seeds argues the answer is real. And every structure here is a prediction:
+  if ESMFold idealises the active site, which the paired crystal-versus-model comparison above
+  shows it does, a genuine difference could be flattened by the modelling rather than absent
+  from the enzymes.</p>
+{% endif %}
+
   <h3 class="sub" style="margin-top:16px">What the rest of that supplement held</h3>
   <p class="muted">The Science paper ships seven data files. Only two of the remaining three
   were worth ingesting, and saying which is part of the point.</p>
