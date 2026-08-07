@@ -105,8 +105,21 @@
   coordinate-source confound is in play, the answer is
   <strong>AUC {{ '%.3f'|format(geom.grouped_auc_mean) }}</strong>
   ({{ '%.3f'|format(geom.grouped_auc_min) }}–{{ '%.3f'|format(geom.grouped_auc_max) }} across
-  {{ geom.seeds }} random splits). A coin flip, and this time with an interval tight enough to
-  exclude something.</p>
+  {{ geom.seeds }} random splits).</p>
+
+  <p class="muted">Below a coin flip, and consistently so — every one of the
+  {{ geom.seeds }} splits lands under 0.5. That is worth reading carefully, because it does not
+  mean the classifier is useful inverted. It means whatever relationship the features carry
+  inside the training clusters <em>reverses</em> in held-out ones, which is the signature of
+  fitting lineage rather than activity: the geometry says which family an enzyme belongs to,
+  and family does not say whether it degrades PET.</p>
+
+  <p class="muted">The trajectory is the strongest part of the evidence. As the measured
+  negative set filled in, the result went <strong>0.507 at 95 negatives, 0.498 at 125, 0.459 at
+  139, and 0.398 with the positive set complete</strong>. A real effect emerging from a thin
+  sample strengthens and narrows around a non-null value; moving toward and past chance as the
+  sample grows is a confound being diluted. That distinction is exactly the one that let the
+  earlier reading survive as "underpowered" for as long as it did.</p>
 
   <p class="muted">The raw features are where it is clearest. Not one of the nine survives at
   p&nbsp;&lt;&nbsp;0.01, and cleft depth — the 0.808 above — comes in at
