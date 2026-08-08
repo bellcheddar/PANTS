@@ -117,9 +117,10 @@ BIND_ADDR = os.environ.get("BIND_ADDR", "127.0.0.1:8005")
 
 # Data version shown in the app footer (spec section 12), and the version the Zenodo
 # deposit is cut at. Bumped when the released artefacts change, not when the code does:
-# 0.2.0 is the finished structure set (354 references, 60 experimental), the deposit
-# linking, and the full evaluation protocol.
-DATA_VERSION = os.environ.get("DATA_VERSION", "0.2.0")
+# 0.2.0 was the finished structure set, the deposit linking and the full evaluation
+# protocol. 0.3.0 adds the two 2025 screens that supplied the first MEASURED negative
+# class, 205 more structures, and the three findings that class made possible.
+DATA_VERSION = os.environ.get("DATA_VERSION", "0.3.0")
 
 
 def ensure_dirs() -> None:
