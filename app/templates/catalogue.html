@@ -12,9 +12,24 @@
     </label>
     <noscript><button type="submit">Filter</button></noscript>
   </form>
-  <div class="caveat">Sorted by retrieval bitscore. That ranking favours candidates resembling
-  already-characterised enzymes, which is the bias PANTS exists to correct rather than a
-  recommendation. Low-identity candidates are the unexplored ones.</div>
+  <div class="caveat"><strong>Sorted by identity to the nearest enzyme whose PET activity was
+  actually measured</strong> — not by the profile bitscore, and not by a learned classifier.
+  A trained head was tried and abandoned on evidence: across enzyme families it performs at
+  chance and its coefficients point in <em>opposite</em> directions between families, and
+  within a family it cannot be shown to beat this. Retrieval needs no training and cannot
+  learn a family-specific rule that reverses on a family it has not seen.
+
+  <p style="margin:8px 0 0">The confidence column is the honest part. The signal was measured
+  as a function of sequence identity: weak at 70%, unmeasurable below 50%. So
+  <strong>16 candidates are in range, 39 marginal, and 384 are ranked but carry no
+  demonstrated validity</strong> at their distance from anything measured.</p>
+
+  <p style="margin:8px 0 0">And the tension worth naming rather than hiding: ranking by
+  similarity rewards candidates that resemble what is already known, which is the opposite of
+  discovery and precisely the bias this project set out to correct. The low-identity candidates
+  are the interesting ones and also the ones nothing here can score. That is not a bug in the
+  ranking — it is the state of the evidence, and the fix is measurement on new lineages rather
+  than a cleverer model.</p></div>
   <div class="tbl-wrap">
   <table class="data" id="cat">
     <thead><tr>
@@ -22,7 +37,8 @@
       <th class="num" data-sort="num">Length</th><th class="num" data-sort="num">E-value</th>
       <th class="num" data-sort="num">Bitscore</th><th class="num" data-sort="num">Identity</th>
       <th class="num" data-sort="num">pLDDT</th><th class="num" data-sort="num">Cleft Å</th>
-      <th>Triad</th><th>Nearest characterised</th>
+      <th>Triad</th><th class="num" data-sort="num">%ID to measured</th>
+      <th>Nearest measured-active</th><th>Confidence</th>
     </tr></thead>
     <tbody>
     {% for r in rows %}
@@ -36,7 +52,11 @@
         <td class="num">{% if r.plddt_mean %}{{ '%.0f'|format(r.plddt_mean) }}{% elif r.structure_deferred %}<span class="muted" title="over 450 aa: probable fusion or misassembly">deferred</span>{% else %}<span class="muted">pending</span>{% endif %}</td>
         <td class="num">{{ r.cleft_width_A or '-' }}</td>
         <td class="mono muted">{% if r.triad_ser_resnum %}S{{ r.triad_ser_resnum }}/D{{ r.triad_asp_resnum }}/H{{ r.triad_his_resnum }}{% else %}-{% endif %}</td>
-        <td class="mono muted">{{ r.nearest_characterised_id or '-' }}</td>
+        <td class="num">{{ '%.0f'|format(r.nearest_measured_identity * 100) if r.nearest_measured_identity else '-' }}</td>
+        <td class="mono muted">{{ r.nearest_measured_id or '-' }}</td>
+        <td>{% if r.retrieval_band == 'in-range' %}<span class="ev measured">in range</span>
+            {%- elif r.retrieval_band == 'marginal' %}<span class="ev">marginal</span>
+            {%- else %}<span class="ev inferred" title="below 50% identity to any enzyme whose PET activity was measured: this candidate is ranked, but the ranking has no demonstrated validity at this distance">out of range</span>{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 # Bump when SCHEMA changes in a way that invalidates an existing pants.db. Recorded in
 # every manifest so a stale database is obvious rather than silently mis-read.
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 
 SCHEMA = """
 -- ============================================================
@@ -391,6 +391,15 @@ COLUMN_MIGRATIONS = [
     # v16: the sequence cluster an enzyme belongs to in its source paper's own framework,
     # which is what the paper's ecological metadata is keyed on.
     ("characterised_enzymes", "science_cluster", "INTEGER"),
+    # v17: the nearest enzyme whose PET activity was MEASURED, as opposed to
+    # `nearest_characterised_*`, which points at the nearest entry in the whole catalogue
+    # and is usually one carrying an EC number assigned automatically by similarity. The
+    # two answer different questions and conflating them would let a candidate rank highly
+    # for resembling something nobody has ever assayed. `retrieval_band` records whether
+    # the candidate is close enough for the ranking to have any demonstrated validity.
+    ("candidates", "nearest_measured_id", "TEXT"),
+    ("candidates", "nearest_measured_identity", "REAL"),
+    ("candidates", "retrieval_band", "TEXT"),
 ]
 
 # Tables added after the original schema. Same reason as COLUMN_MIGRATIONS: the CREATE

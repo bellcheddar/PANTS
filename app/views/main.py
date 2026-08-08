@@ -238,7 +238,9 @@ def catalogue():
     with connect() as conn:
         sql = ("SELECT c.candidate_id, c.source_environment, c.seq_length, "
                "       c.recall_evalue, c.recall_bitscore, c.recall_profile_identity, "
-               "       c.nearest_characterised_id, c.structure_deferred, s.plddt_mean, "
+               "       c.nearest_characterised_id, c.nearest_measured_id, "
+               "       c.nearest_measured_identity, c.retrieval_band, "
+               "       c.structure_deferred, s.plddt_mean, "
                "       g.cleft_width_A, g.triad_ser_resnum, g.triad_asp_resnum, g.triad_his_resnum "
                "FROM candidates c "
                "LEFT JOIN structures s ON s.candidate_id=c.candidate_id "
@@ -247,7 +249,12 @@ def catalogue():
         if env:
             sql += "WHERE c.source_environment=? "
             params.append(env)
-        sql += "ORDER BY c.recall_bitscore DESC"
+        # Ranked by similarity to the nearest MEASURED-ACTIVE enzyme, not by the HMM
+        # bitscore. A bitscore says a candidate matches the polyesterase profile, which is
+        # the easy question this project answers at AUC 0.98 and is not what anyone is
+        # here for. Nulls sort last so an unscored candidate cannot head the list.
+        sql += ("ORDER BY (c.nearest_measured_identity IS NULL), "
+                "         c.nearest_measured_identity DESC, c.recall_bitscore DESC")
         rows = [dict(r) for r in conn.execute(sql, params)]
         envs = [r[0] for r in conn.execute(
             "SELECT DISTINCT source_environment FROM candidates ORDER BY 1")]
