@@ -265,30 +265,49 @@ the wrong protein as HGMP05 with nothing downstream to reveal it.
 
 ## 🚧 Current status
 
-**Live at [`pants.mdeller.com`](https://pants.mdeller.com).** The offline pipeline runs end to end from metagenome FASTA to folded, geometry-measured candidates, and the catalogue is served behind gunicorn and nginx.
+**Live at [`pants.mdeller.com`](https://pants.mdeller.com).** The pipeline runs end to end from
+metagenome FASTA to folded, geometry-measured candidates, and the catalogue is served behind
+gunicorn and nginx. **The project reached a conclusion that is not the one it set out to
+reach — read [`FINDINGS.md`](FINDINGS.md) first, then [`NEXT.md`](NEXT.md).**
 
 | Phase | State |
 |---|---|
 | 0: Scaffold, schema, manifest provenance | ✅ Complete |
-| 1: Curation, hard negatives, activity data | ✅ Complete, gate still MARGINAL |
+| 1: Curation, hard negatives, activity data | ✅ Complete |
 | 2: Recall (profile HMMs, MMseqs2, HMMER) | ✅ Complete |
 | 4: ESM-2 embedding | ✅ Complete |
-| 5: Activity head, calibration, evaluation | ◐ Head trained and evaluated; the within-family question is label-limited, see below |
-| 6: Structures and active-site geometry | ✅ Complete: 416 of 439 candidates folded, 24 deferred over length, all geometry measured |
+| 5: Activity head, calibration, evaluation | ✅ Complete, and **negative**: a learned head does not beat retrieval on measured labels |
+| 6: Structures and active-site geometry | ✅ Complete: 416 of 439 candidates folded, 559 reference structures |
 | 7 to 8: Web app and deployment | ✅ Complete: live on port 8005, listed on the mdeller.com launcher |
+| 9: Measured negatives and the three findings | ✅ Complete |
 
 What is in the database today:
 
 | Set | Count | Notes |
 |---|---|---|
-| **Candidates** | **439** | Mined from 14.8M metagenomic proteins across four environments, all triad-complete |
-| Positives | 854 | Of which **341 experimentally measured**, the rest predicted (see below) |
-| Hard negatives | 131 | Matched on five axes |
-| Measured-set head | AUC **0.976** | 45 independent clusters, against a 0.829 composition baseline |
-| Near misses | 153 | 124 ESTHER `Cutinase` family, plus **29 within-family negatives**: PAZy enzymes measured on another plastic that share a 30% cluster with a PET-active one |
-| Activity measurements | 48 | Km, Topt, pH optimum, each citing its PubMed IDs |
-| Embeddings | 848 | ESM-2 t12-35M, 480-dim, frozen |
-| Excluded from training | 70 | Fragments and length outliers, marked not deleted |
+| **Candidates** | **439** | Mined from 14,804,920 metagenomic proteins across five environments, all triad-complete |
+| Characterised enzymes | 1,348 | Of which **342 carry a measurement**, the rest annotation |
+| **Measured negatives** | **150** | Expressed, assayed, no product released — from two 2025 screens. The class this field usually lacks |
+| Hard negatives | 131 | Other α/β-hydrolase folds, matched on five axes |
+| Activity measurements | 2,759 | 2,757 carrying a DOI |
+| Reference structures | 559 | 60 crystal, 104 AlphaFold, 395 ESMFold, all superposed onto IsPETase |
+| Unlabelled homologues | 25,041 | Held outside the catalogue so they cannot inflate a quoted count |
+
+### The headline result
+
+Candidates are ranked by **similarity to the nearest enzyme whose PET activity was measured**,
+not by a learned classifier, because on measured labels no model built here beats that
+baseline. Every candidate carries a competence band from the measured identity-decay curve:
+
+| Band | Candidates | Meaning |
+|---|---|---|
+| In range | **16** | ≥70% identity to a measured-active enzyme |
+| Marginal | 39 | 50–70% |
+| Out of range | **384** | <50%, ranked but with no demonstrated validity |
+
+The out-of-range candidates are precisely the novel enzymes this project set out to find, and
+nothing here can score them. That is stated on the site rather than hidden, and the fix is
+measurement on new lineages — see [`release/validation_panel.csv`](release/validation_panel.csv).
 
 ### Positives by evidence tier
 
@@ -305,6 +324,14 @@ The count that matters is not 854 but **341**: the number with a measurement beh
 | `HGMP-measured` | 5 | Human gut PET hydrolases with measured activity (PMID 39551294) |
 
 ## 🧪 What Phase 1 found
+
+> **Historical record.** Everything in this section was true when it was written and has
+> since been superseded. The AUC 0.976 below was measured against negatives meaning "not
+> reported active in a database", which cannot distinguish an enzyme assayed and found dead
+> from one nobody assayed. When 150 **measured** negatives arrived, that number and the
+> conclusions drawn from it did not survive. The section is kept because the reasoning is
+> the record of how the project got to where it is — for the current position see
+> [`FINDINGS.md`](FINDINGS.md).
 
 Two findings that changed the plan, both surfaced by the pre-training sanity gate rather than by review. Full detail in [`PHASE1_FINDINGS.md`](PHASE1_FINDINGS.md).
 
@@ -671,8 +698,8 @@ Corrections this caught during curation: `Q6A0I4` was initially curated as Cut19
 4. Predicted structures are predictions. Cleft geometry from ESMFold on a metagenomic sequence with no close homologue carries real uncertainty.
 5. Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo. Those decide whether any of this is a therapy.
 6. Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.
-7. The composition baseline sits at AUC 0.829 on the measured set. The head clears it (0.976), but a model must keep clearing it, and the retrieval baseline, to claim learned discrimination.
-8. AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity **within** the polyesterase family has now been tested against the 26 PAZy enzymes measured on other plastics that share a 30% cluster with a PET-active one: discrimination decays to **0.850** and, restricted to mixed clusters where family membership carries no information, to **0.493** (chance). That strictest test is underpowered, and the negatives are weak because "PET not listed" conflates inactive with never assayed, so it is a lower bound rather than a verdict. The evaluation is label-limited, not method-limited.
+7. **A learned head does not beat retrieval on measured labels.** On the hardest contrast the paired lead over nearest-neighbour retrieval is +0.159 [−0.263, +0.390], spanning zero, and eighteen times the language-model parameters changed nothing. The shipped ranking is therefore retrieval, and the earlier AUC 0.976 was measured against an easier negative class.
+8. **Ranking PET activity within the polyesterase family is the question that matters, and it is not solved.** Against 150 measured-inactive polyesterases the head reaches 0.582 ± 0.067 and active-site geometry reaches 0.398 — below chance. The determinants are lineage-specific: the same model fitted inside different families points in unrelated or opposite directions, so a model trained across families learns something that reverses on a family it has not seen.
 9. Old note, kept: the composition baseline was 0.778 on the earlier annotation-heavy positive set. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.
 10. Of 854 positives, 341 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.
 9. Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.

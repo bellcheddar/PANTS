@@ -1,5 +1,13 @@
 # Phase 1 findings: the negative set, and why the positives were the real problem
 
+> **Historical record — superseded.** This documents Phase 1, before any measured negative
+> class existed. Its central complaint, that the negative class was unavailable because
+> databases record only what works, was resolved in 2026-08 by ingesting two high-throughput
+> screens that reported what did *not* work. The conclusions drawn here about the head's
+> performance did not survive those labels. Current position: [`FINDINGS.md`](FINDINGS.md).
+> Where to go next: [`NEXT.md`](NEXT.md).
+
+
 Status as of 2026-08-04. This is the live record of what Phase 1 actually found, as
 opposed to what PLAN_v1.md assumed. Read it before touching the training stage.
 

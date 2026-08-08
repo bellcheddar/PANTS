@@ -123,15 +123,15 @@
 </table></div>
 <h2>🔀 How it works</h2>
 <pre><code class="language-text">  SOURCE ENVIRONMENTS                      SEED SET
-  ┌──────────────────────┐                 ┌───────────────────────────────┐
-  │ compost      1.0M    │                 │ 5 wild types  (UniProt)       │
-  │ marine       0.7M    │                 │ 4 variants    (derived from   │
-  │ landfill     0.4M    │                 │                parent + muts) │
-  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit) │
-  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation) │
-  └──────────┬───────────┘                 └───────────────┬───────────────┘
-             │  predicted proteins                         │
-             │                                             ▼
+  ┌──────────────────────┐                 ┌───────────────────────────────────┐
+  │ compost      1.0M    │                 │ 6 wild types  (UniProt + UniParc)  │
+  │ marine       0.7M    │                 │ 9 variants    (parent + mutations) │
+  │ landfill     0.4M    │                 │ 2 variants    (PDB constructs)     │
+  │ wastewater   0.03M   │                 │ 5 HGMPs       (SciDB deposit)      │
+  │ human gut   12.1M    │                 │ 449 EC 3.1.1.101 (annotation)      │
+  └──────────┬───────────┘                 └─────────────────┬─────────────────┘
+             │  predicted proteins                           │
+             │                                               ▼
              │                              ┌──────────────────────────────┐
              │                              │ cluster at 30% identity      │
              │                              │ → 1 profile HMM per cluster  │
@@ -254,7 +254,7 @@
 </table></div>
 <h3>The engineered lineage, from the literature</h3>
 <p>Every variant named in the project brief. They are in the database at <strong>weaker provenance</strong> than the block above: <code>extraction_confidence='review'</code> and <code>ECO:0000305</code> (inferred by curator) rather than <code>ECO:0000269</code> (experimental, from a publication), because the values were collated from a secondary review rather than read from each primary paper.</p>
-<p><strong>Two of the five missing sequences were recovered from crystal structures</strong>, which is a stronger route than deriving them: a PDB SEQRES is the construct that was actually expressed, crystallised and assayed, so nothing is applied or assumed. Each was verified by aligning against its parent and checking the substitution count against the published one, rather than trusting the name on the entry.</p>
+<p><strong>Every engineered variant now carries a sequence.</strong> Two came from crystal structures, which is the stronger route: a PDB SEQRES is the construct that was actually expressed, crystallised and assayed, so nothing is applied or assumed. Each was verified by aligning against its parent and checking the substitution count against the published one, rather than trusting the name on the entry.</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
 <tr>
@@ -283,7 +283,57 @@
 </tbody>
 </table></div>
 <p>Both are stored as the <strong>mature construct</strong>, so they are shorter than their precursor parents.</p>
-<p><strong>Three still carry no sequence: DuraPETase, TurboPETase and Z1-PETase.</strong> None has a name-matched PDB entry, none is in PAZy, and their mutation sets are in primary supplementaries. The PDB does hold generic "IsPETase variant V20/V22" structures that <em>might</em> be among them, but assigning one on a guess is exactly the error that would silently poison the profiles, so they stay empty.</p>
+<p><strong>The remaining three were resolved from their mutation sets, and two more variants were found in the same pass.</strong> Every set below was applied with <code>apply_mutations</code>, which refuses any substitution whose stated parent residue does not match, so a wrong position or a mature-vs-precursor numbering shift fails loudly instead of producing a plausible but wrong sequence. All five matched at <strong>offset 0</strong> with the substitution count the papers report.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Parent</th>
+<th>Mutations</th>
+<th>Confirmed by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Variant">DuraPETase</td>
+<td data-label="Parent">IsPETase</td>
+<td data-label="Mutations"><code>S214H/I168R/W159H/S188Q/R280A/A180I/G165A/Q119Y/L117F/T140D</code></td>
+<td data-label="Confirmed by">10/10 parent residues match; 10 independent positions agreeing by chance is ~20⁻¹⁰</td>
+</tr>
+<tr>
+<td data-label="Variant">TurboPETase</td>
+<td data-label="Parent"><strong>BhrPETase</strong></td>
+<td data-label="Mutations"><code>H218S/F222I/A209R/D238K/A251C/A281C/W104L/F243T</code></td>
+<td data-label="Confirmed by">8/8 match; the parent recorded before curation (IsPETase) was <strong>wrong</strong></td>
+</tr>
+<tr>
+<td data-label="Variant">Z1-PETase</td>
+<td data-label="Parent">IsPETase</td>
+<td data-label="Mutations"><code>N37D/S121E/R132E/A171C/A180V/P181V/D186H/S193C/R224E/N233C/S242T/N246D/S282C</code></td>
+<td data-label="Confirmed by">13/13 match <strong>and</strong> all 13 sites read the mutant residue in PDB <code>8H5K</code></td>
+</tr>
+<tr>
+<td data-label="Variant">DepoPETase</td>
+<td data-label="Parent">IsPETase</td>
+<td data-label="Mutations"><code>T88I/D186H/D220N/N233K/N246D/R260Y/S290P</code></td>
+<td data-label="Confirmed by">7/7 match</td>
+</tr>
+<tr>
+<td data-label="Variant">LCC-A2</td>
+<td data-label="Parent">LCC</td>
+<td data-label="Mutations"><code>F243I/D238C/S283C/Y127G/H218Y/N248D</code></td>
+<td data-label="Confirmed by">6/6 match (LCC-ICCG plus H218Y/N248D)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Z1-PETase is confirmed twice over and independently: the mutation list applies cleanly to IsPETase, and the deposited <code>8H5K</code> sequence differs from the derived one only by an <code>SHM</code> expression-tag scar and the signal peptide, with <strong>zero mismatches in the mature region</strong>.</p>
+<p>Three findings from that search are worth recording, because each is a trap rather than a detail:</p>
+<ul>
+<li><strong>TurboPETase's parent is BhrPETase, not IsPETase.</strong> The placeholder entry named the wrong parent. The mutation set does not apply to IsPETase at any offset, so the residue-match check caught it rather than a reviewer.</li>
+<li><strong>BhrPETase has no live UniProtKB entry at all.</strong> The accession PAZy records, <code>A0A2H5Z9R5</code>, is inactive (DEMERGED to <code>A0ACD6B9U1</code>), and <code>A0ACD6B9U1</code> is itself DELETED as "not part of a reference proteome". The parent of a headline industrial enzyme is reachable only through <strong>UniParc <code>UPI000CB4D10C</code></strong>, which never deletes. Its sequence is byte-identical to PAZy's copy and carries an active EMBL WGS cross-reference.</li>
+<li><strong>Do not seed PHL7 from UniProt.</strong> Its only UniProt entry is the <strong>catalysis-deficient S131A mutant</strong> deposited for crystallography: right length, right name, catalytic serine knocked out. The same trap as PDB <code>7CEH</code> (S176A), rejected earlier for Cut190**SS. PHL7's active sequence is already present as a PAZy-measured positive.</li>
+</ul>
+<p>The PES-H1 <code>L92F/Q94Y</code> variant is deliberately not derived, for want of a loadable parent rather than a confirmed set. Confirming it did settle a documented literature discrepancy: the same double mutant is written <code>L92F/Q94Y</code> in PES-H1 numbering and <code>L93F/Q95Y</code> in PHL7 numbering, and <code>find_offset</code> returns +1 and 0 respectively against the same sequence, producing an <strong>identical</strong> result either way.</p>
 <p>Values collated in <a href="https://marcdeller.com/engineering-evolution-how-fast-petase-and-other-variants-are-transforming-plastic-biodegradation/">Engineering Evolution: How FAST-PETase and Other Variants Are Transforming Plastic Biodegradation</a>.</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
@@ -334,7 +384,7 @@
 <tr>
 <td data-label="Variant">TurboPETase</td>
 <td data-label="Topt">65 to 68 °C</td>
-<td data-label="Parent">BhrPETase M6</td>
+<td data-label="Parent">BhrPETase</td>
 <td data-label="Notes">98.2% depolymerisation at 200 g/kg in 8 h</td>
 </tr>
 <tr>
@@ -343,10 +393,22 @@
 <td data-label="Parent">LCC</td>
 <td data-label="Notes">1.3 g PET waste in 3 days from 1.25 mg enzyme</td>
 </tr>
+<tr>
+<td data-label="Variant">DepoPETase</td>
+<td data-label="Topt">~50 °C (applied)</td>
+<td data-label="Parent">IsPETase</td>
+<td data-label="Notes">7 mutations; melting temperature +23.3 °C, ~1407x product</td>
+</tr>
+<tr>
+<td data-label="Variant">LCC-A2</td>
+<td data-label="Topt">78 °C</td>
+<td data-label="Parent">LCC-ICCG</td>
+<td data-label="Notes">LCC-ICCG plus H218Y/N248D</td>
+</tr>
 </tbody>
 </table></div>
 <p><strong>A discrepancy worth stating rather than smoothing over:</strong> UniProt's curated value for IsPETase is 40 °C, while the literature review gives 30 to 35 °C. Both are defensible and they were measured on different substrates under different assays, which is exactly the harmonisation problem the project brief raises. The database keeps the UniProt value because it carries an experimental evidence code and a citation; this table shows both rather than picking a winner.</p>
-<p><strong>Read the two tables together and the shape of the field is obvious.</strong> The entire engineered lineage runs <em>away</em> from body temperature: FAST-PETase to 50 °C, HotPETase to 60 to 65, TurboPETase and LCC-ICCG to 65 to 72. That is rational, because they were optimised for a reactor above PET's glass transition.</p>
+<p><strong>Read the two tables together and the shape of the field is obvious.</strong> The entire engineered lineage runs <em>away</em> from body temperature: FAST-PETase to 50 °C, HotPETase to 60 to 65, TurboPETase and LCC-ICCG to 65 to 72, LCC-A2 to 78. That is rational, because they were optimised for a reactor above PET's glass transition.</p>
 <p>Only three enzymes sit anywhere near 37 °C, and two of them (Z1-PETase, DuraPETase) are engineered variants of IsPETase that reach it by trading away the activity the others gained. <strong>HGMP01 is the only one that arrived there naturally</strong>, and the only measured enzyme in this project with a near-neutral pH optimum as well: everything else wants pH 8 to 9, and even IsPETase asks for 9.</p>
 <p>That is the therapeutic gap, and it is not an argument: it is what the numbers say. It is also the reason the human gut was added as a fourth source environment, since an enzyme resident at 37 °C and pH 7.4 has already been selected under something close to the target conditions.</p>
 <h3>Why HGMP01 matters, and the trap in retrieving it</h3>
@@ -410,7 +472,7 @@
 <p>Every length is distinct, so the assignment is 1:1 with no ambiguity. Independently, the paper states that the homologue search "identified a total of 697 putative HGMP01-like enzymes", and the deposit's HGMP03 returned exactly 697 hits. Two unrelated numbers agreeing is what makes this a determination rather than a guess.</p>
 <p>Every sequence is length-checked against the paper's own table before being stored, and that check immediately caught a transposition between the similar identifiers <code>GUT_GENOME244370_00064</code> and <code>GUT_GENOME244064_00699</code>, which would otherwise have filed the wrong protein as HGMP05 with nothing downstream to reveal it.</p>
 <h2>🚧 Current status</h2>
-<p><strong>Pre-deployment.</strong> The offline pipeline runs end to end from metagenome FASTA to embedded candidates. Nothing is live at <code>pants.mdeller.com</code> yet.</p>
+<p><strong>Live at <a href="https://pants.mdeller.com"><code>pants.mdeller.com</code></a>.</strong> The pipeline runs end to end from metagenome FASTA to folded, geometry-measured candidates, and the catalogue is served behind gunicorn and nginx. <strong>The project reached a conclusion that is not the one it set out to reach — read <a href="FINDINGS.md"><code>FINDINGS.md</code></a> first, then <a href="NEXT.md"><code>NEXT.md</code></a>.</strong></p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
 <tr>
@@ -425,7 +487,7 @@
 </tr>
 <tr>
 <td data-label="Phase">1: Curation, hard negatives, activity data</td>
-<td data-label="State">✅ Complete, gate still MARGINAL</td>
+<td data-label="State">✅ Complete</td>
 </tr>
 <tr>
 <td data-label="Phase">2: Recall (profile HMMs, MMseqs2, HMMER)</td>
@@ -437,15 +499,19 @@
 </tr>
 <tr>
 <td data-label="Phase">5: Activity head, calibration, evaluation</td>
-<td data-label="State">⬜ Next</td>
+<td data-label="State">✅ Complete, and <strong>negative</strong>: a learned head does not beat retrieval on measured labels</td>
 </tr>
 <tr>
 <td data-label="Phase">6: Structures and active-site geometry</td>
-<td data-label="State">⬜ Not started</td>
+<td data-label="State">✅ Complete: 416 of 439 candidates folded, 559 reference structures</td>
 </tr>
 <tr>
 <td data-label="Phase">7 to 8: Web app and deployment</td>
-<td data-label="State">⬜ Not started</td>
+<td data-label="State">✅ Complete: live on port 8005, listed on the mdeller.com launcher</td>
+</tr>
+<tr>
+<td data-label="Phase">9: Measured negatives and the three findings</td>
+<td data-label="State">✅ Complete</td>
 </tr>
 </tbody>
 </table></div>
@@ -462,47 +528,71 @@
 <tr>
 <td data-label="Set"><strong>Candidates</strong></td>
 <td data-label="Count"><strong>439</strong></td>
-<td data-label="Notes">Mined from 14.8M metagenomic proteins across four environments, all triad-complete</td>
+<td data-label="Notes">Mined from 14,804,920 metagenomic proteins across five environments, all triad-complete</td>
 </tr>
 <tr>
-<td data-label="Set">Positives</td>
-<td data-label="Count">846</td>
-<td data-label="Notes">Of which <strong>333 experimentally measured</strong>, the rest predicted (see below)</td>
+<td data-label="Set">Characterised enzymes</td>
+<td data-label="Count">1,348</td>
+<td data-label="Notes">Of which <strong>342 carry a measurement</strong>, the rest annotation</td>
+</tr>
+<tr>
+<td data-label="Set"><strong>Measured negatives</strong></td>
+<td data-label="Count"><strong>150</strong></td>
+<td data-label="Notes">Expressed, assayed, no product released — from two 2025 screens. The class this field usually lacks</td>
 </tr>
 <tr>
 <td data-label="Set">Hard negatives</td>
 <td data-label="Count">131</td>
-<td data-label="Notes">Matched on five axes</td>
-</tr>
-<tr>
-<td data-label="Set">Measured-set head</td>
-<td data-label="Count">AUC <strong>0.976</strong></td>
-<td data-label="Notes">45 independent clusters, against a 0.829 composition baseline</td>
-</tr>
-<tr>
-<td data-label="Set">Near misses</td>
-<td data-label="Count">125</td>
-<td data-label="Notes">ESTHER <code>Cutinase</code> family: the decision boundary</td>
+<td data-label="Notes">Other α/β-hydrolase folds, matched on five axes</td>
 </tr>
 <tr>
 <td data-label="Set">Activity measurements</td>
-<td data-label="Count">48</td>
-<td data-label="Notes">Km, Topt, pH optimum, each citing its PubMed IDs</td>
+<td data-label="Count">2,759</td>
+<td data-label="Notes">2,757 carrying a DOI</td>
 </tr>
 <tr>
-<td data-label="Set">Embeddings</td>
-<td data-label="Count">848</td>
-<td data-label="Notes">ESM-2 t12-35M, 480-dim, frozen</td>
+<td data-label="Set">Reference structures</td>
+<td data-label="Count">559</td>
+<td data-label="Notes">60 crystal, 104 AlphaFold, 395 ESMFold, all superposed onto IsPETase</td>
 </tr>
 <tr>
-<td data-label="Set">Excluded from training</td>
-<td data-label="Count">70</td>
-<td data-label="Notes">Fragments and length outliers, marked not deleted</td>
+<td data-label="Set">Unlabelled homologues</td>
+<td data-label="Count">25,041</td>
+<td data-label="Notes">Held outside the catalogue so they cannot inflate a quoted count</td>
 </tr>
 </tbody>
 </table></div>
+<h3>The headline result</h3>
+<p>Candidates are ranked by <strong>similarity to the nearest enzyme whose PET activity was measured</strong>, not by a learned classifier, because on measured labels no model built here beats that baseline. Every candidate carries a competence band from the measured identity-decay curve:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Band</th>
+<th>Candidates</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Band">In range</td>
+<td data-label="Candidates"><strong>16</strong></td>
+<td data-label="Meaning">≥70% identity to a measured-active enzyme</td>
+</tr>
+<tr>
+<td data-label="Band">Marginal</td>
+<td data-label="Candidates">39</td>
+<td data-label="Meaning">50–70%</td>
+</tr>
+<tr>
+<td data-label="Band">Out of range</td>
+<td data-label="Candidates"><strong>384</strong></td>
+<td data-label="Meaning">&lt;50%, ranked but with no demonstrated validity</td>
+</tr>
+</tbody>
+</table></div>
+<p>The out-of-range candidates are precisely the novel enzymes this project set out to find, and nothing here can score them. That is stated on the site rather than hidden, and the fix is measurement on new lineages — see <a href="release/validation_panel.csv"><code>release/validation_panel.csv</code></a>.</p>
 <h3>Positives by evidence tier</h3>
-<p>The count that matters is not 846 but <strong>333</strong>: the number with a measurement behind the label.</p>
+<p>The count that matters is not 854 but <strong>341</strong>: the number with a measurement behind the label.</p>
 <div class="emd-table-wrap"><table class="emd-data-table">
 <thead>
 <tr>
@@ -550,6 +640,15 @@
 </tbody>
 </table></div>
 <h2>🧪 What Phase 1 found</h2>
+<blockquote>
+<p><strong>Historical record.</strong> Everything in this section was true when it was written and has
+since been superseded. The AUC 0.976 below was measured against negatives meaning "not
+reported active in a database", which cannot distinguish an enzyme assayed and found dead
+from one nobody assayed. When 150 <strong>measured</strong> negatives arrived, that number and the
+conclusions drawn from it did not survive. The section is kept because the reasoning is
+the record of how the project got to where it is — for the current position see
+<a href="FINDINGS.md"><code>FINDINGS.md</code></a>.</p>
+</blockquote>
 <p>Two findings that changed the plan, both surfaced by the pre-training sanity gate rather than by review. Full detail in <a href="PHASE1_FINDINGS.md"><code>PHASE1_FINDINGS.md</code></a>.</p>
 <p><strong>The nine curated positives are one cluster, not nine examples.</strong> They collapse into a single cluster at both 30% and 50% identity, because the engineered variants are 97.6% to 99.3% identical to their parents. Under the project's own evaluation rule (split by cluster, never by sequence) that is one independent example, so no cluster-split evaluation is possible over them and any cross-validation is pure leakage. The first ungrouped trivial baseline returned AUC 0.9996 for exactly that reason. Harvesting the full ESTHER polyesterase family took the positive set to 87 sequences in 11 clusters at 30%, at the cost of those being annotation-only labels.</p>
 <p><strong>The hard negatives were separable on amino-acid composition alone.</strong> Cluster-grouped, a classifier using nothing but 20 amino-acid fractions and length scored AUC 0.954 against a null of 0.495. The coefficients diagnosed it: negatives Leu-rich, positives Ser/Thr/Gly/Pro-rich, which is a <strong>secreted-versus-cytoplasmic</strong> signature rather than polyester chemistry. Every characterised polyesterase is secreted; the negative families were largely intracellular.</p>
@@ -608,9 +707,15 @@
 </tr>
 <tr>
 <td data-label="">With PAZy</td>
-<td data-label="Measured positives"><strong>333</strong></td>
-<td data-label="Clusters at 30%"><strong>51</strong></td>
-<td data-label="Clusters at 50%"><strong>73</strong></td>
+<td data-label="Measured positives">333</td>
+<td data-label="Clusters at 30%">51</td>
+<td data-label="Clusters at 50%">73</td>
+</tr>
+<tr>
+<td data-label="">Plus the confirmed engineered variants</td>
+<td data-label="Measured positives"><strong>341</strong></td>
+<td data-label="Clusters at 30%"><strong>50</strong></td>
+<td data-label="Clusters at 50%"><strong>72</strong></td>
 </tr>
 </tbody>
 </table></div>
@@ -670,6 +775,179 @@
 </tbody>
 </table></div>
 <p>The honest test needs PET-<strong>inactive</strong> members of the polyesterase family, measured and published. Those barely exist, and the reason is structural: <strong>databases record what works.</strong> PAZy lists enzymes because activity was found; nobody systematically publishes "we assayed this polyesterase on PET and it did nothing". The negative class for the question that matters is largely unwritten, which is publication bias rather than a curation gap, and no further database mining will fix it.</p>
+<h3>🎯 The within-family test, run</h3>
+<p>There is one partial way round that, and it has now been run rather than argued about. PAZy curates enzymes measured on <strong>other</strong> plastics too (PA, PUR, PLA, PBAT, PHA). Most are different folds doing different jobs, and including a nylon amidase would be another easy negative. But 26 of them <strong>share a 30% cluster with a PET-active enzyme</strong>, which puts them inside the polyesterase family boundary. That is the closest thing to the missing negative class that exists.</p>
+<p>Running the same head against negatives of increasing closeness, everything else fixed:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Negative regime</th>
+<th>Positives</th>
+<th>Negatives</th>
+<th>Head AUC</th>
+<th>Composition only</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Negative regime">Near-miss (one ESTHER <code>Cutinase</code> family)</td>
+<td data-label="Positives">305</td>
+<td data-label="Negatives">110</td>
+<td data-label="Head AUC">0.997 ± 0.006</td>
+<td data-label="Composition only">0.890</td>
+</tr>
+<tr>
+<td data-label="Negative regime">Out-of-family (distant α/β-hydrolases)</td>
+<td data-label="Positives">305</td>
+<td data-label="Negatives">109</td>
+<td data-label="Head AUC">0.975 ± 0.022</td>
+<td data-label="Composition only">0.906</td>
+</tr>
+<tr>
+<td data-label="Negative regime"><strong>Within-family</strong> (measured on another plastic)</td>
+<td data-label="Positives">305</td>
+<td data-label="Negatives">26</td>
+<td data-label="Head AUC"><strong>0.850 ± 0.055</strong></td>
+<td data-label="Composition only">0.651</td>
+</tr>
+<tr>
+<td data-label="Negative regime"><strong>Within-family, mixed clusters only</strong></td>
+<td data-label="Positives">152</td>
+<td data-label="Negatives">26</td>
+<td data-label="Head AUC"><strong>0.493 ± 0.297</strong></td>
+<td data-label="Composition only">0.398</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Discrimination decays monotonically as the negatives get closer, and collapses to chance at the boundary that matters.</strong> The head beats composition in every regime except the last. In the strictest one, where every negative has a PET-active enzyme inside its own cluster, so family membership carries no information at all, it scores 0.493: a coin flip.</p>
+<p><strong>The conclusion does not depend on where the family boundary is drawn.</strong> "Inside the family" has no single right answer, so the same test was run under three definitions:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Family definition</th>
+<th>Negatives</th>
+<th>Shared clusters</th>
+<th>Head AUC</th>
+<th>Composition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Family definition">Shares a 30% cluster with a PET-active enzyme</td>
+<td data-label="Negatives">26</td>
+<td data-label="Shared clusters">7</td>
+<td data-label="Head AUC">0.493 ± 0.297</td>
+<td data-label="Composition">0.398</td>
+</tr>
+<tr>
+<td data-label="Family definition">Hits the per-cluster profile library (the test recall applies to every candidate)</td>
+<td data-label="Negatives">12</td>
+<td data-label="Shared clusters">3</td>
+<td data-label="Head AUC"><strong>0.279 ± 0.168</strong></td>
+<td data-label="Composition">0.413</td>
+</tr>
+<tr>
+<td data-label="Family definition">Passes both</td>
+<td data-label="Negatives">12</td>
+<td data-label="Shared clusters">3</td>
+<td data-label="Head AUC">0.279 ± 0.168</td>
+<td data-label="Composition">0.413</td>
+</tr>
+</tbody>
+</table></div>
+<p>Under the stricter, profile-based definition the head is not merely at chance but <em>inverted</em>: it ranks the within-family negatives <strong>above</strong> the PET-active enzymes. With 12 negatives across 3 shared clusters that is not evidence of a real inverse signal, and it should not be read as one. What it does do is close off the remaining optimistic reading, because no choice of family boundary produces discrimination.</p>
+<p>A fourth definition was tried and rejected rather than reported: the pooled <code>PLC_all.hmm</code> profile admits only 6 of the 155, and misses proteins literally named <code>Cutinase</code> and <code>CutL1</code>. That is the pooled profile's already-documented failure — it scored 0/111 on the near misses, which is why the per-cluster library exists — and quoting it would have understated the negative set by reproducing a known bug.</p>
+<p><strong>The strictest rows are underpowered, and saying so is part of the result.</strong> One cluster holds 85% of the positives, so the cluster-grouped folds come out badly lopsided, and the per-fold AUCs are 0.193, 0.714, 0.208 and 0.857. A mean of 0.493 across that spread cannot distinguish "no signal" from "not enough data to detect one". What it does rule out is a large, easily-learned signal, which the 0.976 headline might otherwise be read as implying.</p>
+<p>Two caveats travel with these numbers permanently:</p>
+<ul>
+<li><strong>The negatives are weak.</strong> PAZy records only positive substrate associations, so "PET not listed" conflates <em>inactive</em> with <em>never assayed</em>. Some fraction are false negatives, which pushes measured discrimination <strong>down</strong>: the within-family figures are a lower bound, not a point estimate.</li>
+<li><strong>The composition baseline is doing more work than it appears.</strong> It reaches 0.906 against out-of-family negatives. Most of the headline 0.976 is therefore available from amino acid composition alone, and the head's real contribution is the margin above that, not the absolute number.</li>
+</ul>
+<p>The practical conclusion is not that the approach fails, but that <strong>the evaluation is label-limited rather than method-limited</strong>, and the binding constraint is now a few dozen measured within-family negatives rather than any modelling choice.</p>
+<h3>🔬 And the same test on geometry</h3>
+<p>Geometry is the one signal here measured off coordinates rather than inherited from an annotation, so it is the obvious thing to try on the contrast the embeddings failed. AlphaFold models were taken for the characterised enzymes that have them (131 measured: 114 PET-active, 17 within-family negatives) and the active site measured on each. Mean pLDDT is 90.4 against 91.3, so nothing below is a model-confidence artefact.</p>
+<p>Compared directly, several features separate the two groups convincingly:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Feature</th>
+<th>PET-active</th>
+<th>Within-family negatives</th>
+<th>AUC</th>
+<th>p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Feature">Cleft depth (Å)</td>
+<td data-label="PET-active">4.20</td>
+<td data-label="Within-family negatives">3.41</td>
+<td data-label="AUC"><strong>0.819</strong></td>
+<td data-label="p">&lt;0.001</td>
+</tr>
+<tr>
+<td data-label="Feature">Cleft-lining residues</td>
+<td data-label="PET-active">82.9</td>
+<td data-label="Within-family negatives">88.3</td>
+<td data-label="AUC">0.788 *</td>
+<td data-label="p">&lt;0.001</td>
+</tr>
+<tr>
+<td data-label="Feature">Oxyanion donor 2 distance (Å)</td>
+<td data-label="PET-active">4.56</td>
+<td data-label="Within-family negatives">4.95</td>
+<td data-label="AUC">0.742 *</td>
+<td data-label="p">0.001</td>
+</tr>
+<tr>
+<td data-label="Feature">Oxyanion donor 1 distance (Å)</td>
+<td data-label="PET-active">2.97</td>
+<td data-label="Within-family negatives">3.23</td>
+<td data-label="AUC">0.696 *</td>
+<td data-label="p">0.009</td>
+</tr>
+<tr>
+<td data-label="Feature">Cleft width (Å)</td>
+<td data-label="PET-active">19.38</td>
+<td data-label="Within-family negatives">21.78</td>
+<td data-label="AUC">0.686 *</td>
+<td data-label="p">0.014</td>
+</tr>
+<tr>
+<td data-label="Feature">Triad Ser–His (Å)</td>
+<td data-label="PET-active">2.87</td>
+<td data-label="Within-family negatives">2.87</td>
+<td data-label="AUC">0.599</td>
+<td data-label="p">0.190</td>
+</tr>
+</tbody>
+</table></div>
+<p>* inversely predictive: the feature is <em>lower</em> in PET-active enzymes.</p>
+<p>PET-active polyesterases have deeper, narrower clefts with fewer lining residues and a tighter oxyanion hole. That is a physically sensible picture, and three of those p-values survive Bonferroni correction across the nine features tested.</p>
+<p><strong>It does not survive cluster-grouped evaluation.</strong> Trained on all nine features and split by 30% cluster, exactly as every other number in this project:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th></th>
+<th>AUC</th>
+<th>Folds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="">Geometry, cluster-grouped</td>
+<td data-label="AUC"><strong>0.533 ± 0.185</strong></td>
+<td data-label="Folds">0.394 / 0.838 / 0.525 / 0.375</td>
+</tr>
+<tr>
+<td data-label="">Sequence embeddings, same question</td>
+<td data-label="AUC">0.493 ± 0.297</td>
+<td data-label="Folds">—</td>
+</tr>
+</tbody>
+</table></div>
+<p>So the apparent geometric signature is <strong>largely cluster structure</strong>. Within the enzymes to hand, PET-active ones really do have deeper clefts; but which enzymes are PET-active is confounded with which family they belong to, and once a model has to generalise to a cluster it has never seen, the separation goes. Only 8 clusters contain a negative at all and only 4 of those also contain a PET-active enzyme, which is far too thin a base to learn a transferable rule from.</p>
+<p><strong>Both signals fail the same test for the same reason, and it is not the method.</strong> This is the clearest statement of the constraint the project is actually under: raw feature differences that look decisive at p&lt;0.001 collapse under cluster-grouped splitting, which is precisely why that splitting is the rule here and why the composition baseline is reported permanently. The finding is not "geometry does not work" but "geometry cannot be shown to work on 17 negatives spanning 4 shared clusters".</p>
 <p>Three routes that would, in <a href="PHASE1_FINDINGS.md"><code>PHASE1_FINDINGS.md</code></a>: ordinal within-paper rankings, regression on measured rates instead of a binary label, and geometry as an annotation-independent axis.</p>
 <p><strong>A caution about the evidence tiers.</strong> Of the 449 entries carrying EC 3.1.1.101 by automatic annotation, none is a measurement: they hold <code>ECO:0000256</code> (by similarity), not <code>ECO:0000269</code> (experimental). They were briefly labelled "unreviewed", which reads as a curation backlog rather than the substantive difference it is. Sixteen positives have experimental evidence. That is the number the Methods tab will report.</p>
 <h2>🔭 The profile library and the recall run</h2>
@@ -1005,10 +1283,10 @@ cp .env.example .env
 <li>Predicted structures are predictions. Cleft geometry from ESMFold on a metagenomic sequence with no close homologue carries real uncertainty.</li>
 <li>Nothing here addresses delivery, immunogenicity, biodistribution, or what happens to liberated TPA and EG in vivo. Those decide whether any of this is a therapy.</li>
 <li>Metagenomic candidates may come from unculturable organisms, may not express in a standard host, and may be fragments or misassemblies.</li>
-<li>The composition baseline sits at AUC 0.829 on the measured set. The head clears it (0.976), but a model must keep clearing it, and the retrieval baseline, to claim learned discrimination.</li>
-<li>AUC 0.976 is against hard negatives from other α/β-hydrolase families. Ranking PET activity within the polyesterase family is a harder question and is not yet demonstrated.</li>
+<li><strong>A learned head does not beat retrieval on measured labels.</strong> On the hardest contrast the paired lead over nearest-neighbour retrieval is +0.159 [−0.263, +0.390], spanning zero, and eighteen times the language-model parameters changed nothing. The shipped ranking is therefore retrieval, and the earlier AUC 0.976 was measured against an easier negative class.</li>
+<li><strong>Ranking PET activity within the polyesterase family is the question that matters, and it is not solved.</strong> Against 150 measured-inactive polyesterases the head reaches 0.582 ± 0.067 and active-site geometry reaches 0.398 — below chance. The determinants are lineage-specific: the same model fitted inside different families points in unrelated or opposite directions, so a model trained across families learns something that reverses on a family it has not seen.</li>
 <li>Old note, kept: the composition baseline was 0.778 on the earlier annotation-heavy positive set. Until a model clears that as well as the E-value baseline, no claim of learned discrimination is supported.</li>
-<li>Of 846 positives, 333 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.</li>
+<li>Of 854 positives, 341 carry a measurement. The rest are automatic EC annotation or family membership, so any head trained today is trained mostly on predicted labels.</li>
 <li>Everything of interest is packed tightly in embedding space (characterised PET enzymes sit at cosine 0.96 or above to each other, candidates at a median 0.931 to their nearest known enzyme). The head discriminates small differences inside a dense cluster, not well-separated groups.</li>
 </ol>
 <h2>📚 Data sources</h2>
@@ -1067,28 +1345,42 @@ cp .env.example .env
 <li><span class="emd-check">&#9989;</span> <strong>Add the gut microbiome as a fourth source environment.</strong> The three current environments (compost, marine plastisphere, landfill) are all external. A human gut metagenome is the one that matters most for the therapeutic framing: an enzyme already resident at 37 °C, pH 7.4 and in a proteolytic environment has been selected under something close to the target conditions, rather than being asked to work far from its optimum. <strong>HGMP01</strong> is the concrete starting point: it is named in spec section 1, it is metagenome-derived rather than a variant of a characterised parent, and it is currently the one named enzyme the recall stage is expected to recover from sequence space instead of being seeded with. Done: <strong>12,584,458 gut proteins from five MGnify studies</strong>, registered as <code>human_gut</code> and now 71% of the catalogue. <strong>HGMP01 itself could not be seeded</strong>: it returns zero hits in UniProt and in NCBI protein/nuccore, and its paper (PMID 39551294) has no linked sequence records, so the sequence sits in supplementary material. That is not a blocker but an advantage, because the same paper reports HGMP01-like genes as widely distributed across the gut microbiome, so recall finding them <strong>unaided</strong> is a blind test rather than a circular one</li>
 <li><span class="emd-check">&#9989;</span> <strong>Obtained all five HGMP sequences.</strong> No public database holds them (zero hits across UniProt, NCBI protein and nuccore), but the authors deposited them on SciDB. <strong>The paper and the deposit use different numbering</strong>: the paper's HGMP01 to HGMP05 are the deposit's HGMP03, 04, 06, 07 and 08, so matching on name would have mislabelled all five. The mapping is pinned by two independent facts, sequence length (all five distinct, so 1:1) and homologue count (the paper's "697 putative HGMP01-like enzymes" matches the deposit's HGMP03 exactly). <strong>HGMP01 = <code>GUT_GENOME238302_00589</code>, 275 aa, optimum 40 °C at near-neutral pH</strong>: the only measured PET hydrolase in this project whose optimum is close to physiological</li>
 <li><span class="emd-check">&#9989;</span> <strong>Built the ordinal-within-paper fallback, and established why it is the route rather than a fallback.</strong> Before this the database held exactly <strong>one</strong> quantitative value measured on PET; all 21 Km values were on soluble pNP-ester proxies. Attempting the real thing showed why: <strong>PET rates live in figure panels</strong>, not in extractable text or structured deposits, so they cannot be harvested at scale. The brief anticipated this and proposed within-paper ordinal ranking, which now exists as a <code>parameter_type</code> with <code>ordinal_rank_in_paper</code>, seeded from PMID 39551294 (HGMP01 first of five on PET nanoparticles, the other four recorded as equal-second because the paper does not order them). Assay conditions are attached so the comparison is interpretable</li>
-<li><span class="emd-check">&#11036;</span> <strong>Populate ordinal rankings across the PAZy literature.</strong> 312 PAZy entries carry DOIs; papers that assay several enzymes under one protocol rank them, and that ranking is extractable by reading where an absolute rate is not. This is the only route to a training signal that does not need a negative class, which the near-miss finding showed is otherwise unavailable</li>
+<li><span class="emd-check">&#9989;</span> <strong>Got measured within-family negatives — 29 to 156.</strong> The binding constraint, broken by two 2025 screens that assayed panels under one protocol and reported what did NOT work, both with openly deposited source data. <strong>ACS Catalysis 2025</strong> (<a href="https://doi.org/10.1021/acscatal.5c03460">10.1021/acscatal.5c03460</a>): 477 proteins with sequences, 216 assayed, <strong>88 measured inactive</strong> at a stated 0.1% depolymerisation floor, and assayed at <strong>40 °C</strong> as well as 60 °C — almost every optimum in this catalogue sits between 50 and 78 °C and the therapeutic target is 37 °C. <strong>Science 2025</strong> (<a href="https://doi.org/10.1126/science.adp5637">10.1126/science.adp5637</a>, Data S3): 2,064 library entries, 183 assayed, <strong>69 measured inactive</strong> against each entry's <em>own</em> replicate standard deviation — active above 2 SD, inactive at or below 1 SD, and the 12 in between labelled neither way and excluded from training, because those are exactly the enzymes a threshold would be tuned on. The distinction that matters: PAZy's negatives mean "not reported active", which cannot separate tested-and-failed from never-tested; these were expressed, assayed and found not to release product. Measurements went 75 to 2,759 and the catalogue 1,140 to 1,348</li>
+<li><span class="emd-check">&#9989;</span> <strong>Re-ran every evaluation on the measured negatives, and found the constraint was never the count.</strong> Negatives 26 to 149; clusters holding BOTH an active and an inactive enzyme, <strong>7 to 8</strong>. Five times the data bought one independent lineage, because the binding quantity is not how many negatives exist but how many lineages anyone has measured on both sides. On the full measured within-family contrast the head scores <strong>0.648</strong> and amino-acid composition scores <strong>0.644</strong> — no advantage at all over counting residues. Restricted to mixed clusters, the hardest honest test, it reaches <strong>0.625 against composition's 0.519</strong>. The real gain is the error bar: that test previously read 0.435 ± 0.301, an interval that excluded nothing, and now reads <strong>0.625 ± 0.081</strong>. The model did not improve; the experiment became powered enough to give a stable answer, and the answer is a modest signal that is not composition. Also worth recording: adding polyesterase negatives collapsed the composition baseline from 0.803 to <strong>0.565</strong> and retrieval from 0.952 to <strong>0.787</strong>, so the earlier numbers were flattered by an easy negative class, and the head-versus-retrieval gap stayed at zero (−0.009 before, +0.003 now) while both fell</li>
+<li><span class="emd-check">&#9989;</span> <strong>Asked the geometry question of measured labels, and the earlier signal vanished.</strong> Active-site geometry was the one signal here measured off coordinates rather than inherited from an annotation, so it was the obvious thing to re-test. On inferred negatives cleft depth separated PET-active from PET-inactive at <strong>AUC 0.808, p 1.7e-07</strong>, falling to 0.534 cluster-grouped — read at the time as an underpowered evaluation waiting for data. Asked of <strong>237 PET-active against 139 measured-inactive</strong> — the complete folded set, 205 new structures over 23 hours — all ESMFold on both sides so no coordinate-source confound applies, the answer is <strong>AUC 0.398 (0.360–0.453 across ten random splits)</strong>. Below chance, and every split lands there: the relationship the features carry inside training clusters <em>reverses</em> in held-out ones, which is the signature of fitting lineage rather than activity. The trajectory is the strongest part of the evidence — 0.507 at 95 negatives, 0.498 at 125, 0.459 at 139, 0.398 with the positives complete. A real effect emerging from a thin sample strengthens and narrows around a non-null value; moving toward and past chance as the sample grows is a confound being diluted, and that distinction is exactly what let the earlier reading survive as "underpowered" for as long as it did. A coin flip, with an interval finally tight enough to exclude something. Not one of the nine features survives at p&lt;0.01 and cleft depth comes in at <strong>0.529, p 0.38</strong>. That 0.808 was never measuring PET activity; it was measuring whatever separates the enzymes a database happens to list from the ones it does not, and it disappeared the moment the labels came from somebody running the assay. One limit stated with it: only 8 clusters hold both classes, and every structure is a prediction, so if ESMFold idealises the active site — which the paired crystal-versus-model comparison shows it does — a real difference could be flattened by the modelling rather than absent from the enzymes</li>
+<li><span class="emd-check">&#9989;</span> <strong>Found why nothing transfers: the determinants are lineage-specific.</strong> Three independent methods had failed identically — sequence embeddings, a learned head and active-site geometry all work out-of-family and collapse within it — and the usual reading is too little data. This test asks instead whether a global rule can exist at all, and needs no train/test split, so it cannot be leakage in disguise: fit the same model separately inside each of the three lineages large enough to support one, then compare the directions the fits point in. The reference is not zero but an empirical <strong>ceiling</strong> — how well two bootstrap resamples of the <em>same</em> lineage agree, since noisy vectors from an identical process do not agree perfectly either. <strong>Two fits of the same lineage agree at ~+0.70. Two different lineages agree at roughly zero, and in two of three pairs point in OPPOSITE directions</strong> — what predicts activity in one family predicts inactivity in another. The same pattern appears in two feature sets sharing nothing, one from 3D coordinates and one from a language model over sequence. The high ceiling is what makes it a result rather than a shrug: within-lineage directions are well determined, so it is specifically the between-lineage comparison that fails. It also explains the below-chance numbers — a model trained across lineages learns a direction that reverses on an unseen one, which is exactly how geometry reached 0.398 and why an 18x larger language model changed nothing. The problem was never capacity and never only sample size: <strong>there may be no single global rule to learn.</strong> Established on three lineages, so a strong indication rather than a settled law, but the first explanation that accounts for every failure at once</li>
+<li><span class="emd-check">&#9989;</span> <strong>Measured where the signal holds, and concluded the deliverable is retrieval.</strong> With a global rule ruled out, the remaining question is the one a user asks: how close must a candidate be to characterised enzymes before a prediction means anything? Re-clustering inside the 262-member lineage (171 measured-active, 91 measured-inactive) at 95/90/80/70/60/50% identity and holding out whole sub-clusters gives the curve. Read as point estimates it shows an operating band — head <strong>0.703</strong> against retrieval's 0.544 at 70%. <strong>Read with intervals it is not there</strong>: the paired lead, head minus retrieval on the <em>same</em> held-out sub-clusters, is <strong>+0.159 [−0.263, +0.390]</strong>, spanning zero. Seventeen sub-clusters cannot resolve a difference that size, and the curve is not monotonic — amino-acid composition beats both at 80%. One thing survives: at 70% the head's own interval <strong>[0.521, 0.798]</strong> excludes 0.5, so within a lineage among relatives sharing ~70% of their sequence there is weak evidence of better-than-chance discrimination. It simply cannot be shown to beat looking up the nearest known PETase. <strong>So PANTS should ship nearest-neighbour retrieval, not a learned classifier</strong> — simple, untrained, no risk of learning a lineage direction that reverses, and nothing built here beats it on labels somebody measured. A smaller claim than the project set out to make, and the one the evidence supports</li>
+<li><span class="emd-check">&#9989;</span> <strong>Switched candidate ranking to retrieval, with a stated competence range.</strong> Candidates were ranked by HMM bitscore, which says a sequence matches the polyesterase profile — the easy question, answered at AUC 0.98, and not what anyone is here for. They are now ranked by identity to the nearest enzyme whose PET activity was <strong>measured</strong>, which is different from the existing <code>nearest_characterised_id</code>: that field points at the nearest entry in the whole catalogue, usually one carrying an EC number assigned automatically by similarity, so it could rank a candidate highly for resembling something nobody ever assayed. Schema v17 adds <code>nearest_measured_id</code>, <code>nearest_measured_identity</code> and <code>retrieval_band</code>. Every candidate now carries its band, from the identity-decay measurement: <strong>16 in range (≥70%), 39 marginal (50–70%), 384 out of range (&lt;50%)</strong> — ranked, but with no demonstrated validity at that distance. Median identity to a measured-active enzyme is 36.7%. The catalogue states the tension rather than hiding it: ranking by similarity rewards candidates resembling what is already known, which is the opposite of discovery and the bias this project set out to correct. The low-identity candidates are the interesting ones and the ones nothing here can score. That is the state of the evidence, and the fix is measurement on new lineages rather than a cleverer model</li>
+<li><span class="emd-check">&#9989;</span> <strong>Ingested the rest of the Science supplement, and left one file out on purpose.</strong> <strong>S2</strong> (2,064 sequences) is byte-identical to what S3 already supplied — verified all 2,064, then skipped, because ingesting it would create nothing and risk duplicating rows whose counts this project quotes as evidence. <strong>S1</strong> is the 25,411-sequence homologue search space with no activity measured on any of it; 25,041 went into a separate <code>unlabelled_sequences</code> table rather than the catalogue, because nothing there has been characterised and letting it into the table whose totals are quoted would corrupt every count on the site. <strong>S7</strong> gives per-cluster ecology — isolation source, biome, habitat, geography and the temperature the <em>source organism</em> was isolated at, which is not the enzyme's optimum and is stored under a name that says so — kept at cluster level because that is the level it is reported at. 170 clusters stored, 354 catalogued enzymes linked. One result falls straight out: under the paper's own cluster framework <strong>14 clusters hold both a PET-active and a measured-inactive enzyme</strong>, against 8 under our 30% identity clustering, so the shortage of lineages measured on both sides is real under either definition and slightly less severe under theirs</li>
+<li><span class="emd-check">&#9989;</span> <strong>Made the PAZy citations queryable, and found the ordinal route was not needed yet.</strong> Schema v15 lifts the primary DOI out of the free-text notes into a column: 342 enzymes across 88 papers, 31 of which cover more than one enzyme and 285 enzymes (83%) inside such a paper. An access audit over those 31 found 16 papers holding 177 enzymes with machine-readable full text through Europe PMC. The first one opened supplied <strong>absolute rates rather than ranks</strong> — percent depolymerisation under one protocol — which is strictly better than the ordinal signal this item was raised to extract, so ordinal encoding is deferred to the papers that only rank. Twelve papers holding 96 enzymes are not openly reachable, and are recorded as a quantified gap rather than a silent one</li>
 <li><span class="emd-check">&#9989;</span> <strong>Resolved the Cut190 strain ambiguity.</strong> <code>W0TJ64</code>, not <code>C7MVE8</code>. Length could never separate them (both 304 aa), but the crystal structures can: <strong>4WFI, 4WFJ, 4WFK, 5ZNO, 5ZRQ and 5ZRR all cross-reference W0TJ64</strong>, and C7MVE8 has no PDB entry at all. Structural evidence beats a name match, and the seed was right by luck rather than by evidence until now</li>
-<li><span class="emd-check">&#11036;</span> <strong>Confirm the outstanding mutation sets.</strong> DuraPETase, HotPETase, TurboPETase, Z1-PETase and Cut190**SS are recorded without sequences because their complete mutation sets were not confirmed. A partial set yields a wrong sequence, which is worse than an honest gap</li>
+<li><span class="emd-check">&#9989;</span> <strong>Promoted Micpa-PETase and Kutbu-PETase to named enzymes.</strong> Both arrived through the bulk PAZy import as <code>PAZy:270</code> and <code>PAZy:276</code> under PAZy's abbreviations, and every reference view filters on <code>enzyme_id NOT LIKE 'PAZy:%'</code>, so an identifier decided whether a named enzyme with a crystal structure appeared at all. Renamed in place rather than duplicated — a second row with the same sequence would double-count the enzyme in every total on the site — cascading by hand through <code>reference_structures</code>, <code>reference_geometry</code> and <code>activity_measurements</code>, which reference it with <code>ON UPDATE NO ACTION</code>. Both verified against the Science library by exact sequence match before renaming: <strong>Micpa-PETase</strong> (<em>Micromonospora pattaloongensis</em>, PDB 8YTU at 1.34 Å) is the <strong>most active enzyme in that entire screen</strong> at 1,506 µM product release, and <strong>Kutbu-PETase</strong> (<em>Kutzneria buriramensis</em>, PDB 8YTW at 2.65 Å) melts at 88.8 °C</li>
+<li><span class="emd-check">&#9989;</span> <strong>Confirm the outstanding mutation sets.</strong> All five are resolved, and two further variants (DepoPETase, LCC-A2) were found in the same pass. HotPETase and Cut190**SS came from crystal structures; DuraPETase, TurboPETase and Z1-PETase from verified mutation sets, all matching at offset 0. Every engineered variant now carries a sequence, and the whole seed set rebuilds from one command</li>
 <li><span class="emd-check">&#9989;</span> <strong>Choose and acquire the metagenome collections, size-checked first.</strong> 2,220,462 predicted proteins (858 MB) from landfill, marine plastisphere and compost assemblies. Only assemblies carry proteins: MGnify's largest plastisphere study has 357 samples and no protein sequences at all, being 16S amplicon</li>
 <li><span class="emd-check">&#9989;</span> <strong>Build the recall stage.</strong> One profile HMM per 30% cluster, each anchored on UniProt's own Active site annotation, MMseqs2 prefilter then hmmscan and a triad completeness filter. 128 candidates from 2.2M proteins in 24 minutes, with discard counts reported at every step</li>
-<li><span class="emd-check">&#11036;</span> <strong>Detect the oxyanion hole properly.</strong> Currently a weak sequence proxy: the hole is formed by backbone amides, which is a structural property, so the real determination has to wait for the structure stage</li>
+<li><span class="emd-check">&#9989;</span> <strong>Detect the oxyanion hole properly.</strong> The structure stage was already doing it structurally, but <strong>wrongly</strong>: "the two backbone N atoms closest to the serine" returns Met161 and Trp185 on IsPETase, whose published donors are Tyr87 and Met161. Now takes donor 1 by position (the nucleophile elbow) and donor 2 from the sequence-distant oxyanion loop via an N–H direction test, recovering both donors from 6EQE and pinned by three regression tests. Geometry records <em>which</em> residues it identified, since the old output could not have revealed the error</li>
 <li><span class="emd-check">&#9989;</span> <strong>Embed the candidate set.</strong> ESM-2 t12-35M, frozen, CPU, mean-pooled with padding and CLS/EOS excluded. 848 vectors at 480 dimensions in under a minute</li>
 <li><span class="emd-check">&#9989;</span> <strong>Filter fragments and length outliers.</strong> From UniProt's own Fragment flag rather than a length cutoff, plus a 200 to 450 aa window derived from the experimentally evidenced positives. Marked, never deleted, so the catalogue stays complete and the exclusion stays auditable</li>
-<li><span class="emd-check">&#11036;</span> <strong>Train the PET activity head.</strong> PU-corrected loss with the class prior estimated rather than assumed, sensitivity-tested across 1/3/5/10%, then Platt or isotonic calibration</li>
-<li><span class="emd-check">&#11036;</span> <strong>Run the full evaluation protocol.</strong> Cluster splits at 30% and 50%, leave-one-family-out, retrieval baseline, reliability diagrams, prospective holdout by date, and separate reporting for the measured-activity and annotation-only subsets</li>
+<li><span class="emd-check">&#9989;</span> <strong>Train the PET activity head.</strong> Three labelling schemes, cluster-grouped, with the Elkan-Noto class prior estimated (c = 0.645) rather than assumed and swept across 1/3/5/10% on out-of-fold scores. At 30% identity: all-annotated <strong>0.967 ± 0.020</strong>, measured-only <strong>0.921 ± 0.072</strong>, PU <strong>0.782 ± 0.159</strong>. Two things the sweep taught by being wrong first: clipping the prior-adjusted score at 1 collapses everything above the prior into a tie and the ties <em>move</em> the AUC, which made the prior look influential (0.913 to 0.977) when it is invariant by construction; and refitting on the rows being scored returned 1.000 for every prior, memorisation wearing the costume of an invariance check. AUC is now omitted from the sweep on purpose and what the prior genuinely governs is reported instead — how many sequences get <em>called</em> positive, 78% at a 1% prior down to 65% at 10%</li>
+<li><span class="emd-check">&#9989;</span> <strong>Run the full evaluation protocol.</strong> Five of the six components run; the sixth was made to run. <strong>Cluster splits at 30% and 50%</strong>: 0.967 and 0.975 all-annotated, so the threshold is not doing the work. <strong>Leave-one-family-out is degenerate</strong>, and that is the finding rather than a gap — all 13 ESTHER families are wholly positive or wholly negative (Polyesterase-lipase-cutinase 77/0, Cutinase 0/110), so holding one out removes a class and AUC is undefined: in this catalogue the label <em>is</em> family membership. <strong>Prospective holdout</strong> could not use <code>pdb_release_date</code>, which is empty for the entire catalogue, so UniProt first-public dates were fetched for 858 of 890 accessions spanning 1986 to 2026; AUC 0.908 at a 2020 cutoff, reported <strong>UNDERPOWERED</strong> because the test side holds 366 positives and 6 negatives. <strong>Reliability</strong> is saturated: five of eight quantile bins sit at a predicted 1.00, which is what a head that has learned family membership looks like. <strong>The verdict that matters</strong> is against the baselines: composition 0.736, nearest-measured-positive retrieval <strong>0.931</strong>. The all-annotated head clears retrieval by +0.037 and the measured-only head <strong>does not clear it at all (-0.009)</strong>. Trained on labels somebody actually measured, the learned head does not beat looking up the nearest known PETase — which is the same conclusion the sequence and geometry evaluations reached, arrived at a third way</li>
 <li><span class="emd-check">&#9989;</span> <strong>Smoke-test ESMFold before committing to a full run.</strong> Cleared: 8.44 GB model (it bundles ESM-2 3B), 31 min to load, 109 s to fold 290 residues. No Boltz-2 fallback needed. The prediction reproduces IsPETase's crystal active site exactly (S160/D206/H237, Ser-His 2.98 A against 2.94)</li>
 <li><span class="emd-check">&#9989;</span> <strong>Extract active-site geometry, validated on crystal structures first.</strong> The triad is found by geometry rather than sequence position, and recovers the published triads of 6EQE and 4EB0 exactly. Validation caught a brittle cleft-width metric: a hard radius feeding a max meant a 0.4 A shift in one residue halved the answer, scoring IsPETase's own prediction at 11.09 A against its crystal's 20.90 A. Now a percentile over a wider radius, and crystal-to-prediction disagreement fell from 9.81 A to 1.81 A</li>
-<li><span class="emd-check">&#11036;</span> <strong>Establish whether geometry actually tracks PET activity.</strong> The robust metric separates the fungal cutinase from the Polyesterase-lipase-cutinase family by ~7 A, but the family members do not order among themselves by PET activity: IsPETase, the best ambient-temperature degrader of the three, has the narrowest cleft of them. Family-level separation is a much easier task than the one that matters, and only the former is currently demonstrated</li>
-<li><span class="emd-check">&#11036;</span> <strong>Build the v1 tabs.</strong> Home, Catalogue, Candidate and Methods, with Mol* over static mmCIF and Plotly for every chart</li>
+<li><span class="emd-check">&#9989;</span> <strong>Establish whether geometry actually tracks PET activity.</strong> First tested on AlphaFold models of 131 characterised enzymes (114 PET-active, 17 within-family negatives), pLDDT-matched so nothing is a model-confidence artefact. Raw feature differences are convincing and physically sensible (cleft depth AUC 0.819, p&lt;0.001; PET-active enzymes have deeper, narrower clefts with a tighter oxyanion hole), but <strong>cluster-grouped it collapses to 0.533 ± 0.185</strong>, statistically indistinguishable from the sequence head's 0.493. The signature is largely cluster structure. <strong>Re-run on the finished structure set and it reproduces exactly</strong>: 342 enzymes rather than 131, raw cleft depth AUC 0.808, cluster-grouped <strong>0.534 ± 0.173</strong>. A 2.6× larger benchmark changed the conclusion by 0.001, which is the strongest evidence yet that this is label-limited and not method-limited. The binding constraint barely moved: within-family negatives went 17 to 26, in 10 clusters</li>
+<li><span class="emd-check">&#9989;</span> <strong>Found the crystal structures the reference set already had.</strong> The builder had always ordered its sources experimental-first, and the branch had never once fired: the PAZy import records a UniProt accession and leaves <code>pdb_ids_json</code> empty, so all 312 of its enzymes fell through to a model. 12 of 320 structures were experimental because of a missing lookup, not a missing structure. Linking UniProt's cross-references and ranking them (exact sequence match, then fewest differences, then X-ray, then resolution) took it to <strong>60 of 354</strong>, best resolution 0.91 Å. Two traps: comparing sequences anchored at position 1 reported LCC, Cut190 and twenty others as 209-274 differences when they are identical, because the deposit is the mature chain and the stored sequence the precursor — searching the offset took exact matches from 10 to 36; and UniProt cross-references homologues freely, so deposits past 8 differences are refused and 4 enzymes keep the model computed from their own sequence</li>
+<li><span class="emd-check">&#9989;</span> <strong>Established that geometry is not comparable across structure source.</strong> Adding the 55 crystal structures made the activity result <em>worse</em> — cluster-grouped AUC 0.749 on predicted structures alone against 0.553 pooled, with non-overlapping ranges across twenty random split seeds. More data lowering a score is a confound announcing itself. Among enzymes of the same activity class, geometry alone tells a crystal structure from a model at AUC 0.723; and paired <strong>within the same protein</strong> (51 enzymes measured both ways, so no enzyme-selection artefact is possible) the oxyanion hole differs systematically: the second donor's angle is <strong>23.6° in the crystal against 15.6° in the model</strong> (p 1.1e-06), its distance +0.78 Å (p 1.3e-07). Predictions build a tighter, more idealised oxyanion hole than the protein actually has. <strong>Cleft depth is source-invariant</strong> (p 0.072) and is also the strongest activity feature, which is the usable finding: a geometry model must hold the source constant or restrict itself to the features that survive. A third fact closes it off — <strong>all 57 experimental structures are PET-active and not one of the 26 within-family negatives has a deposit</strong>, because nobody crystallises the enzymes that do not work</li>
+<li><span class="emd-check">&#9989;</span> <strong>Build the v1 tabs.</strong> Home, Catalogue, Candidate, Compare and Methods, with 3Dmol.js over static PDB and Plotly for every chart</li>
 <li><span class="emd-check">&#9989;</span> <strong>Superposed interactive structure viewer, first working version.</strong> Verified in a real browser, not assumed: multiple structures load into one Mol* viewport in distinct colours and genuinely overlay, which confirms the pre-superposed-at-write-time design end to end. Two rendering defects remain, both recorded below</li>
-<li><span class="emd-check">&#11036;</span> <strong>Render structures as cartoon rather than wireframe.</strong> Mol* falls back to a line representation, most likely because the mmCIF gemmi writes lacks the polymer and secondary-structure annotation Mol* needs to classify chains. Probably a pipeline-side fix in <code>superpose_onto_reference</code>, not a viewer one</li>
-<li><span class="emd-check">&#11036;</span> <strong>Draw the catalytic triad.</strong> <code>molstar.MolScriptBuilder</code> is not exported by the UMD viewer build, so the selection expression cannot be constructed as written. The code degrades gracefully (structure still loads, triad silently skipped with a console warning) but the highlight, which is the headline requirement, does not yet appear</li>
-<li><span class="emd-check">&#11036;</span> <strong>Design the viewer interaction properly.</strong> Current version is deliberately minimal: pick structures, toggle the reference, reset the camera. How the overlay set is chosen, how the triad is surfaced, whether IsPETase shows as a ghost and whether pLDDT colouring becomes the default are all still open View candidate structures overlaid, interactively, with the catalytic triad highlighted. Promoted to a first-class deliverable because geometry is the only annotation-independent signal here: a user judging a candidate needs to look at it against IsPETase rather than trust a score. Structures are already superposed onto 6EQE at write time so the browser does no alignment, and triad residue numbers are stored per candidate. The interaction itself (how the overlay set is chosen, how the triad is surfaced, whether IsPETase shows as a ghost, whether pLDDT colouring is the default) is deliberately still to be designed</li>
-<li><span class="emd-check">&#11036;</span> <strong>Deploy to <code>pants.mdeller.com</code>.</strong> Mirror AlphaFraud's gunicorn, nginx, systemd and certbot setup on port 8005, then add the entry to the mdeller.com launcher</li>
-<li><span class="emd-check">&#11036;</span> <strong>Measure real droplet headroom before any v2 inference work.</strong> The memory figures in the plan are estimates, not measurements</li>
+<li><span class="emd-check">&#9989;</span> <strong>Render structures as cartoon rather than wireframe.</strong> Root cause found: Mol* fell back to lines because gemmi's mmCIF carries no polymer or secondary-structure annotation, and the UMD build exports only 9 symbols. Moved to 3Dmol.js and now write HELIX/SHEET records computed with biotite's P-SEA <code>annotate_sse</code>, which 3Dmol parses to set <code>atom.ss</code> directly</li>
+<li><span class="emd-check">&#9989;</span> <strong>Draw the catalytic triad.</strong> Resolved by the same move: <code>molstar.MolScriptBuilder</code> is not exported by the UMD viewer build, so the selection expression could never be constructed. 3Dmol selects the triad residues directly</li>
+<li><span class="emd-check">&#9989;</span> <strong>Designed the viewer interaction.</strong> Three of the four open questions are settled and one deliberately is not. <strong>The overlay set</strong>: IsPETase and FAST-PETase shown by default, because a candidate's geometry means nothing beside one reference and one reference cannot show how far a working engineered variant has already moved; plus per-lineage small multiples sharing one camera, paginated at twelve. <strong>The triad</strong>: a transparent yellow surface drawn from the residues geometry measured, never from positions inferred by an alignment, with substitutions in pink and a click reporting the side-chain distance between them. <strong>IsPETase as a ghost</strong>: yes, grey, and every structure superposed onto it at write time so the browser aligns nothing. Sequence panels on every viewer page, click-through in both directions, monomers only, panel captions, and coordinates served under versioned URLs. <strong>Still open: whether pLDDT colouring becomes the default.</strong> It is the honest colouring for a prediction and the wrong one for a crystal structure, and now that 60 of 354 references are experimental the answer differs by panel rather than by page</li>
+<li><span class="emd-check">&#9989;</span> <strong>Deploy to <code>pants.mdeller.com</code>.</strong> Live on port 8005 behind gunicorn, nginx and certbot, with an entry in the mdeller.com launcher. All validation in <code>deploy.sh</code> runs <em>before</em> the first rsync, so a failed deploy cannot leave new code on disk with the service still running the old build. Two droplet-specific fixes landed with it: HTML now carries <code>no-cache</code> so heuristic caching cannot pin stale <code>?v=</code> asset URLs, and the <code>/static/</code> location overrides nginx's stock mime type for <code>.pdb</code> (<code>application/x-pilot</code>, the PalmPilot format), which had silently defeated <code>gzip_types</code> and was sending 100 MB of compressible text uncompressed</li>
+<li><span class="emd-check">&#9989;</span> <strong>Measured real droplet headroom.</strong> Not estimates: <strong>3,915 MB total, 2,498 MB available, and no swap configured</strong>, so an overcommit is a hard OOM kill rather than a slowdown. PANTS' own web service is <strong>58 MB</strong> across two workers. The box carries six applications and the large ones are AlphaFraud (1,294 MB) and chatPDB (608 MB). Disk is 19 GB free of 77 GB. The conclusion for v2: <strong>ESMFold cannot run here at all</strong> — 8.44 GB of weights against 2.5 GB available — and nothing about that is close enough to tune. ESM-2 t12-35M at roughly 150 MB is the only model that fits, which is the same reason the web virtual environment carries no scientific libraries: structures and embeddings are computed offline and served as precomputed files</li>
+<li><span class="emd-check">&#9989;</span> <strong>Tried to build on the sequence head, and stopped on evidence.</strong> Frozen ESM-2 at 35M, 150M and 650M, mean-pooled: size-weighted leave-one-cluster-out AUC 0.562, 0.472, 0.465 against a composition baseline of 0.472. Eighteen times the parameters buys nothing. Two measurement faults found on the way and fixed. The k-fold evaluation reported <code>± 0.000</code> across ten seeds — not stability but only <strong>2 distinct partitions</strong>, because one cluster holds 68% of the data and four folds cannot separate it; switched to leave-one-cluster-out. And the unweighted LOCO mean of <strong>0.625</strong> was an artefact of averaging seven clusters of 2–6 enzymes, where an AUC can only land near 0 or 1, alongside the three real values of 0.443, 0.429 and 0.574; size-weighted it is <strong>0.472</strong>. With three evaluable folds the standard error is ~0.06, so every representation tried sits inside one interval — the differences were never measurable. A ranking objective was assessed as the escape route and rejected on data: only <strong>3</strong> clusters hold two enzymes whose rates differ by more than replicate noise, against 10 for the binary objective, so ranking narrows the base rather than widening it. What would change the verdict is not more enzymes but more <strong>lineages</strong>: roughly 10 enzymes from each of ~15 new 30% clusters under one protocol at 37 °C, about 150 assays, taking evaluable lineages from 3 to ~18 while measuring the therapeutic condition directly</li>
+<li><span class="emd-check">&#9989;</span> <strong>Designed the validation panel that would lift the constraint.</strong> <code>release/validation_panel.csv</code>: <strong>150 assays across 15 new 30%-identity lineages</strong>, one protocol, 37 °C on amorphous PET, taking evaluable lineages from 3 to about 18. Selected by breadth and deliberately <em>not</em> by predicted activity — using the prediction to choose what to measure would select enzymes resembling what is already known, which is the bias the project exists to correct. Members within each lineage are spread by greedy maximum-minimum distance rather than sampled from the centre, so ten near-duplicates do not measure the same enzyme ten times. First cut selected purely by cluster size and produced 140 of somebody else's sequences against 10 of this project's, testing none of the mining that built the catalogue; rebalanced to put PANTS' own novel lineages first, giving <strong>80 PANTS candidates (68 from human gut, the therapeutically relevant environment) and 70 homologues</strong>. Those 80 are precisely the out-of-range candidates nothing here can score, so measuring them adds lineages <em>and</em> asks whether the mining found anything real</li>
+<li><span class="emd-check">&#9989;</span> <strong>Wrote the findings up, and made them un-staleable.</strong> <code>FINDINGS.md</code> is <strong>generated</strong> by <code>scripts/build_findings_document.py</code>, reading every figure from the JSON artefact that produced it — the same discipline applied after a Methods paragraph quoted a superseded AUC for weeks. Structured as claim / evidence / limitation rather than as narrative, because a negative result is only worth anything if a reader can see immediately what would overturn it</li>
+<li><span class="emd-check">&#9989;</span> <strong>Hardened for handover.</strong> <code>NEXT.md</code> documents the state, the one experiment that matters, how to run everything, seven traps that have already cost time in this repo, and three things deliberately not done with the reasons. Five new tests guard the findings against drift by asserting <strong>structure and direction, never exact values</strong> — a test pinning <code>AUC == 0.398</code> would fail the first time anyone legitimately adds data, which trains people to delete tests. 68 tests pass</li>
 <li><span class="emd-check">&#11036;</span> <strong>MHETase pipeline (v2).</strong> Its own seed and negatives: MHETase is Tannase family, so a PETase-seeded profile search cannot reach it</li>
-<li><span class="emd-check">&#9989;</span> <strong>Published the catalogue as a citable dataset.</strong> Zenodo, CC BY 4.0, concept DOI <a href="https://doi.org/10.5281/zenodo.21807353">10.5281/zenodo.21807353</a>, nine files each size-verified on upload. Code licence still to choose</li>
+<li><span class="emd-check">&#9989;</span> <strong>Published the catalogue as a citable dataset.</strong> Zenodo, CC BY 4.0, concept DOI <a href="https://doi.org/10.5281/zenodo.21807353">10.5281/zenodo.21807353</a>, which always resolves to the newest version. <strong>v0.3.0</strong> (<a href="https://doi.org/10.5281/zenodo.21848998">10.5281/zenodo.21848998</a>) carries eighteen files — the catalogue, the structures, and a JSON artefact for every analysis including the three negative results — and v0.2.0 (<a href="https://doi.org/10.5281/zenodo.21827812">10.5281/zenodo.21827812</a>) carried thirteen, each size-verified on upload and every figure in its description traced back to <code>STATS.json</code> before publishing. The description also leads with the negative result rather than burying it. <code>DATASHEET.md</code> is now GENERATED by <code>build_release.py</code> rather than hand-maintained: by v0.2.0 the hand-written one claimed 1,107 reference rows against 1,140, 48 measurements against 75 and 268 structures against 1,188, and still called the release "a snapshot taken before folding finished" months after folding finished</li>
 </ul>
 <h2>📦 Dataset</h2>
 <p>The catalogue is deposited on Zenodo under CC BY 4.0: candidates with their retrieval scores and active-site geometry, the reference set split by evidence tier, the measured activity data with its citations, every pipeline run with its discard counts, and the predicted structures.</p>
@@ -1114,8 +1406,9 @@ cp .env.example .env
 <p>Every figure in the deposit's description and datasheet was <strong>recomputed from the deposited files</strong> by <code>scripts/build_release.py</code> rather than copied from this README. That is deliberate: on a sibling project six figures reached a Zenodo description by being copied from prose describing a checkpoint that was measured but never shipped, and a DOI would have made them permanent.</p>
 <p><strong>Cite as:</strong> Deller, M. C. (2026). <em>PANTS: a triaged catalogue of candidate PET-degrading enzymes for therapeutic conditions</em>. Version 0.1.0. Zenodo. https://doi.org/10.5281/zenodo.21807353</p>
 <h2>📝 Licence</h2>
-<p><strong>Data:</strong> CC BY 4.0, via the Zenodo deposit above.</p>
-<p><strong>Code:</strong> not yet chosen. Attributing PANTS does not discharge the obligation to the sources it derives from: UniProt and UniRef (CC BY 4.0), the PDB (CC0), PAZy, ESTHER and MGnify, each of which carries its own terms.</p>
+<p><strong>Data:</strong> Creative Commons Attribution 4.0 International, see <a href="LICENSE-DATA"><code>LICENSE-DATA</code></a>, and via the Zenodo deposit above.</p>
+<p><strong>Code:</strong> MIT, see <a href="LICENSE"><code>LICENSE</code></a>.</p>
+<p>Attributing PANTS does not discharge the obligation to the sources it derives from: UniProt and UniRef (CC BY 4.0), the PDB (CC0), AlphaFold DB (CC BY 4.0), PAZy, ESTHER and MGnify, each of which carries its own terms.</p>
 <hr>
 <h2>👤 Author</h2>
 <p><strong>Marc C. Deller, D.Phil.</strong><br>
