@@ -280,6 +280,55 @@
 </div>
 
 <div class="md-card" style="margin-top:16px">
+  <h2>Where the signal holds, and what to ship instead</h2>
+  <p class="muted">With a global rule ruled out, one question remains and it is the one a user
+  would actually ask: given a candidate resembling enzymes we have characterised, <strong>how
+  close does it have to be before the prediction means anything?</strong> The 262-member lineage
+  — 171 measured-active, 91 measured-inactive — is the only place with enough data to answer.
+  Re-cluster inside it at successively stricter identities, hold out whole sub-clusters, and
+  read where the curve meets chance.</p>
+
+  <div class="tbl-wrap" style="margin-top:12px">
+  <table class="data">
+    <thead><tr><th>Identity</th><th class="num">Sub-clusters scored</th><th class="num">Head</th>
+      <th class="num">Retrieval</th><th class="num">Composition</th>
+      <th class="num">Head − retrieval, paired</th></tr></thead>
+    <tbody>
+      <tr><td>95%</td><td class="num">4</td><td class="num">0.500</td><td class="num">0.500</td>
+        <td class="num">0.750</td><td class="num muted">too few to score</td></tr>
+      <tr><td>80%</td><td class="num">15</td><td class="num">0.561</td><td class="num">0.550</td>
+        <td class="num">0.615</td><td class="num">+0.011 [−0.288, +0.285]</td></tr>
+      <tr class="therapeutic"><td>70%</td><td class="num">17</td><td class="num">0.703</td>
+        <td class="num">0.544</td><td class="num">0.625</td>
+        <td class="num">+0.159 [−0.263, +0.390]</td></tr>
+      <tr><td>60%</td><td class="num">12</td><td class="num">0.684</td><td class="num">0.624</td>
+        <td class="num">0.612</td><td class="num">+0.060 [−0.223, +0.436]</td></tr>
+      <tr><td>50%</td><td class="num">5</td><td class="num">0.550</td><td class="num">0.518</td>
+        <td class="num">0.577</td><td class="num muted">too few to score</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="muted" style="margin-top:10px">Read the point estimates alone and there is an
+  operating band: 0.703 against retrieval's 0.544 at 70% identity. <strong>Read the intervals
+  and it is not there.</strong> The paired lead — head minus retrieval on the <em>same</em>
+  held-out sub-clusters — is <strong>+0.159 [−0.263, +0.390]</strong>, spanning zero. Seventeen
+  sub-clusters cannot resolve a difference that size, and the curve is not even monotonic:
+  amino-acid composition beats both at 80%.</p>
+
+  <p class="muted">One thing does survive. At 70% identity the head's own interval,
+  <strong>[0.521, 0.798]</strong>, excludes 0.5 — so <em>within</em> a lineage, among relatives
+  sharing about 70% of their sequence, there is weak evidence of better-than-chance
+  discrimination. It just cannot be shown to beat looking up the nearest known PETase.</p>
+
+  <p class="muted"><strong>So the honest deliverable is retrieval, not a classifier.</strong>
+  Nearest-neighbour similarity to a measured-active enzyme is simple, needs no training, carries
+  no risk of learning a lineage direction that reverses, and nothing built here has been shown to
+  beat it on labels somebody measured. That is a smaller claim than this project set out to make
+  and it is the one the evidence supports.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
   <h2>Positives by evidence tier</h2>
   <div class="tbl-wrap"><table class="data">
     <thead><tr><th>Tier</th><th class="num">n</th></tr></thead>
