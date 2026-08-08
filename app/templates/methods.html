@@ -227,6 +227,59 @@
 </div>
 
 <div class="md-card" style="margin-top:16px">
+  <h2>Why none of it transfers: the determinants are lineage-specific</h2>
+  <p class="muted">Three independent methods had failed the same way — sequence embeddings,
+  a learned head, and active-site geometry all worked out-of-family and collapsed within it.
+  The usual reading of that is too little data. This test asks a different question, and it
+  needs no train/test split at all, so it cannot be leakage in disguise.</p>
+
+  <p class="muted">Fit the same model separately <em>inside</em> each of the three lineages
+  large enough to support it, then compare the directions the fits point in. A single global
+  rule for what makes a PETase can only exist if those directions broadly agree.</p>
+
+  <p class="muted">The comparison needs its own reference, and that is the part that makes it
+  a test rather than a number. A cosine similarity of 0.3 between two coefficient vectors
+  means nothing on its own, because with a few dozen enzymes the vectors are noisy and even
+  two samples of an <em>identical</em> process would not agree perfectly. So the reference is
+  not zero: it is how well two bootstrap resamples of the <strong>same</strong> lineage agree
+  with each other — an empirical ceiling on what agreement looks like when the true direction
+  is the same by construction.</p>
+
+  {% if lineage %}
+  <div class="tbl-wrap" style="margin-top:12px">
+  <table class="data">
+    <thead><tr><th>Features</th><th class="num">Same lineage<br><span class="muted">the ceiling</span></th>
+      <th class="num">Different lineages</th><th class="num">Pairs pointing<br>opposite ways</th></tr></thead>
+    <tbody>
+      <tr><td>Active-site geometry <span class="muted">9 features</span></td>
+        <td class="num">+0.727</td><td class="num">−0.318 to +0.336</td><td class="num">2 of 3</td></tr>
+      <tr><td>ESM-2 embeddings <span class="muted">20 components</span></td>
+        <td class="num">+0.696</td><td class="num">−0.086 to +0.225</td><td class="num">2 of 3</td></tr>
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+
+  <p class="muted" style="margin-top:10px">Two fits of the same lineage agree at about
+  <strong>+0.70</strong>. Two different lineages agree at <strong>roughly zero</strong>, and in
+  two of three pairs they point in <em>opposite</em> directions — what predicts activity in one
+  family predicts inactivity in another. The same pattern appears in two feature sets that share
+  nothing: one derived from 3D coordinates, one from a language model over sequence.</p>
+
+  <p class="muted">That the ceiling is high is what makes this a result rather than a shrug. The
+  within-lineage directions are well determined; it is specifically the comparison
+  <em>between</em> lineages that fails, so this is not the test being too noisy to answer.</p>
+
+  <p class="muted"><strong>It also explains the below-chance results.</strong> A model trained
+  across lineages learns a direction that reverses on a lineage it has not seen, which is
+  exactly how geometry reached 0.398 and why an eighteen-fold larger language model changed
+  nothing. The problem was never capacity, and it was never only sample size: <strong>there may
+  be no single global rule to learn.</strong> Established on three lineages, so it is a strong
+  indication rather than a settled law — but it is the first explanation offered here that
+  accounts for every failure at once.</p>
+</div>
+
+<div class="md-card" style="margin-top:16px">
   <h2>Positives by evidence tier</h2>
   <div class="tbl-wrap"><table class="data">
     <thead><tr><th>Tier</th><th class="num">n</th></tr></thead>

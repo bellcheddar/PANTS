@@ -546,7 +546,8 @@ def methods():
     return render_template("methods.html", active="methods", runs=runs, tiers=tiers,
                            training=training, sources=sources, manifests=manifests,
                            counts={**_counts(), **_negative_counts()},
-                           protocol=_protocol(), geom=_geometry_measured())
+                           protocol=_protocol(), geom=_geometry_measured(),
+                           lineage=_lineage_determinants())
 
 
 def _negative_counts() -> Dict[str, int]:
@@ -561,6 +562,17 @@ def _negative_counts() -> Dict[str, int]:
                 "WHERE within_family_basis IS NOT NULL "
                 "  AND within_family_basis!='measured-inactive'").fetchone()[0],
         }
+
+
+def _lineage_determinants() -> Dict[str, Any]:
+    """The go/no-go test on whether lineages agree about what makes a PETase."""
+    for path in (config.ROOT_DIR / "release" / "p0_lineage_determinants.json",
+                 config.INTERIM_DIR / "p0_lineage_determinants.json"):
+        try:
+            return json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+    return {}
 
 
 def _geometry_measured() -> Dict[str, Any]:
